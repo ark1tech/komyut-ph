@@ -1,60 +1,21 @@
 <script lang="ts">
-	import welcomeFallback from '$lib/images/svelte-welcome.png';
-	import welcome from '$lib/images/svelte-welcome.webp';
-
-	import Counter from './Counter.svelte';
 </script>
 
 <svelte:head>
-	<title>Home</title>
-	<meta name="description" content="Svelte demo app" />
+	<title>Komyut PH</title>
+	<meta name="description" content="Your commute companion for the Philippines" />
 </svelte:head>
 
-<section>
-	<h1>
-		<span class="welcome">
-			<picture>
-				<source srcset={welcome} type="image/webp" />
-				<img src={welcomeFallback} alt="Welcome" />
-			</picture>
-		</span>
+<div class="mx-auto w-full max-w-7xl px-4 py-fluid-lg md:px-6">
 
-		to your new<br />SvelteKit app
-	</h1>
+	<section aria-label="Welcome">
+		<h1>Komyut PH</h1>
+		<p class="mt-2 max-w-prose text-muted-foreground">
+			Start building your page here. Edit
+			<code class="rounded bg-muted px-1.5 py-0.5 font-mono text-sm"
+				>src/routes/+page.svelte</code
+			> to replace this content.
+		</p>
+	</section>
 
-	<h2>
-		try editing <strong>src/routes/+page.svelte</strong>
-	</h2>
-
-	<Counter />
-</section>
-
-<style>
-	section {
-		display: flex;
-		flex-direction: column;
-		justify-content: center;
-		align-items: center;
-		flex: 0.6;
-	}
-
-	h1 {
-		width: 100%;
-	}
-
-	.welcome {
-		display: block;
-		position: relative;
-		width: 100%;
-		height: 0;
-		padding: 0 0 calc(100% * 495 / 2048) 0;
-	}
-
-	.welcome img {
-		position: absolute;
-		width: 100%;
-		height: 100%;
-		top: 0;
-		display: block;
-	}
-</style>
+</div>
