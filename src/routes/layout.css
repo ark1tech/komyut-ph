@@ -1,10 +1,13 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Plus+Jakarta+Sans:wght@200..800&display=swap');
+
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
 @custom-variant dark (&:is(.dark *));
 
 :root {
+
+	/* shadcn ui colors */
 	--radius: 0.625rem;
 	--background: oklch(1 0 0);
 	--foreground: oklch(0.129 0.042 264.695);
@@ -38,7 +41,14 @@
 	--sidebar-border: oklch(0.929 0.013 255.508);
 	--sidebar-ring: oklch(0.704 0.04 256.788);
 
-	/* Brand Colors (Light Mode) */
+	/* our brand colors (light mode) */
+
+	/* e.g.:
+		*   <div class="bg-brand text-brand-foreground">Brand CTA</div>
+		*   <span class="text-success">On time</span>
+		*   <span class="text-warning">Delayed</span> 
+	*/
+
 	--brand: oklch(0.55 0.2 250);
 	--brand-foreground: oklch(0.98 0 0);
 	--success: oklch(0.62 0.19 145);
@@ -50,6 +60,8 @@
 }
 
 .dark {
+
+	/* shadcn ui colors (dark mode) */
 	--background: oklch(0.129 0.042 264.695);
 	--foreground: oklch(0.984 0.003 247.858);
 	--card: oklch(0.208 0.042 265.755);
@@ -82,7 +94,7 @@
 	--sidebar-border: oklch(1 0 0 / 10%);
 	--sidebar-ring: oklch(0.551 0.027 264.364);
 
-	/* Brand Colors (Dark Mode) */
+	/* our brand colors (dark mode) */
 	--brand: oklch(0.65 0.2 250);
 	--brand-foreground: oklch(0.15 0.04 250);
 	--success: oklch(0.7 0.19 145);
@@ -93,6 +105,12 @@
 	--info-foreground: oklch(0.15 0.04 240);
 }
 
+/* 
+ * equivalent tailwind classes to use them:
+ *   --color-primary: var(--primary)  →  bg-primary, text-primary, border-primary
+ *   --radius-lg: var(--radius)       →  rounded-lg
+ *   ... and so on
+*/
 
 @theme inline {
 	--radius-sm: calc(var(--radius) - 4px);
@@ -131,7 +149,7 @@
 	--color-sidebar-border: var(--sidebar-border);
 	--color-sidebar-ring: var(--sidebar-ring);
 
-	/* Brand Color Utilities */
+	/* brand color utilities */
 	--color-brand: var(--brand);
 	--color-brand-foreground: var(--brand-foreground);
 	--color-success: var(--success);
@@ -143,30 +161,54 @@
 }
 
 @theme {
-	/* Font Families */
+	/* font families */
 	--font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
 	--font-display: 'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif;
 	--font-mono: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, monospace;
 
-	/* Fluid Typography Scale */
-	--text-fluid-xs: clamp(0.75rem, 0.7rem + 0.25vw, 0.875rem);
-	--text-fluid-sm: clamp(0.875rem, 0.8rem + 0.375vw, 1rem);
-	--text-fluid-base: clamp(1rem, 0.9rem + 0.5vw, 1.125rem);
-	--text-fluid-lg: clamp(1.125rem, 1rem + 0.625vw, 1.25rem);
-	--text-fluid-xl: clamp(1.25rem, 1rem + 1.25vw, 1.5rem);
-	--text-fluid-2xl: clamp(1.5rem, 1.1rem + 2vw, 2rem);
-	--text-fluid-3xl: clamp(1.875rem, 1.2rem + 3.375vw, 2.5rem);
-	--text-fluid-4xl: clamp(2.25rem, 1rem + 6.25vw, 3.5rem);
-	--text-fluid-5xl: clamp(3rem, 1rem + 10vw, 5rem);
-
-	/* Fluid Spacing Scale */
-	--spacing-fluid-xs: clamp(0.25rem, 0.2rem + 0.25vw, 0.5rem);
-	--spacing-fluid-sm: clamp(0.5rem, 0.4rem + 0.5vw, 1rem);
-	--spacing-fluid-md: clamp(1rem, 0.75rem + 1.25vw, 2rem);
-	--spacing-fluid-lg: clamp(1.5rem, 1rem + 2.5vw, 3rem);
-	--spacing-fluid-xl: clamp(2rem, 1.25rem + 3.75vw, 4rem);
-	--spacing-fluid-2xl: clamp(3rem, 1.5rem + 7.5vw, 6rem);
-	--spacing-fluid-section: clamp(4rem, 2rem + 10vw, 8rem);
+	/* responsive typography
+   * uses CSS clamp() to smoothly scale font sizes between viewports.
+   * formula: clamp(minimum, preferred, maximum)
+   *   - min:       Smallest size (at ~320px viewport)
+   *   - preferred: Fluid middle (rem + vw for smooth scaling)
+   *   - max:       Largest size (at ~1280px+ viewport)
+   *
+   * the rem component ensures zoom preferences are respected (WCAG).
+   *
+   * e.g.:
+   *   <h1 class="text-fluid-4xl">Hero heading</h1>
+   *   <h2 class="text-fluid-2xl">Section heading</h2>
+   *   <p class="text-fluid-base">Body paragraph</p>
+   *   <span class="text-fluid-sm">Caption text</span>
+   *
+   * customization: adjust min/max value */
+	 --text-fluid-xs: clamp(0.75rem, 0.7rem + 0.25vw, 0.875rem);
+	 --text-fluid-sm: clamp(0.875rem, 0.8rem + 0.375vw, 1rem);
+	 --text-fluid-base: clamp(1rem, 0.9rem + 0.5vw, 1.125rem);
+	 --text-fluid-lg: clamp(1.125rem, 1rem + 0.625vw, 1.25rem);
+	 --text-fluid-xl: clamp(1.25rem, 1rem + 1.25vw, 1.5rem);
+	 --text-fluid-2xl: clamp(1.5rem, 1.1rem + 2vw, 2rem);
+	 --text-fluid-3xl: clamp(1.875rem, 1.2rem + 3.375vw, 2.5rem);
+	 --text-fluid-4xl: clamp(2.25rem, 1rem + 6.25vw, 3.5rem);
+	 --text-fluid-5xl: clamp(3rem, 1rem + 10vw, 5rem);
+ 
+	 /* responsive spacing
+		* works with ALL spacing utilities: p-*, m-*, gap-*, w-*, h-*, etc.
+		*
+		* e.g.:
+		*   <section class="py-fluid-section px-fluid-md">...</section>
+		*   <div class="grid gap-fluid-md">...</div>
+		*   <div class="mt-fluid-lg mb-fluid-sm">...</div>
+		*
+		* customization: adjust the clamp() min/max values to control
+		* how much spacing grows between mobile and desktop. */
+	 --spacing-fluid-xs: clamp(0.25rem, 0.2rem + 0.25vw, 0.5rem);
+	 --spacing-fluid-sm: clamp(0.5rem, 0.4rem + 0.5vw, 1rem);
+	 --spacing-fluid-md: clamp(1rem, 0.75rem + 1.25vw, 2rem);
+	 --spacing-fluid-lg: clamp(1.5rem, 1rem + 2.5vw, 3rem);
+	 --spacing-fluid-xl: clamp(2rem, 1.25rem + 3.75vw, 4rem);
+	 --spacing-fluid-2xl: clamp(3rem, 1.5rem + 7.5vw, 6rem);
+	 --spacing-fluid-section: clamp(4rem, 2rem + 10vw, 8rem);
 
 }
 
@@ -215,7 +257,7 @@
 		@apply bg-background font-sans text-foreground antialiased;
 	}
 
-	/* Typography Defaults */
+	/* typography defaults */
 
 	h1 {
 		@apply font-display text-fluid-4xl leading-tight font-bold tracking-tight;
@@ -239,13 +281,13 @@
 		@apply text-fluid-base leading-relaxed;
 	}
 
-	/* Focus Styles */
+	/* focus styles */
 
 	:focus-visible {
 		@apply ring-2 ring-ring ring-offset-2 ring-offset-background outline-none;
 	}
 
-	/* Selection Color */
+	/* selection color */
 
 	::selection {
 		@apply bg-primary/20 text-foreground;
