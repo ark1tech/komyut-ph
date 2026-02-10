@@ -54,7 +54,7 @@
 	<title>Profile • Komyut PH</title>
 </svelte:head>
 
-<div class="flex min-h-screen flex-col bg-background">
+<div class="mx-auto w-full max-w-7xl px-4 py-fluid-lg md:px-6">
 	<!-- Profile Header with Blue Background -->
 	<div class="bg-brand px-4 pb-8 pt-safe-area-pt">
 		<!-- Top Status Bar Area -->
