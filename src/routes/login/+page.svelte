@@ -1,4 +1,15 @@
 <script lang="ts">
+	import iconBlue from '$lib/images/komyut_icon_blue.svg';
+	import textBlue from '$lib/images/komyut_text_blue.svg';
+	import { goto } from '$app/navigation';
+
+	function onc() {
+		console.log("Login button clicked");
+
+		// TODO: no input validation yet, this is just a simple
+		// redirect to the map page
+		goto('/map');
+	}
 </script>
 
 <svelte:head>
@@ -8,14 +19,25 @@
 
 <div class="mx-auto w-full max-w-7xl px-4 py-fluid-lg md:px-6">
 
-	<section aria-label="Welcome">
-		<h1>Login</h1>
-		<p class="mt-2 max-w-prose text-muted-foreground">
-			Start building your page here. Edit
-			<code class="rounded bg-muted px-1.5 py-0.5 font-mono text-sm"
-				>src/routes/login/+page.svelte</code
-			> to replace this content.
-		</p>
+	<section aria-label="Logo" class="mt-4">
+		<div class="flex flex-col gap-2 justify-center text-center">
+			<img src={iconBlue} class="w-[40%] mx-auto" alt="Komyut Logo (Blue)" />
+			<img src={textBlue} class="w-[50%] mx-auto" alt="Komyut Text (Blue)" />
+			<p class="text-center">Ang Komyut ng Komyuniti</p>
+		</div>
+	</section>
+
+	<section class="flex flex-col mt-12">
+		<form class="w-[85%] mx-auto flex flex-col gap-6">
+			<input name="email" type="email" placeholder="Email" class="rounded-xl border-1 border-solid py-3 px-4" />
+			<input name="password" type="password" placeholder="Password" class="rounded-xl border-1 border-solid py-3 px-4" />
+		</form>
+
+		<!-- TODO: yung brand color sa styles is different from the logo so hardcoded lang muna bg color here -->
+		 <!-- also, since wala pa input validation I put the button outside the form element para instant redirect na muna to map page for testing -->
+		<button aria-label="Login button" onclick={onc} class="font-bold text-white bg-[#2b59ff] rounded-xl mt-6 py-3 px-4">Log In</button>
+
+		<button class="underline underline-offset-4 text-muted-foreground mt-4">Create Account</button>
 	</section>
 
 </div>
