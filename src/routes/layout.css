@@ -249,6 +249,10 @@
 }
 
 
+.debug {
+	border: 1px solid red;
+}
+
 @layer base {
 	* {
 		@apply border-border outline-ring/50;

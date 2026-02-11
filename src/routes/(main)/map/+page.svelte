@@ -6,7 +6,7 @@
 	<meta name="description" content="Your commute companion for the Philippines" />
 </svelte:head>
 
-<div class="mx-auto w-full max-w-7xl px-4 py-fluid-lg md:px-6">
+<div class="mx-auto h-dvh max-w-7xl px-4 py-fluid-lg md:px-6">
 
 	<section aria-label="Welcome">
 		<h1>Map</h1>
