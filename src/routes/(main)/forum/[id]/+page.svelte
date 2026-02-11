@@ -53,7 +53,7 @@
 		>
 			<ArrowLeft class="size-5" />
 		</a>
-		<span class="text-sm font-medium text-foreground">Post</span>
+		<span class="text-m font-medium text-foreground">Post</span>
 	</div>
 
 	<!-- post -->
