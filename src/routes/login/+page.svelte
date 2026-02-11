@@ -29,8 +29,8 @@
 
 	<section class="flex flex-col mt-12">
 		<form class="w-[85%] mx-auto flex flex-col gap-6">
-			<input name="email" type="email" placeholder="Email" class="rounded-xl border-1 border-solid py-3 px-4" />
-			<input name="password" type="password" placeholder="Password" class="rounded-xl border-1 border-solid py-3 px-4" />
+			<input name="email" type="email" placeholder="Email" class="rounded-xl border border-solid py-3 px-4" />
+			<input name="password" type="password" placeholder="Password" class="rounded-xl border border-solid py-3 px-4" />
 		</form>
 
 		<!-- TODO: yung brand color sa styles is different from the logo so hardcoded lang muna bg color here -->
