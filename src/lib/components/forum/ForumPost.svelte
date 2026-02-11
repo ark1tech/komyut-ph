@@ -8,18 +8,15 @@
 		Flag
 	} from '@lucide/svelte';
 	import type { Post } from '$lib/data/mock_posts';
-	import type { Comment } from '$lib/data/mock_comments';
-	import ForumComment from './ForumComment.svelte';
 
 	interface Props {
 		post: Post;
-		comments?: Comment[];
+		commentCount?: number;
 	}
 
-	let { post, comments = [] }: Props = $props();
+	let { post, commentCount = 0 }: Props = $props();
 
 	let showMenu = $state(false);
-	let showComments = $state(false);
 	let voted = $state<'up' | 'down' | null>(null);
 
 	let score = $derived(
@@ -53,9 +50,11 @@
 		<span>{timeAgo(post.created_at)}</span>
 	</div>
 
-	<!-- content -->
-	<h3 class="mt-2 text-sm font-semibold leading-snug text-foreground">{post.title}</h3>
-	<p class="mt-1 line-clamp-3 text-sm leading-relaxed text-muted-foreground">{post.body}</p>
+	<!-- clickable content area links to detail page -->
+	<a href="/forum/{post.post_id}" class="mt-2 block">
+		<h3 class="text-sm font-semibold leading-snug text-foreground">{post.title}</h3>
+		<p class="mt-1 line-clamp-3 text-sm leading-relaxed text-muted-foreground">{post.body}</p>
+	</a>
 
 	<!-- actions -->
 	<div class="mt-3 flex items-center gap-1">
@@ -80,15 +79,14 @@
 			</button>
 		</div>
 
-		<!-- comment toggle -->
-		<button
-			type="button"
-			onclick={() => (showComments = !showComments)}
+		<!-- comment link -->
+		<a
+			href="/forum/{post.post_id}"
 			class="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
 		>
 			<MessageCircle class="size-4" />
-			{comments.length}
-		</button>
+			{commentCount}
+		</a>
 
 		<!-- share -->
 		<button
@@ -112,7 +110,6 @@
 			</button>
 
 			{#if showMenu}
-				<!-- backdrop to close menu -->
 				<button
 					type="button"
 					class="fixed inset-0 z-40"
@@ -132,13 +129,4 @@
 			{/if}
 		</div>
 	</div>
-
-	<!-- comments section -->
-	{#if showComments && comments.length > 0}
-		<div class="mt-3 space-y-2 border-t border-border pt-3">
-			{#each comments as comment (comment.comment_id)}
-				<ForumComment {comment} />
-			{/each}
-		</div>
-	{/if}
 </article>

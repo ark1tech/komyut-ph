@@ -4,9 +4,8 @@
 	import { mockPosts } from '$lib/data/mock_posts';
 	import { mockComments } from '$lib/data/mock_comments';
 
-	// group comments by post
-	function commentsFor(postId: number) {
-		return mockComments.filter((c) => c.parent_id === postId);
+	function commentCountFor(postId: number) {
+		return mockComments.filter((c) => c.parent_id === postId).length;
 	}
 </script>
 
@@ -24,7 +23,7 @@
 	<!-- feed -->
 	<div class="mt-2 space-y-3">
 		{#each mockPosts as post (post.post_id)}
-			<ForumPost {post} comments={commentsFor(post.post_id)} />
+			<ForumPost {post} commentCount={commentCountFor(post.post_id)} />
 		{/each}
 	</div>
 </div>
