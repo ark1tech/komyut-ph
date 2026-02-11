@@ -17,7 +17,7 @@
 	<meta name="description" content="Your commute companion for the Philippines" />
 </svelte:head>
 
-<div class="mx-auto w-full max-w-7xl px-4 py-fluid-lg md:px-6">
+<div class="mx-auto max-w-7xl px-4 py-fluid-lg md:px-6">
 
 	<section aria-label="Logo" class="mt-4">
 		<div class="flex flex-col gap-2 justify-center text-center">

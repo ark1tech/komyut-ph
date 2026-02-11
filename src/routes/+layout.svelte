@@ -4,7 +4,7 @@
 </script>
 
 <div class="flex min-h-dvh flex-col bg-background text-foreground">
-	<main>
+	<main class="flex-1">
 		{@render children()}
 	</main>
 </div>

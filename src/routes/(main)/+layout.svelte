@@ -11,7 +11,7 @@
 	];
 </script>
 
-<div class="flex min-h-dvh flex-col bg-background">
+<div class="flex flex-1 flex-col">
 	<main class="flex-1 overflow-y-auto pb-16">
 		{@render children()}
 	</main>
