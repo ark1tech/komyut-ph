@@ -17,29 +17,42 @@
 	<meta name="description" content="Your commute companion for the Philippines" />
 </svelte:head>
 
-<div class="loginbg h-screen mx-auto max-w-7xl px-4 py-fluid-lg md:px-6">
-
+<div class="loginbg mx-auto h-screen max-w-7xl px-4 py-fluid-lg md:px-6">
 	<section aria-label="Logo" class="mt-24">
-		<div class="flex flex-col gap-2 justify-center text-center">
-			<img src={iconBlue} class="w-[40%] mx-auto" alt="Komyut Logo (Blue)" />
-			<img src={textBlue} class="w-[50%] mx-auto" alt="Komyut Text (Blue)" />
+		<div class="flex flex-col justify-center gap-2 text-center">
+			<img src={iconBlue} class="mx-auto w-[40%]" alt="Komyut Logo (Blue)" />
+			<img src={textBlue} class="mx-auto w-[50%]" alt="Komyut Text (Blue)" />
 			<p class="text-center">Ang Komyut ng Komyuniti</p>
 		</div>
 	</section>
 
-	<section class="flex flex-col mt-12">
-		<form class="w-[85%] mx-auto flex flex-col gap-6">
-			<input name="email" type="email" placeholder="Email" class="rounded-xl border border-solid py-3 px-4" />
-			<input name="password" type="password" placeholder="Password" class="rounded-xl border border-solid py-3 px-4" />
+	<section class="mt-12 flex flex-col">
+		<form class="mx-auto flex w-[85%] flex-col gap-6">
+			<input
+				name="email"
+				type="email"
+				placeholder="Email"
+				class="rounded-xl border border-solid px-4 py-3"
+			/>
+			<input
+				name="password"
+				type="password"
+				placeholder="Password"
+				class="rounded-xl border border-solid px-4 py-3"
+			/>
 		</form>
 
 		<!-- TODO: yung brand color sa styles is different from the logo so hardcoded lang muna bg color here -->
-		 <!-- also, since wala pa input validation I put the button outside the form element para instant redirect na muna to map page for testing -->
-		<button aria-label="Login button" onclick={onc} class="mx-auto w-[85%] font-bold text-white bg-[#2b59ff] rounded-xl mt-6 py-3 px-4">Log In</button>
+		<!-- also, since wala pa input validation I put the button outside the form element para instant redirect na muna to map page for testing -->
+		<button
+			aria-label="Login button"
+			onclick={onc}
+			class="mx-auto mt-6 w-[85%] rounded-xl bg-[#2b59ff] px-4 py-3 font-bold text-white"
+			>Log In</button
+		>
 
-		<button class="underline underline-offset-4 text-muted-foreground mt-4">Create Account</button>
+		<button class="mt-4 text-muted-foreground underline underline-offset-4">Create Account</button>
 	</section>
-
 </div>
 
 <style>
@@ -51,8 +64,7 @@
 		background: radial-gradient(
 			ellipse 100% 80% at 50% 30%,
 			black 60%,
-			/* #2b59ff 90%, */
-			#2b59ff 100%
+			/* #2b59ff 90%, */ #2b59ff 100%
 		);
 	}
 </style>
