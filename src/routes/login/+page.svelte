@@ -17,9 +17,9 @@
 	<meta name="description" content="Your commute companion for the Philippines" />
 </svelte:head>
 
-<div class="mx-auto max-w-7xl px-4 py-fluid-lg md:px-6">
+<div class="loginbg h-screen mx-auto max-w-7xl px-4 py-fluid-lg md:px-6">
 
-	<section aria-label="Logo" class="mt-4">
+	<section aria-label="Logo" class="mt-24">
 		<div class="flex flex-col gap-2 justify-center text-center">
 			<img src={iconBlue} class="w-[40%] mx-auto" alt="Komyut Logo (Blue)" />
 			<img src={textBlue} class="w-[50%] mx-auto" alt="Komyut Text (Blue)" />
@@ -35,9 +35,24 @@
 
 		<!-- TODO: yung brand color sa styles is different from the logo so hardcoded lang muna bg color here -->
 		 <!-- also, since wala pa input validation I put the button outside the form element para instant redirect na muna to map page for testing -->
-		<button aria-label="Login button" onclick={onc} class="font-bold text-white bg-[#2b59ff] rounded-xl mt-6 py-3 px-4">Log In</button>
+		<button aria-label="Login button" onclick={onc} class="mx-auto w-[85%] font-bold text-white bg-[#2b59ff] rounded-xl mt-6 py-3 px-4">Log In</button>
 
 		<button class="underline underline-offset-4 text-muted-foreground mt-4">Create Account</button>
 	</section>
 
 </div>
+
+<style>
+	/* 
+		TODO: there's probably a better way to do this in tailwind, 
+		or with some overlay components with z-index lang
+	*/
+	.loginbg {
+		background: radial-gradient(
+			ellipse 100% 80% at 50% 30%,
+			black 60%,
+			/* #2b59ff 90%, */
+			#2b59ff 100%
+		);
+	}
+</style>
