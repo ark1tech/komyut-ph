@@ -26,7 +26,7 @@
 		</div>
 	</section>
 
-	<section class="mt-12 flex flex-col">
+	<section class="mt-12 flex flex-col"  aria-label="Input fields">
 		<form class="mx-auto flex w-[85%] flex-col gap-6">
 			<input
 				name="email"

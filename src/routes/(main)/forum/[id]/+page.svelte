@@ -45,7 +45,7 @@
 
 <div class="mx-auto max-w-xl px-4 py-fluid-lg md:px-6">
 	<!-- top bar -->
-	<div class="mb-4 flex items-center gap-3">
+	<div class="mb-4 flex items-center gap-3" role="region" aria-label="Post Navigation">
 		<a
 			href="/forum"
 			class="rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
@@ -57,9 +57,9 @@
 	</div>
 
 	<!-- post -->
-	<article class="rounded-2xl border border-border bg-card p-4">
+	<article class="rounded-2xl border border-border bg-card p-4" role="region" aria-label="Forum Post">
 		<!-- header -->
-		<div class="flex items-center gap-2 text-xs text-muted-foreground">
+		<div class="flex items-center gap-2 text-xs text-muted-foreground" role="region" aria-label="Post Header">
 			<div class="grid size-7 place-items-center rounded-full bg-brand/10 text-xs font-semibold text-brand">
 				{post.author_name.charAt(0)}
 			</div>
@@ -69,7 +69,7 @@
 			</div>
 
 			<!-- more options -->
-			<div class="relative ml-auto">
+			<div class="relative ml-auto" role="region" aria-label="More Options">
 				<button
 					type="button"
 					onclick={() => (showMenu = !showMenu)}
