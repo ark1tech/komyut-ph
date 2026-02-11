@@ -27,10 +27,10 @@
 	const menuSections = [
 		{
 			items: [
-				{ icon: Map, label: 'My Routes', href: '#' },
-				{ icon: Star, label: 'Saved Routes', href: '#' },
-				{ icon: MessageSquare, label: 'My Posts', href: '#' },
-				{ icon: Bell, label: 'Notifications', badge: 3, href: '#' }
+				{ icon: Map, label: 'My Routes', href: '/profile/myroutes' },
+				{ icon: Star, label: 'Saved Routes', href: '/profile/savedroutes' },
+				{ icon: MessageSquare, label: 'My Posts', href: '/profile/myposts' },
+				{ icon: Bell, label: 'Notifications', badge: 3, href: '/profile/notifications' }
 			]
 		},
 		{
@@ -54,13 +54,10 @@
 	<title>Profile • Komyut PH</title>
 </svelte:head>
 
-<div class="mx-auto max-w-7xl px-4 py-fluid-lg md:px-6">
+<div class="mx-auto max-w-xl px-4 py-fluid-lg md:px-6">
 	<!-- Profile Header with Blue Background -->
 	<div class="bg-brand px-4 pb-8 pt-safe-area-pt">
-		<!-- Top Status Bar Area -->
 		<div class="mb-6 flex items-center justify-between text-brand-foreground">
-			<span class="text-sm">12:28</span>
-			<span class="text-sm">65%</span>
 		</div>
 
 		<!-- Avatar and Name -->
@@ -121,27 +118,4 @@
 			</div>
 		{/each}
 	</div>
-
-	<!-- Bottom Navigation -->
-	<!-- <nav class="border-t border-border bg-card px-4 py-3 safe-area-pb">
-		<div class="flex items-center justify-around">
-			{#each navItems as nav}
-				<button
-					type="button"
-					class="flex flex-col items-center gap-1 px-3 py-2 transition-colors"
-					class:text-brand={nav.active}
-					class:text-muted-foreground={!nav.active}
-				>
-					{#if nav.icon}
-						<svelte:component this={nav.icon} class="h-5 w-5" />
-					{:else}
-						<div class="grid h-8 w-8 place-items-center rounded-full bg-brand">
-							<span class="text-xs font-semibold text-white">{user.initials}</span>
-						</div>
-					{/if}
-					<span class="text-xs font-medium">{nav.label}</span>
-				</button>
-			{/each}
-		</div>
-	</nav> -->
 </div>
