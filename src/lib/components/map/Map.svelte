@@ -48,7 +48,8 @@
 				container,
 				style,
 				center: userCenter,
-				zoom
+				zoom,
+				attributionControl: false
 			});
 
 			// add navigation controls (zoom +/-, compass)

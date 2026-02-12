@@ -13,6 +13,7 @@ If you're joining the project or setting up a new machine:
    - **Windows:** 11 or later for local Cloudflare runtime. On Windows 10 use `dev:node` / `preview:remote`.
 
 2. **Clone and install**
+
    ```sh
    git clone https://github.com/ark1tech/komyut-ph.git
    cd komyut-ph
@@ -20,17 +21,23 @@ If you're joining the project or setting up a new machine:
    ```
 
 3. **Start developing**
+
    ```sh
    pnpm run dev
    ```
+
    Or start the dev server and open the app in a browser:
+
    ```sh
    pnpm run dev -- --open
    ```
+
    **Older OS (macOS < 13.5 or Windows 10):** If `pnpm run dev` fails (e.g. "Unsupported macOS version" or workerd not supported), use the Node-based dev server instead:
+
    ```sh
    pnpm run dev:node
    ```
+
    Production builds still target Cloudflare; only local dev uses Node when you run `dev:node`.
 
 4. **Useful commands**
@@ -82,7 +89,7 @@ Alternatively, upgrade your OS or use a [DevContainer](https://github.com/cloudf
 
 ### Code Quality & Formatting
 
-- **Prettier** 
+- **Prettier**
   Automatically formats your code for consistent styling—think of it as auto-correct for your code. Highly recommended; it saves time and helps avoid formatting disputes within teams.
 
 - **ESLint**  
@@ -103,9 +110,8 @@ Alternatively, upgrade your OS or use a [DevContainer](https://github.com/cloudf
 
 ### Database & Backend
 
-- **Supabase  (To be installed)**  
+- **Supabase (To be installed)**  
   An open-source backend-as-a-service platform providing a Postgres database, authentication, storage, and real-time APIs. This is for managing the app’s data, handling user authentication (login, signup, etc.), and storing files—all without maintaining your own backend infrastructure.
-  
 
 ### Development Tools
 

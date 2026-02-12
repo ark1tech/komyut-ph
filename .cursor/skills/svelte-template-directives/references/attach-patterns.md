@@ -85,12 +85,7 @@ context.
 		$effect(() => {
 			ctx.clearRect(0, 0, canvas.width, canvas.height);
 			ctx.fillStyle = color;
-			ctx.fillRect(
-				(canvas.width - size) / 2,
-				(canvas.height - size) / 2,
-				size,
-				size
-			);
+			ctx.fillRect((canvas.width - size) / 2, (canvas.height - size) / 2, size, size);
 		});
 	}}
 />
@@ -123,9 +118,7 @@ This enables "augmented element" patterns.
 </script>
 
 <!-- The attachment passes through to the inner <button>! -->
-<Button {@attach tooltip('Click me for help')}>
-	Help
-</Button>
+<Button {@attach tooltip('Click me for help')}>Help</Button>
 ```
 
 ## Pattern 4: Attachment Factories
@@ -195,8 +188,7 @@ Use `fromAction` to convert existing action libraries to attachments.
 	const attached = fromAction(someAction);
 </script>
 
-<!-- Now works as an attachment with full reactivity -->
-<div {@attach attached(options)}>...</div>
+<!-- Now works as an attachment with full reactivity --><div {@attach attached(options)}>...</div>
 ```
 
 ## Pattern 7: Multiple Attachments
@@ -261,41 +253,41 @@ sync loops and is cleaner than bind:this chains.
 ```ts
 // modal-state.svelte.ts
 class ModalState {
-  dialog: HTMLDialogElement | null = null;
-  input: HTMLInputElement | null = null;
-  is_open = $state(false);
+	dialog: HTMLDialogElement | null = null;
+	input: HTMLInputElement | null = null;
+	is_open = $state(false);
 
-  // Attach functions return cleanup
-  register = (el: HTMLDialogElement) => {
-    this.dialog = el;
-    return () => {
-      this.dialog = null;
-    };
-  };
+	// Attach functions return cleanup
+	register = (el: HTMLDialogElement) => {
+		this.dialog = el;
+		return () => {
+			this.dialog = null;
+		};
+	};
 
-  register_input = (el: HTMLInputElement) => {
-    this.input = el;
-    return () => {
-      this.input = null;
-    };
-  };
+	register_input = (el: HTMLInputElement) => {
+		this.input = el;
+		return () => {
+			this.input = null;
+		};
+	};
 
-  open() {
-    if (!this.dialog?.open) {
-      this.is_open = true;
-      this.dialog?.showModal();
-      this.input?.focus();
-    }
-  }
+	open() {
+		if (!this.dialog?.open) {
+			this.is_open = true;
+			this.dialog?.showModal();
+			this.input?.focus();
+		}
+	}
 
-  close() {
-    this.is_open = false;
-    this.dialog?.close();
-  }
+	close() {
+		this.is_open = false;
+		this.dialog?.close();
+	}
 
-  toggle() {
-    this.is_open ? this.close() : this.open();
-  }
+	toggle() {
+		this.is_open ? this.close() : this.open();
+	}
 }
 
 export const modal_state = new ModalState();
@@ -307,10 +299,7 @@ export const modal_state = new ModalState();
 	import { modal_state } from './modal-state.svelte';
 </script>
 
-<dialog
-	{@attach modal_state.register}
-	onclose={modal_state.close}
->
+<dialog {@attach modal_state.register} onclose={modal_state.close}>
 	<input {@attach modal_state.register_input} />
 </dialog>
 ```

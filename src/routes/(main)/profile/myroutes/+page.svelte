@@ -7,7 +7,6 @@
 </svelte:head>
 
 <div class="mx-auto w-full max-w-7xl px-4 py-fluid-lg md:px-6">
-
 	<section aria-label="Welcome">
 		<h1>My Routes</h1>
 		<p class="mt-2 max-w-prose text-muted-foreground">
@@ -17,5 +16,4 @@
 			> to replace this content.
 		</p>
 	</section>
-
 </div>

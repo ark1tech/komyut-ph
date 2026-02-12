@@ -7,15 +7,12 @@
 </svelte:head>
 
 <div class="mx-auto max-w-7xl px-4 py-fluid-lg md:px-6">
-
 	<section aria-label="Welcome">
 		<h1>Komyut PH</h1>
 		<p class="mt-2 max-w-prose text-muted-foreground">
 			Start building your page here. Edit
-			<code class="rounded bg-muted px-1.5 py-0.5 font-mono text-sm"
-				>src/routes/+page.svelte</code
-			> to replace this content.
+			<code class="rounded bg-muted px-1.5 py-0.5 font-mono text-sm">src/routes/+page.svelte</code> to
+			replace this content.
 		</p>
 	</section>
-
 </div>

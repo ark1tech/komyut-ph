@@ -51,16 +51,16 @@ From the source (`TooltipContext.svelte`):
 
 ```ts
 type TooltipContextProps = {
-	mode?: TooltipMode // default: 'manual'
-	findTooltipData?: 'closest' | 'left' | 'right' // default: 'closest'
-	raiseTarget?: boolean // default: false
-	locked?: boolean // default: false
-	touchEvents?: 'none' | 'pan-x' | 'pan-y' | 'auto' // default: 'pan-y'
-	radius?: number // default: Infinity (for quadtree/voronoi)
-	debug?: boolean // default: false
-	onclick?: (e: MouseEvent, { data }: { data: any }) => any
-	hideDelay?: number // default: 0
-}
+	mode?: TooltipMode; // default: 'manual'
+	findTooltipData?: 'closest' | 'left' | 'right'; // default: 'closest'
+	raiseTarget?: boolean; // default: false
+	locked?: boolean; // default: false
+	touchEvents?: 'none' | 'pan-x' | 'pan-y' | 'auto'; // default: 'pan-y'
+	radius?: number; // default: Infinity (for quadtree/voronoi)
+	debug?: boolean; // default: false
+	onclick?: (e: MouseEvent, { data }: { data: any }) => any;
+	hideDelay?: number; // default: 0
+};
 ```
 
 ## Mode Selection Guide

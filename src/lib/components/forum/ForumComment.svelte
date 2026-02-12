@@ -1,12 +1,15 @@
 <script lang="ts">
 	import { ArrowBigUp, ArrowBigDown } from '@lucide/svelte';
 	import type { Comment } from '$lib/data/mock_comments';
+	import { cn } from '$lib/utils';
+	import ForumHeader from './ForumHeader.svelte';
 
 	interface Props {
 		comment: Comment;
+		class?: string;
 	}
 
-	let { comment }: Props = $props();
+	let { comment, class: className }: Props = $props();
 
 	let voted = $state<'up' | 'down' | null>(null);
 
@@ -18,25 +21,17 @@
 		voted = voted === dir ? null : dir;
 	}
 
-	function timeAgo(dateStr: string): string {
-		const diff = Date.now() - new Date(dateStr).getTime();
-		const mins = Math.floor(diff / 60000);
-		if (mins < 60) return `${mins}m`;
-		const hrs = Math.floor(mins / 60);
-		if (hrs < 24) return `${hrs}h`;
-		const days = Math.floor(hrs / 24);
-		if (days < 30) return `${days}d`;
-		return `${Math.floor(days / 30)}mo`;
-	}
 </script>
 
-<div class="flex gap-3 rounded-xl bg-muted/30 p-3">
+<div class={cn('flex gap-3 rounded-xl bg-muted/30 p-3', className)}>
 	<!-- vote strip -->
 	<div class="flex flex-col items-center gap-0.5">
 		<button
 			type="button"
 			onclick={() => vote('up')}
-			class="rounded-full p-0.5 transition-colors hover:text-brand {voted === 'up' ? 'text-brand' : 'text-muted-foreground'}"
+			class="rounded-full p-0.5 transition-colors hover:text-brand {voted === 'up'
+				? 'text-brand'
+				: 'text-muted-foreground'}"
 			aria-label="Upvote comment"
 		>
 			<ArrowBigUp class="size-3.5" fill={voted === 'up' ? 'currentColor' : 'none'} />
@@ -45,7 +40,9 @@
 		<button
 			type="button"
 			onclick={() => vote('down')}
-			class="rounded-full p-0.5 transition-colors hover:text-destructive {voted === 'down' ? 'text-destructive' : 'text-muted-foreground'}"
+			class="rounded-full p-0.5 transition-colors hover:text-destructive {voted === 'down'
+				? 'text-destructive'
+				: 'text-muted-foreground'}"
 			aria-label="Downvote comment"
 		>
 			<ArrowBigDown class="size-3.5" fill={voted === 'down' ? 'currentColor' : 'none'} />
@@ -54,11 +51,12 @@
 
 	<!-- body -->
 	<div class="min-w-0 flex-1">
-		<div class="flex items-center gap-1.5 text-xs text-muted-foreground">
-			<span class="font-medium text-foreground">{comment.author_username}</span>
-			<span>·</span>
-			<span>{timeAgo(comment.created_at)}</span>
-		</div>
-		<p class="mt-1 text-xs leading-relaxed text-muted-foreground">{comment.body}</p>
+		<ForumHeader
+			authorUsername={comment.author_username}
+			createdAt={comment.created_at}
+			showAvatar
+			showMenu
+		/>
+		<p class="mt-1 text-sm leading-relaxed text-muted-foreground">{comment.body}</p>
 	</div>
 </div>

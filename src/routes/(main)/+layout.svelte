@@ -11,13 +11,13 @@
 	];
 </script>
 
-<div class="flex flex-1 flex-col">
-	<main class="flex-1 overflow-y-auto pb-16">
+<div class="flex h-dvh flex-col">
+	<main class="flex min-h-0 flex-1 flex-col overflow-y-auto stable-scroll">
 		{@render children()}
 	</main>
 
 	<nav
-		class="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-background/95 backdrop-blur-sm safe-area-pb"
+		class="sticky right-0 bottom-0 left-0 z-50 border-t border-border bg-background/95 safe-area-pb backdrop-blur-sm"
 	>
 		<div class="mx-auto flex max-w-lg items-center justify-around px-2 py-1.5">
 			{#each navItems as item}

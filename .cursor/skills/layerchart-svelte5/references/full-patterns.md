@@ -52,10 +52,7 @@ Access context via the `children` snippet:
 ```svelte
 <LinearGradient class="from-primary/50 to-primary/1" vertical>
 	{#snippet children({ gradient })}
-		<Area
-			fill={gradient}
-			line={{ class: 'stroke-primary stroke-2' }}
-		/>
+		<Area fill={gradient} line={{ class: 'stroke-primary stroke-2' }} />
 	{/snippet}
 </LinearGradient>
 ```
@@ -65,12 +62,7 @@ Access context via the `children` snippet:
 ```svelte
 <Highlight>
 	{#snippet area({ area })}
-		<RectClipPath
-			x={area.x}
-			y={area.y}
-			width={area.width}
-			height={area.height}
-		>
+		<RectClipPath x={area.x} y={area.y} width={area.width} height={area.height}>
 			<Bars class="fill-primary" />
 		</RectClipPath>
 	{/snippet}
@@ -80,11 +72,7 @@ Access context via the `children` snippet:
 ### Axis tickLabel snippet
 
 ```svelte
-<Axis
-	placement="bottom"
-	format="day"
-	ticks={(scale) => scale.domain()}
->
+<Axis placement="bottom" format="day" ticks={(scale) => scale.domain()}>
 	{#snippet tickLabel({ props, index })}
 		<Text {...props} textAnchor={index ? 'end' : 'start'} />
 	{/snippet}
@@ -108,7 +96,7 @@ To avoid implicit `any` errors, type the data:
 
 ```svelte
 <script lang="ts">
-	type YearlyData = { year: string; visitors: number }
+	type YearlyData = { year: string; visitors: number };
 </script>
 
 <Tooltip.Root>
@@ -122,21 +110,14 @@ To avoid implicit `any` errors, type the data:
 
 ```svelte
 <script lang="ts">
-	import { scaleBand } from 'd3-scale'
-	import {
-		Axis,
-		Bars,
-		Chart,
-		Highlight,
-		Svg,
-		Tooltip,
-	} from 'layerchart'
+	import { scaleBand } from 'd3-scale';
+	import { Axis, Bars, Chart, Highlight, Svg, Tooltip } from 'layerchart';
 
-	type DataPoint = { label: string; value: number }
+	type DataPoint = { label: string; value: number };
 	let data: DataPoint[] = [
 		{ label: '2023', value: 100 },
-		{ label: '2024', value: 150 },
-	]
+		{ label: '2024', value: 150 }
+	];
 </script>
 
 <div class="h-64">
@@ -191,17 +172,12 @@ To avoid implicit `any` errors, type the data:
 		<Svg>
 			<Axis placement="left" grid rule />
 			<Axis placement="bottom" rule />
-			<Area
-				line={{ class: 'stroke-primary stroke-2' }}
-				class="fill-primary/20"
-			/>
+			<Area line={{ class: 'stroke-primary stroke-2' }} class="fill-primary/20" />
 			<Highlight points lines />
 		</Svg>
 		<Tooltip.Root>
 			{#snippet children({ data }: { data: TimeData })}
-				<Tooltip.Header
-					>{data.date.toLocaleDateString()}</Tooltip.Header
-				>
+				<Tooltip.Header>{data.date.toLocaleDateString()}</Tooltip.Header>
 				<Tooltip.List>
 					<Tooltip.Item label="Value" value={data.value} />
 				</Tooltip.List>
@@ -227,9 +203,7 @@ To avoid implicit `any` errors, type the data:
 		<Svg>
 			{#each seriesData as [series, data]}
 				{@const color = context.cScale?.(series)}
-				{@const active =
-					context.tooltip.data == null ||
-					context.tooltip.data.series === series}
+				{@const active = context.tooltip.data == null || context.tooltip.data.series === series}
 				<g class={!active ? 'opacity-20' : ''}>
 					<Spline {data} stroke={color} class="stroke-2" />
 				</g>
@@ -285,26 +259,20 @@ For custom tooltip behaviour (e.g., individual bar tooltips):
 
 ```svelte
 <script lang="ts">
-	import { Calendar, Chart, Svg, Tooltip } from 'layerchart'
-	import { scaleSequential } from 'd3-scale'
-	import { interpolateGreens } from 'd3-scale-chromatic'
+	import { Calendar, Chart, Svg, Tooltip } from 'layerchart';
+	import { scaleSequential } from 'd3-scale';
+	import { interpolateGreens } from 'd3-scale-chromatic';
 
-	type DayData = { date: Date; value: number }
-	let { data }: { data: DayData[] } = $props()
+	type DayData = { date: Date; value: number };
+	let { data }: { data: DayData[] } = $props();
 
-	const colorScale = scaleSequential(interpolateGreens).domain([0, 10])
+	const colorScale = scaleSequential(interpolateGreens).domain([0, 10]);
 </script>
 
 <div class="h-32">
 	<Chart {data} x="date" tooltip={{ mode: 'band' }}>
 		<Svg>
-			<Calendar
-				{colorScale}
-				cellSize={12}
-				cellGap={2}
-				monthLabels
-				weekdayLabels
-			/>
+			<Calendar {colorScale} cellSize={12} cellGap={2} monthLabels weekdayLabels />
 		</Svg>
 		<Tooltip.Root>
 			{#snippet children({ data }: { data: DayData })}
@@ -322,21 +290,16 @@ For custom tooltip behaviour (e.g., individual bar tooltips):
 
 ```svelte
 <script lang="ts">
-	import { Arc, Chart, Pie, Svg, Tooltip } from 'layerchart'
+	import { Arc, Chart, Pie, Svg, Tooltip } from 'layerchart';
 
-	type SliceData = { label: string; value: number; color: string }
-	let { data }: { data: SliceData[] } = $props()
+	type SliceData = { label: string; value: number; color: string };
+	let { data }: { data: SliceData[] } = $props();
 </script>
 
 <div class="h-64">
 	<Chart {data} tooltip={{ mode: 'manual' }}>
 		<Svg>
-			<Pie
-				value="value"
-				innerRadius={40}
-				padAngle={0.02}
-				cornerRadius={4}
-			>
+			<Pie value="value" innerRadius={40} padAngle={0.02} cornerRadius={4}>
 				{#snippet children({ arcs })}
 					{#each arcs as arc}
 						<Arc data={arc} fill={arc.data.color} />
@@ -351,33 +314,33 @@ For custom tooltip behaviour (e.g., individual bar tooltips):
 ## Common Imports
 
 ```ts
-import { scaleBand, scaleTime, scaleOrdinal } from "d3-scale";
+import { scaleBand, scaleTime, scaleOrdinal } from 'd3-scale';
 import {
-  Arc,
-  Area,
-  Axis,
-  Bar,
-  Bars,
-  Calendar,
-  Canvas,
-  Chart,
-  Circle,
-  ForceGraph,
-  ForceSimulation,
-  Group,
-  Highlight,
-  Labels,
-  Layer,
-  LinearGradient,
-  Link,
-  Pie,
-  Points,
-  RectClipPath,
-  Rule,
-  Spline,
-  Svg,
-  Text,
-  Tooltip,
-  Transform,
-} from "layerchart";
+	Arc,
+	Area,
+	Axis,
+	Bar,
+	Bars,
+	Calendar,
+	Canvas,
+	Chart,
+	Circle,
+	ForceGraph,
+	ForceSimulation,
+	Group,
+	Highlight,
+	Labels,
+	Layer,
+	LinearGradient,
+	Link,
+	Pie,
+	Points,
+	RectClipPath,
+	Rule,
+	Spline,
+	Svg,
+	Text,
+	Tooltip,
+	Transform
+} from 'layerchart';
 ```

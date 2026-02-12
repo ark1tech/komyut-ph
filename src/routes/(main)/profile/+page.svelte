@@ -51,20 +51,17 @@
 </script>
 
 <svelte:head>
-	<title>Profile • Komyut PH</title>
+	<title>Profile | Komyut PH</title>
 </svelte:head>
 
-<div class="mx-auto max-w-xl px-4 py-fluid-lg md:px-6">
+<div class="">
 	<!-- Profile Header with Blue Background -->
-	<div class="bg-brand px-4 pb-8 pt-safe-area-pt">
-		<div class="mb-6 flex items-center justify-between text-brand-foreground">
-		</div>
+	<div class="pt-safe-area-pt bg-brand px-4 pb-8">
+		<div class="mb-6 flex items-center justify-between text-brand-foreground"></div>
 
 		<!-- Avatar and Name -->
 		<div class="flex flex-col items-center text-center text-brand-foreground">
-			<div
-				class="mb-3 grid h-20 w-20 place-items-center rounded-full bg-white text-brand"
-			>
+			<div class="mb-3 grid h-20 w-20 place-items-center rounded-full bg-white text-brand">
 				<span class="font-display text-2xl font-bold">{user.initials}</span>
 			</div>
 			<h1 class="font-display text-xl font-semibold">{user.name}</h1>
@@ -116,6 +113,9 @@
 					</a>
 				{/each}
 			</div>
+			{#if sectionIndex < menuSections.length - 1}
+				<div class="mx-4 h-px bg-border"></div>
+			{/if}
 		{/each}
 	</div>
 </div>

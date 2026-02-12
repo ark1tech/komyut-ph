@@ -9,6 +9,7 @@ keywords: [postgis, geospatial, gis, location-tracking, mapping]
 ## When to Use This Skill
 
 Use when:
+
 - Creating geofence boundaries around facilities
 - Calculating distances between points (truck to facility, origin to destination)
 - Detecting geofence entry/exit events for tracking
@@ -23,10 +24,10 @@ Use when:
 
 **Use `geography` for real-world distance calculations**:
 
-| Type | Use Case | Distance Unit | Earth Curvature |
-|------|----------|---------------|-----------------|
-| `geography` | GPS coordinates, long distances | Meters | Accounts for curvature |
-| `geometry` | Local/planar operations, contains checks | Projection units | Ignores curvature |
+| Type        | Use Case                                 | Distance Unit    | Earth Curvature        |
+| ----------- | ---------------------------------------- | ---------------- | ---------------------- |
+| `geography` | GPS coordinates, long distances          | Meters           | Accounts for curvature |
+| `geometry`  | Local/planar operations, contains checks | Projection units | Ignores curvature      |
 
 ```sql
 -- Geography: accurate distances in meters for GPS data
@@ -760,27 +761,27 @@ Reference the `layerchart` skill for component patterns and data transformation 
 
 ## PostGIS Functions Quick Reference
 
-| Function | Purpose | Example |
-|----------|---------|---------|
-| `ST_MakePoint(lon, lat)` | Create point from coordinates | `ST_MakePoint(-87.6298, 41.8781)` |
-| `ST_SetSRID(geom, srid)` | Assign coordinate system | `ST_SetSRID(point, 4326)` |
-| `ST_Distance(a, b)` | Distance between geometries (meters for geography) | `ST_Distance(a::geography, b::geography)` |
-| `ST_DWithin(a, b, dist)` | True if within distance | `ST_DWithin(a, b, 80467)` (50 miles) |
-| `ST_Contains(poly, point)` | True if polygon contains point | `ST_Contains(geofence, truck_pos)` |
-| `ST_Buffer(geom, dist)` | Create buffer zone | `ST_Buffer(point::geography, 1609.34)` (1 mile) |
-| `ST_AsGeoJSON(geom)` | Export as GeoJSON | `ST_AsGeoJSON(boundary)` |
-| `ST_GeomFromGeoJSON(json)` | Import from GeoJSON | `ST_GeomFromGeoJSON($1)` |
-| `ST_Union(geom)` | Merge geometries | `ST_Union(route_segments)` |
-| `ST_Centroid(geom)` | Center point of geometry | `ST_Centroid(state_boundary)` |
+| Function                   | Purpose                                            | Example                                         |
+| -------------------------- | -------------------------------------------------- | ----------------------------------------------- |
+| `ST_MakePoint(lon, lat)`   | Create point from coordinates                      | `ST_MakePoint(-87.6298, 41.8781)`               |
+| `ST_SetSRID(geom, srid)`   | Assign coordinate system                           | `ST_SetSRID(point, 4326)`                       |
+| `ST_Distance(a, b)`        | Distance between geometries (meters for geography) | `ST_Distance(a::geography, b::geography)`       |
+| `ST_DWithin(a, b, dist)`   | True if within distance                            | `ST_DWithin(a, b, 80467)` (50 miles)            |
+| `ST_Contains(poly, point)` | True if polygon contains point                     | `ST_Contains(geofence, truck_pos)`              |
+| `ST_Buffer(geom, dist)`    | Create buffer zone                                 | `ST_Buffer(point::geography, 1609.34)` (1 mile) |
+| `ST_AsGeoJSON(geom)`       | Export as GeoJSON                                  | `ST_AsGeoJSON(boundary)`                        |
+| `ST_GeomFromGeoJSON(json)` | Import from GeoJSON                                | `ST_GeomFromGeoJSON($1)`                        |
+| `ST_Union(geom)`           | Merge geometries                                   | `ST_Union(route_segments)`                      |
+| `ST_Centroid(geom)`        | Center point of geometry                           | `ST_Centroid(state_boundary)`                   |
 
 ## Unit Conversion Reference
 
-| From | To | Multiply By |
-|------|-----|-------------|
-| Miles | Meters | 1609.34 |
-| Meters | Miles | 0.000621371 |
-| Kilometers | Miles | 0.621371 |
-| Miles | Kilometers | 1.60934 |
+| From       | To         | Multiply By |
+| ---------- | ---------- | ----------- |
+| Miles      | Meters     | 1609.34     |
+| Meters     | Miles      | 0.000621371 |
+| Kilometers | Miles      | 0.621371    |
+| Miles      | Kilometers | 1.60934     |
 
 ## Implementation Checklist
 

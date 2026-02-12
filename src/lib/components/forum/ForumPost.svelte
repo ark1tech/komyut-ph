@@ -1,22 +1,27 @@
 <script lang="ts">
-	import {
-		ArrowBigUp,
-		ArrowBigDown,
-		MessageCircle,
-		Share2,
-		Ellipsis,
-		Flag
-	} from '@lucide/svelte';
+	import { ArrowBigUp, ArrowBigDown, MessageCircle, Share2 } from '@lucide/svelte';
 	import type { Post } from '$lib/data/mock_posts';
+	import { cn } from '$lib/utils';
+	import ForumHeader from './ForumHeader.svelte';
 
 	interface Props {
 		post: Post;
 		commentCount?: number;
+		truncate?: boolean;
+		linked?: boolean;
+		class?: string;
+		titleClass?: string;
 	}
 
-	let { post, commentCount = 0 }: Props = $props();
+	let {
+		post,
+		commentCount = 0,
+		truncate = true,
+		linked = true,
+		class: className,
+		titleClass
+	}: Props = $props();
 
-	let showMenu = $state(false);
 	let voted = $state<'up' | 'down' | null>(null);
 
 	let score = $derived(
@@ -27,43 +32,50 @@
 		voted = voted === dir ? null : dir;
 	}
 
-	function timeAgo(dateStr: string): string {
-		const diff = Date.now() - new Date(dateStr).getTime();
-		const mins = Math.floor(diff / 60000);
-		if (mins < 60) return `${mins}m`;
-		const hrs = Math.floor(mins / 60);
-		if (hrs < 24) return `${hrs}h`;
-		const days = Math.floor(hrs / 24);
-		if (days < 30) return `${days}d`;
-		return `${Math.floor(days / 30)}mo`;
-	}
 </script>
 
-<article class="rounded-2xl border border-border bg-card p-4 transition-colors hover:border-border/80">
+<article
+	class={cn(
+		'relative rounded-2xl border border-border bg-card p-4',
+		linked && 'transition-all duration-200 hover:border-border/80 hover:bg-accent/40',
+		className
+	)}
+>
 	<!-- header -->
-	<div class="flex items-center gap-2 text-xs text-muted-foreground">
-		<div class="grid size-6 place-items-center rounded-full bg-brand/10 text-[10px] font-semibold text-brand">
-			{post.author_name.charAt(0)}
+	<ForumHeader
+		authorName={post.author_name}
+		authorUsername={post.author_username}
+		createdAt={post.created_at}
+		showAvatar
+		showMenu
+		class="gap-2"
+	/>
+
+	<!-- content: stretched link in list view, plain block in detail view -->
+	{#if linked}
+		<a href="/forum/{post.post_id}" class="mt-2 block after:absolute after:inset-0 after:rounded-2xl">
+			<h3 class={cn('text-sm leading-snug font-semibold text-foreground', titleClass)}>{post.title}</h3>
+			<p class={cn('mt-1 text-sm leading-relaxed text-muted-foreground', truncate && 'line-clamp-3')}>{post.body}</p>
+		</a>
+	{:else}
+		<div class="mt-2">
+			<h3 class={cn('text-sm leading-snug font-semibold text-foreground', titleClass)}>{post.title}</h3>
+			<p class={cn('mt-1 text-sm leading-relaxed text-muted-foreground', truncate && 'line-clamp-3')}>{post.body}</p>
 		</div>
-		<span class="font-medium text-foreground">{post.author_username}</span>
-		<span>·</span>
-		<span>{timeAgo(post.created_at)}</span>
-	</div>
+	{/if}
 
-	<!-- clickable content area links to detail page -->
-	<a href="/forum/{post.post_id}" class="mt-2 block">
-		<h3 class="text-sm font-semibold leading-snug text-foreground">{post.title}</h3>
-		<p class="mt-1 line-clamp-3 text-sm leading-relaxed text-muted-foreground">{post.body}</p>
-	</a>
-
-	<!-- actions -->
-	<div class="mt-3 flex items-center gap-1">
+	<!-- actions (z-10 keeps buttons above the stretched link) -->
+	<div
+		class="pointer-events-none relative z-10 mt-3 flex items-center gap-1 *:pointer-events-auto [&_a,&_button]:cursor-pointer"
+	>
 		<!-- vote group -->
 		<div class="flex items-center gap-0.5 rounded-full bg-muted/50 px-1">
 			<button
 				type="button"
 				onclick={() => vote('up')}
-				class="rounded-full p-1.5 transition-colors hover:text-brand {voted === 'up' ? 'text-brand' : 'text-muted-foreground'}"
+				class="rounded-full p-1.5 transition-colors hover:text-brand {voted === 'up'
+					? 'text-brand'
+					: 'text-muted-foreground'}"
 				aria-label="Upvote"
 			>
 				<ArrowBigUp class="size-4" fill={voted === 'up' ? 'currentColor' : 'none'} />
@@ -72,21 +84,30 @@
 			<button
 				type="button"
 				onclick={() => vote('down')}
-				class="rounded-full p-1.5 transition-colors hover:text-destructive {voted === 'down' ? 'text-destructive' : 'text-muted-foreground'}"
+				class="rounded-full p-1.5 transition-colors hover:text-destructive {voted === 'down'
+					? 'text-destructive'
+					: 'text-muted-foreground'}"
 				aria-label="Downvote"
 			>
 				<ArrowBigDown class="size-4" fill={voted === 'down' ? 'currentColor' : 'none'} />
 			</button>
 		</div>
 
-		<!-- comment link -->
-		<a
-			href="/forum/{post.post_id}"
-			class="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
-		>
-			<MessageCircle class="size-4" />
-			{commentCount}
-		</a>
+		<!-- comment count -->
+		{#if linked}
+			<a
+				href="/forum/{post.post_id}"
+				class="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
+			>
+				<MessageCircle class="size-4" />
+				{commentCount}
+			</a>
+		{:else}
+			<div class="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs text-muted-foreground">
+				<MessageCircle class="size-4" />
+				{commentCount}
+			</div>
+		{/if}
 
 		<!-- share -->
 		<button
@@ -97,36 +118,5 @@
 			<Share2 class="size-4" />
 			Share
 		</button>
-
-		<!-- more options -->
-		<div class="relative ml-auto">
-			<button
-				type="button"
-				onclick={() => (showMenu = !showMenu)}
-				class="rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
-				aria-label="More options"
-			>
-				<Ellipsis class="size-4" />
-			</button>
-
-			{#if showMenu}
-				<button
-					type="button"
-					class="fixed inset-0 z-40"
-					onclick={() => (showMenu = false)}
-					aria-label="Close menu"
-				></button>
-				<div class="absolute right-0 top-full z-50 mt-1 w-36 rounded-xl border border-border bg-card p-1 shadow-lg">
-					<button
-						type="button"
-						class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-destructive transition-colors hover:bg-destructive/10"
-						onclick={() => (showMenu = false)}
-					>
-						<Flag class="size-3.5" />
-						Report
-					</button>
-				</div>
-			{/if}
-		</div>
 	</div>
 </article>

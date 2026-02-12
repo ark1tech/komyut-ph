@@ -274,27 +274,27 @@ triggers your handler, which may cause loops or double-firing.
 ```ts
 // state.svelte.ts
 class DialogState {
-  dialog: HTMLDialogElement | null = null;
-  is_open = $state(false);
+	dialog: HTMLDialogElement | null = null;
+	is_open = $state(false);
 
-  register = (el: HTMLDialogElement) => {
-    this.dialog = el;
-    return () => {
-      this.dialog = null;
-    };
-  };
+	register = (el: HTMLDialogElement) => {
+		this.dialog = el;
+		return () => {
+			this.dialog = null;
+		};
+	};
 
-  open() {
-    if (!this.dialog?.open) {
-      this.is_open = true;
-      this.dialog?.showModal();
-    }
-  }
+	open() {
+		if (!this.dialog?.open) {
+			this.is_open = true;
+			this.dialog?.showModal();
+		}
+	}
 
-  close() {
-    this.is_open = false;
-    this.dialog?.close();
-  }
+	close() {
+		this.is_open = false;
+		this.dialog?.close();
+	}
 }
 ```
 

@@ -4,7 +4,7 @@
 	import { goto } from '$app/navigation';
 
 	function onc() {
-		console.log("Login button clicked");
+		console.log('Login button clicked');
 
 		// TODO: no input validation yet, this is just a simple
 		// redirect to the map page

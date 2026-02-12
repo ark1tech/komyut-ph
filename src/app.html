@@ -2,7 +2,10 @@
 <html lang="en">
 	<head>
 		<meta charset="utf-8" />
-		<link rel="icon" href="%sveltekit.assets%/favicon.svg" />
+		<link
+			rel="icon"
+			href="%sveltekit.assets%/dark_favicon.svg"
+		/>
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		%sveltekit.head%
 	</head>
@@ -13,15 +16,25 @@
 
 				// auto mode toggle is disabled for now
 				// if (
-        //   theme === 'dark' ||
-        //   (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)
-        // ) {
+				//   theme === 'dark' ||
+				//   (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)
+				// ) {
 				if (theme === 'dark') {
 					document.documentElement.classList.add('dark');
 				}
+
+				// var isDark = theme
+				// 	? theme === 'dark'
+				// 	: window.matchMedia('(prefers-color-scheme: dark)').matches;
+				// var icons = document.querySelectorAll('link[rel="icon"]');
+				// var favicon = isDark ? '/light_favicon.svg' : '/dark_favicon.svg';
+				// icons.forEach(function (icon) {
+				// 	icon.href = favicon;
+				// 	icon.media = '';
+				// });
 			})();
 		</script>
-		
+
 		<div style="display: contents">%sveltekit.body%</div>
 	</body>
 </html>

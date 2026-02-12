@@ -8,8 +8,8 @@ layout server data doesn't auto-refresh after login/logout.
 ```typescript
 // signin/+page.svelte - BROKEN
 async function handle_signin() {
-  await auth_client.signIn.email({ email, password });
-  goto('/');  // Layout still shows "logged out"
+	await auth_client.signIn.email({ email, password });
+	goto('/'); // Layout still shows "logged out"
 }
 ```
 
@@ -25,17 +25,17 @@ Call `invalidateAll()` after auth state change:
 import { goto, invalidateAll } from '$app/navigation';
 
 async function handle_signin() {
-  const result = await auth_client.signIn.email({ email, password });
-  if (result.error) return;
+	const result = await auth_client.signIn.email({ email, password });
+	if (result.error) return;
 
-  await invalidateAll();  // Re-runs ALL load functions
-  goto('/');
+	await invalidateAll(); // Re-runs ALL load functions
+	goto('/');
 }
 
 // signout handler
 async function handle_signout() {
-  await auth_client.signOut();
-  await invalidateAll();
+	await auth_client.signOut();
+	await invalidateAll();
 }
 ```
 
@@ -48,18 +48,18 @@ Set up a listener in root layout that auto-invalidates on auth changes:
 ```svelte
 <!-- +layout.svelte -->
 <script>
-  import { invalidateAll } from '$app/navigation';
-  import { onMount } from 'svelte';
-  import { auth_client } from '$lib/auth-client';
+	import { invalidateAll } from '$app/navigation';
+	import { onMount } from 'svelte';
+	import { auth_client } from '$lib/auth-client';
 
-  onMount(() => {
-    // Listen for auth state changes
-    const unsubscribe = auth_client.onAuthStateChange(() => {
-      invalidateAll();
-    });
+	onMount(() => {
+		// Listen for auth state changes
+		const unsubscribe = auth_client.onAuthStateChange(() => {
+			invalidateAll();
+		});
 
-    return unsubscribe;
-  });
+		return unsubscribe;
+	});
 </script>
 ```
 
@@ -104,6 +104,7 @@ Per [Svelte docs](https://svelte.dev/tutorial/kit/invalidate-all):
 > for the current page, regardless of dependencies.
 
 This includes:
+
 - `+layout.server.ts` (all levels)
 - `+layout.ts` (all levels)
 - `+page.server.ts`
@@ -111,10 +112,10 @@ This includes:
 
 ## Comparison with Server-Side Auth
 
-| Approach | Auth Location | Invalidation |
-|----------|--------------|--------------|
-| Form actions | Server (`+page.server.ts`) | Automatic (page reload) |
-| Client auth | Browser (auth_client) | Manual (`invalidateAll()`) |
+| Approach     | Auth Location              | Invalidation               |
+| ------------ | -------------------------- | -------------------------- |
+| Form actions | Server (`+page.server.ts`) | Automatic (page reload)    |
+| Client auth  | Browser (auth_client)      | Manual (`invalidateAll()`) |
 
 Form actions with `throw redirect()` cause a full navigation, which
 naturally re-runs load functions. Client-side auth with `goto()` does not.

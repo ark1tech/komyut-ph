@@ -28,18 +28,18 @@ command.unchecked(handler: (input: unknown) => Promise<Result>)
 **Example:**
 
 ```typescript
-import { command } from "$app/server";
-import * as v from "valibot";
+import { command } from '$app/server';
+import * as v from 'valibot';
 
 export const create_post = command(
-  v.object({
-    title: v.string(),
-    content: v.string(),
-  }),
-  async ({ title, content }) => {
-    const post = await db.posts.create({ title, content });
-    return { id: post.id };
-  },
+	v.object({
+		title: v.string(),
+		content: v.string()
+	}),
+	async ({ title, content }) => {
+		const post = await db.posts.create({ title, content });
+		return { id: post.id };
+	}
 );
 ```
 
@@ -53,16 +53,16 @@ automatically batched into a single request.
 **Example:**
 
 ```typescript
-import { query } from "$app/server";
-import * as v from "valibot";
+import { query } from '$app/server';
+import * as v from 'valibot';
 
 export const get_user = query(v.object({ id: v.string() }), async ({ id }) => {
-  return await db.users.findById(id);
+	return await db.users.findById(id);
 });
 
 // Client side - these may be batched:
-const user1 = await get_user({ id: "1" });
-const user2 = await get_user({ id: "2" });
+const user1 = await get_user({ id: '1' });
+const user2 = await get_user({ id: '2' });
 ```
 
 ### query.batch()
@@ -74,18 +74,18 @@ explicitly groups requests and lets you resolve them efficiently (e.g.,
 single DB query for multiple IDs).
 
 ```typescript
-import { query } from "$app/server";
-import * as v from "valibot";
+import { query } from '$app/server';
+import * as v from 'valibot';
 
 export const get_weather = query.batch(v.string(), async (cities) => {
-  // cities is an array of all requested city names
-  const weather = await db.sql`
+	// cities is an array of all requested city names
+	const weather = await db.sql`
     SELECT * FROM weather WHERE city = ANY(${cities})
   `;
 
-  // Return a resolver function
-  const lookup = new Map(weather.map(w => [w.city, w]));
-  return (city) => lookup.get(city);
+	// Return a resolver function
+	const lookup = new Map(weather.map((w) => [w.city, w]));
+	return (city) => lookup.get(city);
 });
 ```
 
@@ -93,12 +93,13 @@ export const get_weather = query.batch(v.string(), async (cities) => {
 
 ```svelte
 {#each cities as city}
-  <!-- All these calls batch into ONE server request -->
-  <CityWeather weather={await get_weather(city.id)} />
+	<!-- All these calls batch into ONE server request -->
+	<CityWeather weather={await get_weather(city.id)} />
 {/each}
 ```
 
 **How it works:**
+
 1. Multiple calls in same macrotask are collected
 2. Server receives array of all inputs
 3. Your handler returns a resolver function
@@ -116,10 +117,10 @@ initial load, not on refreshes:
 
 ```svelte
 <script lang="ts">
-	import { get_posts } from '$lib/posts.remote'
+	import { get_posts } from '$lib/posts.remote';
 
 	// Query is cached - same call returns same promise
-	const data = get_posts()
+	const data = get_posts();
 </script>
 
 <svelte:boundary>
@@ -140,14 +141,14 @@ For queries that depend on route params:
 
 ```svelte
 <script lang="ts">
-	import { page } from '$app/state'
-	import { get_post } from '$lib/posts.remote'
+	import { page } from '$app/state';
+	import { get_post } from '$lib/posts.remote';
 
 	// Extract reactive value first
-	let slug = $derived(page.params.slug)
+	let slug = $derived(page.params.slug);
 
 	// Query re-runs when slug changes
-	let data = $derived(get_post({ slug }))
+	let data = $derived(get_post({ slug }));
 </script>
 
 <svelte:boundary>
@@ -168,19 +169,16 @@ shows on initial load, subsequent refreshes update seamlessly:
 
 ```svelte
 <script lang="ts">
-	import { get_active_visitors } from '$lib/analytics.remote'
+	import { get_active_visitors } from '$lib/analytics.remote';
 
 	// Query is cached
-	const data = get_active_visitors({ limit: 10 })
+	const data = get_active_visitors({ limit: 10 });
 
 	// Refresh every 5 seconds - updates cached query in place
 	$effect(() => {
-		const interval = setInterval(
-			() => get_active_visitors({ limit: 10 }).refresh(),
-			5000,
-		)
-		return () => clearInterval(interval)
-	})
+		const interval = setInterval(() => get_active_visitors({ limit: 10 }).refresh(), 5000);
+		return () => clearInterval(interval);
+	});
 </script>
 
 <svelte:boundary>
@@ -207,8 +205,8 @@ shows on initial load, subsequent refreshes update seamlessly:
 ```svelte
 <script>
 	let result = $derived.by(async () => {
-		return await get_data()
-	})
+		return await get_data();
+	});
 </script>
 
 <!-- Shows pending state on EVERY update = flicker -->
@@ -223,7 +221,7 @@ shows on initial load, subsequent refreshes update seamlessly:
 
 ```svelte
 <script>
-	const data = get_data()
+	const data = get_data();
 </script>
 
 <svelte:boundary>
@@ -241,7 +239,7 @@ shows on initial load, subsequent refreshes update seamlessly:
 ```svelte
 <script>
 	// path is NOT tracked - won't re-run on navigation!
-	const data = get_data({ path: page.url.pathname })
+	const data = get_data({ path: page.url.pathname });
 </script>
 ```
 
@@ -249,10 +247,10 @@ shows on initial load, subsequent refreshes update seamlessly:
 
 ```svelte
 <script>
-	let path = $derived(page.url.pathname)
+	let path = $derived(page.url.pathname);
 
 	// path IS tracked - re-runs when path changes
-	let data = $derived(get_data({ path }))
+	let data = $derived(get_data({ path }));
 </script>
 ```
 
@@ -263,17 +261,17 @@ shows on initial load, subsequent refreshes update seamlessly:
 **Basic usage:**
 
 ```typescript
-import { form } from "$app/server";
-import * as v from "valibot";
+import { form } from '$app/server';
+import * as v from 'valibot';
 
 export const create_post = form(
-  v.object({
-    title: v.string(),
-    content: v.string(),
-  }),
-  async ({ title, content }) => {
-    await db.posts.create({ title, content });
-  }
+	v.object({
+		title: v.string(),
+		content: v.string()
+	}),
+	async ({ title, content }) => {
+		await db.posts.create({ title, content });
+	}
 );
 ```
 
@@ -283,21 +281,22 @@ Use `.fields` with `.as()` to get typed input attributes:
 
 ```svelte
 <form {...createPost}>
-  <label>
-    Title
-    <input {...createPost.fields.title.as('text')} />
-  </label>
+	<label>
+		Title
+		<input {...createPost.fields.title.as('text')} />
+	</label>
 
-  <label>
-    Content
-    <textarea {...createPost.fields.content.as('text')} />
-  </label>
+	<label>
+		Content
+		<textarea {...createPost.fields.content.as('text')} />
+	</label>
 
-  <button>Publish</button>
+	<button>Publish</button>
 </form>
 ```
 
 **What `.as()` provides:**
+
 - Correct `type` attribute
 - `name` for form data construction
 - `value` populated on validation error (user doesn't re-enter)
@@ -311,10 +310,10 @@ Prefix field names with `_` to prevent repopulation on validation error:
 
 ```svelte
 <form {...register}>
-  <input {...register.fields.username.as('text')} />
-  <!-- Password won't be sent back if validation fails -->
-  <input {...register.fields._password.as('password')} />
-  <button>Sign up</button>
+	<input {...register.fields.username.as('text')} />
+	<!-- Password won't be sent back if validation fails -->
+	<input {...register.fields._password.as('password')} />
+	<button>Sign up</button>
 </form>
 ```
 
@@ -326,11 +325,11 @@ Add a field for button value, use `.as('submit', value)`:
 
 ```svelte
 <form {...loginOrRegister}>
-  <input {...loginOrRegister.fields.username.as('text')} />
-  <input {...loginOrRegister.fields._password.as('password')} />
+	<input {...loginOrRegister.fields.username.as('text')} />
+	<input {...loginOrRegister.fields._password.as('password')} />
 
-  <button {...loginOrRegister.fields.action.as('submit', 'login')}>Login</button>
-  <button {...loginOrRegister.fields.action.as('submit', 'register')}>Register</button>
+	<button {...loginOrRegister.fields.action.as('submit', 'login')}>Login</button>
+	<button {...loginOrRegister.fields.action.as('submit', 'register')}>Register</button>
 </form>
 ```
 
@@ -360,17 +359,17 @@ standard implemented by Valibot, Zod, ArkType, and others.
 ### With Valibot
 
 ```typescript
-import * as v from "valibot";
+import * as v from 'valibot';
 
 export const update_settings = command(
-  v.object({
-    theme: v.union([v.literal("light"), v.literal("dark")]),
-    notifications: v.boolean(),
-  }),
-  async (settings) => {
-    // settings is fully typed and validated
-    await db.settings.update(settings);
-  },
+	v.object({
+		theme: v.union([v.literal('light'), v.literal('dark')]),
+		notifications: v.boolean()
+	}),
+	async (settings) => {
+		// settings is fully typed and validated
+		await db.settings.update(settings);
+	}
 );
 ```
 
@@ -378,8 +377,8 @@ export const update_settings = command(
 
 ```typescript
 export const simple_action = command(async () => {
-  // No input validation
-  return { timestamp: Date.now() };
+	// No input validation
+	return { timestamp: Date.now() };
 });
 ```
 
@@ -387,8 +386,8 @@ export const simple_action = command(async () => {
 
 ```typescript
 export const flexible_action = command.unchecked(async (input) => {
-  // input is unknown - validate manually if needed
-  return process(input);
+	// input is unknown - validate manually if needed
+	return process(input);
 });
 ```
 
@@ -415,15 +414,15 @@ export const flexible_action = command.unchecked(async (input) => {
 ```typescript
 // ✅ Valid
 return {
-  name: "Alice",
-  age: 30,
-  created: new Date(),
+	name: 'Alice',
+	age: 30,
+	created: new Date()
 };
 
 // ❌ Invalid
 return {
-  user: new User(), // Class instance
-  callback: () => {}, // Function
+	user: new User(), // Class instance
+	callback: () => {} // Function
 };
 ```
 
@@ -433,13 +432,13 @@ Use `getRequestEvent()` inside remote functions to access cookies,
 headers, etc:
 
 ```typescript
-import { command, getRequestEvent } from "$app/server";
+import { command, getRequestEvent } from '$app/server';
 
 export const get_session = command(async () => {
-  const event = getRequestEvent();
-  const sessionId = event.cookies.get("session");
+	const event = getRequestEvent();
+	const sessionId = event.cookies.get('session');
 
-  return { sessionId };
+	return { sessionId };
 });
 ```
 
@@ -466,17 +465,17 @@ export const demo_login = command(async () => {
 
 ```svelte
 <script>
-  import { goto } from '$app/navigation';
-  import { auth_client } from '$lib/auth-client';
+	import { goto } from '$app/navigation';
+	import { auth_client } from '$lib/auth-client';
 
-  async function handle_login() {
-    // Client-side auth properly handles cookies
-    const result = await auth_client.signIn.email({ email, password });
+	async function handle_login() {
+		// Client-side auth properly handles cookies
+		const result = await auth_client.signIn.email({ email, password });
 
-    if (!result.error) {
-      await goto('/dashboard', { invalidateAll: true });
-    }
-  }
+		if (!result.error) {
+			await goto('/dashboard', { invalidateAll: true });
+		}
+	}
 </script>
 ```
 
@@ -491,22 +490,19 @@ export const demo_login = command(async () => {
 Thrown errors are serialized and re-thrown on the client:
 
 ```typescript
-export const risky_action = command(
-  v.object({ id: v.string() }),
-  async ({ id }) => {
-    const item = await db.items.find(id);
-    if (!item) {
-      throw new Error("Item not found");
-    }
-    return item;
-  },
-);
+export const risky_action = command(v.object({ id: v.string() }), async ({ id }) => {
+	const item = await db.items.find(id);
+	if (!item) {
+		throw new Error('Item not found');
+	}
+	return item;
+});
 
 // Client side:
 try {
-  await risky_action({ id: "123" });
+	await risky_action({ id: '123' });
 } catch (error) {
-  console.error(error.message); // "Item not found"
+	console.error(error.message); // "Item not found"
 }
 ```
 
@@ -544,14 +540,14 @@ export const delete_item = command(idSchema, async ({ id }) => { ... });
 
 ```typescript
 export const admin_action = command(schema, async (data) => {
-  const event = getRequestEvent();
-  const user = await getUserFromEvent(event);
+	const event = getRequestEvent();
+	const user = await getUserFromEvent(event);
 
-  if (!user.isAdmin) {
-    throw new Error("Unauthorized");
-  }
+	if (!user.isAdmin) {
+		throw new Error('Unauthorized');
+	}
 
-  return performAdminAction(data);
+	return performAdminAction(data);
 });
 ```
 
@@ -582,9 +578,7 @@ Show instant UI feedback while mutation is in flight:
 
 ```typescript
 // Optimistic increment - shows immediately, auto-rollback on error
-await addLike(item.id).updates(
-  getLikes(item.id).withOverride((n) => n + 1)
-);
+await addLike(item.id).updates(getLikes(item.id).withOverride((n) => n + 1));
 ```
 
 **Form example:**
@@ -598,6 +592,7 @@ await addLike(item.id).updates(
 ```
 
 **How it works:**
+
 1. Override applied immediately (instant UI)
 2. Server mutation runs
 3. On success: real data replaces override
@@ -609,13 +604,13 @@ Inside command/form handlers, use `.refresh()` or `.set()`:
 
 ```typescript
 export const updatePost = form(schema, async (data) => {
-  const result = await externalApi.update(post);
+	const result = await externalApi.update(post);
 
-  // Option 1: Refetch from DB
-  await getPost(post.id).refresh();
+	// Option 1: Refetch from DB
+	await getPost(post.id).refresh();
 
-  // Option 2: Set directly (if you have the data)
-  await getPost(post.id).set(result);
+	// Option 2: Set directly (if you have the data)
+	await getPost(post.id).set(result);
 });
 ```
 
@@ -647,10 +642,10 @@ Remote functions maintain full type safety:
 ```typescript
 // Server
 export const get_post = query(
-  v.object({ id: v.number() }),
-  async ({ id }): Promise<{ title: string; body: string }> => {
-    return await db.posts.find(id);
-  },
+	v.object({ id: v.number() }),
+	async ({ id }): Promise<{ title: string; body: string }> => {
+		return await db.posts.find(id);
+	}
 );
 
 // Client - fully typed!

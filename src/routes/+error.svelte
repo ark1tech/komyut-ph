@@ -6,7 +6,9 @@
 	<title>Error {page.status} | Komyut PH</title>
 </svelte:head>
 
-<div class="mx-auto flex min-h-[50dvh] max-w-7xl flex-col items-center justify-center px-4 text-center">
+<div
+	class="mx-auto flex min-h-[50dvh] max-w-7xl flex-col items-center justify-center px-4 text-center"
+>
 	<!-- Error Code -->
 	<p class="font-display text-fluid-5xl font-bold text-muted-foreground/30">
 		{page.status}
