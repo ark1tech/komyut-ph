@@ -17,9 +17,9 @@
 	>
 		<div class="relative flex shrink-0 items-center">
 			<div
-				class="overflow-hidden transition-all ease-in-out {isPostRoute
-					? 'max-w-0 opacity-0 duration-400'
-					: 'max-w-40 opacity-100 delay-400 duration-400'}"
+			class="overflow-hidden transition-all ease-[cubic-bezier(0.65,0,0.25,1)] {isPostRoute
+				? 'max-w-0 opacity-0 duration-200'
+				: 'max-w-40 opacity-100 delay-300 duration-200'}"
 			>
 				<a
 					href="/forum"
@@ -32,9 +32,9 @@
 				</a>
 			</div>
 			<div
-				class=" flex flex-row items-center overflow-hidden transition-all ease-in-out {isPostRoute
-					? 'max-w-10 opacity-100 delay-400 duration-400'
-					: 'max-w-0 opacity-0 duration-400'}"
+				class=" flex flex-row items-center overflow-hidden transition-all ease-[cubic-bezier(0.65,0,0.25,1)] {isPostRoute
+					? 'max-w-10 opacity-100 delay-300 duration-200'
+					: 'max-w-0 opacity-0 duration-200'}"
 			>
 				<button
 					onclick={() => history.back()}

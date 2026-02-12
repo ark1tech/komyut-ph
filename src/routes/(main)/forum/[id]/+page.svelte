@@ -13,19 +13,18 @@
 <svelte:head>
 	<title>{post.title} • Komyut PH</title>
 </svelte:head>
-
-<div class="flex flex-col px-fluid-sm py-fluid-sm">
+<div class="flex flex-col ">
 	<ForumPost
 		post={post}
 		commentCount={comments.length}
 		truncate={false}
 		linked={false}
-		class="border-0 px-fluid-sm py-0"
+		class="border-0 rounded-t-none p-fluid-md bg-primary-foreground"
 		titleClass="text-xl"
 	/>
 
 	<!-- comment input -->
-	<div class="mt-3 flex gap-3 items-center rounded-2xl border border-border bg-card p-3 flex-row justify-center">
+	<div class="m-fluid-sm flex gap-3 items-center rounded-2xl border border-border bg-card p-3 flex-row justify-center">
 		<div
 			class="grid size-7 shrink-0 place-items-center rounded-full bg-brand/10 text-xs font-semibold text-brand"
 		>
@@ -51,7 +50,7 @@
 
 	<!-- comments -->
 	{#if comments.length > 0}
-		<div class="mt-3 space-y-2">
+		<div class="space-y-2">
 			{#each comments as comment (comment.comment_id)}
 				<ForumComment {comment} />
 			{/each}

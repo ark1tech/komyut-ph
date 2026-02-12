@@ -23,7 +23,7 @@
 
 </script>
 
-<div class={cn('flex gap-3 rounded-xl bg-muted/30 p-3', className)}>
+<div class={cn('flex gap-3 rounded-xl p-fluid-sm', className)}>
 	<!-- vote strip -->
 	<div class="flex flex-col items-center gap-0.5">
 		<button
