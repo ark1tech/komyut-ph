@@ -13,7 +13,7 @@
 <svelte:head>
 	<title>{post.title} | Komyut PH</title>
 </svelte:head>
-<div class="flex flex-col ">
+<div class="flex flex-col">
 	<ForumPost
 		post={post}
 		commentCount={comments.length}
@@ -24,7 +24,7 @@
 	/>
 
 	<!-- comment input -->
-	<div class="m-fluid-sm flex gap-3 items-center rounded-2xl border border-border bg-card p-3 flex-row justify-center">
+	<div class="m-fluid-sm flex gap-3 items-center rounded-2xl border border-border bg-card p-3 flex-row justify-center" role="textbox" aria-label="Forum Comment Input">
 		<div
 			class="grid size-7 shrink-0 place-items-center rounded-full bg-brand/10 text-xs font-semibold text-brand"
 		>
@@ -50,7 +50,7 @@
 
 	<!-- comments -->
 	{#if comments.length > 0}
-		<div class="space-y-2">
+		<div class="space-y-2" role="region" aria-label="Forum Comments">
 			{#each comments as comment (comment.comment_id)}
 				<ForumComment {comment} />
 			{/each}

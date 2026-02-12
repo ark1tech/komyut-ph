@@ -56,11 +56,11 @@
 
 <div class="">
 	<!-- Profile Header with Blue Background -->
-	<div class="pt-safe-area-pt bg-brand px-4 pb-8">
+	<div class="pt-safe-area-pt bg-brand px-4 pb-8" aria-label="Profile Header" role="region">
 		<div class="mb-6 flex items-center justify-between text-brand-foreground"></div>
 
 		<!-- Avatar and Name -->
-		<div class="flex flex-col items-center text-center text-brand-foreground">
+		<div class="flex flex-col items-center text-center text-brand-foreground" aria-label="User Information" role="region">
 			<div class="mb-3 grid h-20 w-20 place-items-center rounded-full bg-white text-brand">
 				<span class="font-display text-2xl font-bold">{user.initials}</span>
 			</div>
@@ -69,7 +69,7 @@
 		</div>
 
 		<!-- Stats Cards -->
-		<div class="mt-6 flex gap-8 rounded-2xl bg-white px-6 py-4 text-center">
+		<div class="mt-6 flex gap-8 rounded-2xl bg-white px-6 py-4 text-center" aria-label="User Stats" role="region">
 			<div class="flex-1">
 				<div class="font-display text-2xl font-bold text-brand">{user.stats.routes}</div>
 				<div class="mt-1 text-xs text-muted-foreground">Routes</div>
@@ -86,7 +86,7 @@
 	</div>
 
 	<!-- Menu Sections -->
-	<div class="flex-1 space-y-6 px-4 py-6">
+	<div class="flex-1 space-y-6 px-4 py-6" aria-label="Menu Sections" role="region">
 		{#each menuSections as section, sectionIndex}
 			<div class="space-y-2">
 				{#each section.items as item}

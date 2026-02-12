@@ -14,7 +14,7 @@
 </svelte:head>
 
 <!-- feed -->
-<div class="space-y-3 px-fluid-sm py-fluid-sm">
+<div class="space-y-3 px-fluid-sm py-fluid-sm" role="region" aria-label="Forum Posts">
 	{#each mockPosts as post (post.post_id)}
 		<ForumPost {post} commentCount={commentCountFor(post.post_id)} />
 	{/each}
