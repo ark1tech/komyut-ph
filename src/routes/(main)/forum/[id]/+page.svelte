@@ -19,7 +19,7 @@
 		commentCount={comments.length}
 		truncate={false}
 		linked={false}
-		class="border-0 rounded-t-none p-fluid-md bg-primary-foreground"
+		class="border-0 rounded-none p-fluid-md bg-primary-foreground"
 		titleClass="text-xl"
 	/>
 

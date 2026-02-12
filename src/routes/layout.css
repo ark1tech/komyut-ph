@@ -8,9 +8,9 @@
 :root {
 	/* shadcn ui colors */
 	--radius: 0.625rem;
-	--background: oklch(1 0 0);
+	--background: oklch(97.614% 0.00011 271.152);
 	--foreground: oklch(0.129 0.042 264.695);
-	--card: oklch(1 0 0);
+	--card: oklch(100% 0.00011 271.152);
 	--card-foreground: oklch(0.129 0.042 264.695);
 	--popover: oklch(1 0 0);
 	--popover-foreground: oklch(0.129 0.042 264.695);
@@ -60,18 +60,18 @@
 
 .dark {
 	/* shadcn ui colors (dark mode) */
-	--background: oklch(0.129 0.042 264.695);
+	--background: oklch(22.472% 0.00364 229.242);
 	--foreground: oklch(0.984 0.003 247.858);
-	--card: oklch(0.208 0.042 265.755);
+	--card: oklch(20.087% 0.00814 274.501);
 	--card-foreground: oklch(0.984 0.003 247.858);
 	--popover: oklch(0.208 0.042 265.755);
 	--popover-foreground: oklch(0.984 0.003 247.858);
 	--primary: oklch(0.929 0.013 255.508);
-	--primary-foreground: oklch(0.208 0.042 265.755);
+	--primary-foreground: oklch(17.28% 0.00447 264.488);
 	--secondary: oklch(0.279 0.041 260.031);
 	--secondary-foreground: oklch(0.984 0.003 247.858);
 	--muted: oklch(0.279 0.041 260.031);
-	--muted-foreground: oklch(0.704 0.04 256.788);
+	--muted-foreground: oklch(75.166% 0.03526 255.291);
 	--accent: oklch(0.279 0.041 260.031);
 	--accent-foreground: oklch(0.984 0.003 247.858);
 	--destructive: oklch(0.704 0.191 22.216);
@@ -295,5 +295,23 @@
 
 	::selection {
 		@apply bg-primary/20 text-foreground;
+	}
+
+	/* subtle pop on click for all interactive elements */
+
+	button,
+	[role='button'],
+	input[type='submit'],
+	input[type='button'],
+	summary {
+		transition: transform 0.15s cubic-bezier(0.22, 1, 0.36, 1);
+	}
+
+	button:active:not(:disabled),
+	[role='button']:active:not(:disabled),
+	input[type='submit']:active:not(:disabled),
+	input[type='button']:active:not(:disabled),
+	summary:active {
+		transform: scale(0.95);
 	}
 }

@@ -83,7 +83,7 @@
 </script>
 
 {#if !ready}
-	<div class="absolute inset-0 flex items-center justify-center bg-muted">
+	<div class="absolute inset-0 flex items-center justify-center bg-white">
 		<p class="text-sm text-muted-foreground">Loading map...</p>
 	</div>
 {/if}

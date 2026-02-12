@@ -35,8 +35,8 @@
 
 <article
 	class={cn(
-		'relative rounded-2xl border border-border bg-card p-4',
-		linked && 'transition-all duration-200 hover:border-border/80 hover:bg-accent/40',
+		'relative rounded-2xl bg-card p-4',
+		linked && 'transition-all duration-200 hover:bg-accent',
 		className
 	)}
 >
