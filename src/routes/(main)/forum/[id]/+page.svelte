@@ -11,7 +11,7 @@
 </script>
 
 <svelte:head>
-	<title>{post.title} • Komyut PH</title>
+	<title>{post.title} | Komyut PH</title>
 </svelte:head>
 <div class="flex flex-col ">
 	<ForumPost
