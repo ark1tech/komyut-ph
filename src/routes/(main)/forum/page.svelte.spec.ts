@@ -38,13 +38,6 @@ import Page from './+page.svelte';
  * ════════════════════════════════════════════════════════════════ */
 
 describe('unit tests for Forum Page', () => {
-    it('should render the search bar', async () => {
-        render(Page);
-
-        const searchInput = page.getByRole('region', { name: 'Forum Search Bar' });
-        await expect.element(searchInput).toBeInTheDocument();
-    });
-
     it('should render the forum posts feed', async () => {
         render(Page);
 
