@@ -312,6 +312,6 @@
 	input[type='submit']:active:not(:disabled),
 	input[type='button']:active:not(:disabled),
 	summary:active {
-		transform: scale(0.95);
+		transform: scale(0.96);
 	}
 }
