@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import {
 		Map,
 		Star,
@@ -9,10 +10,15 @@
 		Lock,
 		ChevronRight,
 		Home,
-		MessageCircle
+		MessageCircle,
+		LogOut
+
 	} from '@lucide/svelte';
+	let { data } = $props();
+	let { supabase, session } = $derived(data);
 
 	// Placeholder data matching the design image
+	// TODO: use supabase client to get these values
 	const user = {
 		initials: 'JD',
 		name: 'Juan Dela Cruz',
@@ -48,6 +54,15 @@
 		{ icon: MessageCircle, label: 'Forum', active: false },
 		{ label: 'Profile', active: true }
 	];
+
+	async function signOut() {
+		const { error } = await supabase.auth.signOut();
+		if (error) {
+			console.error("signout error");
+		} else {
+			goto("/login");
+		}
+	}
 </script>
 
 <svelte:head>
@@ -96,7 +111,7 @@
 					>
 						<div class="flex items-center gap-3">
 							<div class="text-foreground">
-								<svelte:component this={item.icon} class="h-5 w-5" />
+								<item.icon class="h-5 w-5" />
 							</div>
 							<span class="text-sm font-medium text-foreground">{item.label}</span>
 						</div>
@@ -117,5 +132,20 @@
 				<div class="mx-4 h-px bg-border"></div>
 			{/if}
 		{/each}
+
+		<a
+			href="/login"
+			class="flex items-center justify-between rounded-xl bg-card px-4 py-3.5 transition-colors hover:bg-accent"
+		>
+			<div class="flex items-center gap-3">
+				<div class="text-foreground">
+					<LogOut class="h-5 w-5" />
+				</div>
+				<span class="text-sm font-medium text-foreground">Log Out</span>
+			</div>
+			<div class="flex items-center gap-2">
+				<ChevronRight class="h-5 w-5 text-muted-foreground" />
+			</div>
+		</a>
 	</div>
 </div>
