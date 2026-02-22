@@ -3,7 +3,8 @@
 	import textBlue from '$lib/images/komyut_text_blue.svg';
 	import { goto } from '$app/navigation';
 
-	let { supabase, session } = $props();
+	let { data } = $props();
+	let { supabase, session } = $derived(data);
 
 	function onc() {
 		console.log('Login button clicked');
@@ -11,13 +12,12 @@
 		supabase.auth.signInWithOAuth({
 			provider: 'google',
 			options: {
-				redirectTo: `http://localhost:5173/auth/callback`,
+				redirectTo: `http://localhost:5173/map`,
 			},
 		});
 
 		// TODO: no input validation yet, this is just a simple
 		// redirect to the map page
-		goto('/map');
 	}
 </script>
 
