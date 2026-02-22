@@ -10,6 +10,9 @@
 
 		supabase.auth.signInWithOAuth({
 			provider: 'google',
+			options: {
+				redirectTo: `http://localhost:5173/auth/callback`,
+			},
 		});
 
 		// TODO: no input validation yet, this is just a simple
