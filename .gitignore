@@ -29,4 +29,5 @@ test-results
 
 /notes
 
-.pbf
+*.osm.pbf
+*.osm
