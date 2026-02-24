@@ -26,6 +26,8 @@ test-results
 # Cloudflare Types
 /worker-configuration.d.ts
 
+# Supabase
+/supabase
 
 /notes
 
