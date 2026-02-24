@@ -2,21 +2,21 @@ import { fail, redirect } from '@sveltejs/kit'
 import type { Actions, PageServerLoad } from './$types'
 
 export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession } }) => {
-    console.log("hello");
     const { session } = await safeGetSession()
 
     if (!session) {
-        redirect(303, '/')
+        // redirect(303, '/login')
+        return {
+            session: null,
+            user: null
+        }
     }
 
-    console.log(session.user.id);
     const { data: user } = await supabase
         .from('user')
         .select(`full_name, email, avatar_url`)
         .eq('uid', session.user.id)
         .single()
-
-    console.log(session.user.id);
 
     return { session, user }
 }

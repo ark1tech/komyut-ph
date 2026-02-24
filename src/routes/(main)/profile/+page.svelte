@@ -15,13 +15,16 @@
 
 	} from '@lucide/svelte';
 	let { data } = $props();
-	let { supabase, session } = $derived(data);
+	let { supabase, session, user } = $derived(data);
+	let full_name: string = $derived(user?.full_name ?? 'Guest');
+	let email: string = $derived(user?.email ?? 'Guest User');
+	let avatar_url: string = $derived(user?.avatar_url ?? '')
 
 	// Placeholder data matching the design image
 	// TODO: use supabase client to get these values
-	const user = {
-		initials: 'JD',
-		name: 'Juan Dela Cruz',
+	const userDetails = {
+		initials: 'GU',
+		name: 'Guest',
 		username: '@juandc',
 		stats: {
 			routes: 42,
@@ -77,24 +80,28 @@
 		<!-- Avatar and Name -->
 		<div class="flex flex-col items-center text-center text-brand-foreground" aria-label="User Information" role="region">
 			<div class="mb-3 grid h-20 w-20 place-items-center rounded-full bg-white text-brand">
-				<span class="font-display text-2xl font-bold">{user.initials}</span>
+				{#if user}
+					<img class="rounded-full" src={avatar_url} alt="User Avatar"/>
+				{:else}
+					<span class="font-display text-2xl font-bold">{userDetails.initials}</span>
+				{/if}
 			</div>
-			<h1 class="font-display text-xl font-semibold">{user.name}</h1>
-			<p class="mt-1 text-sm opacity-90">{user.username}</p>
+			<h1 class="font-display text-xl font-semibold">{full_name}</h1>
+			<p class="mt-1 text-sm opacity-90">{email}</p>
 		</div>
 
 		<!-- Stats Cards -->
 		<div class="mt-6 flex gap-8 rounded-2xl bg-white px-6 py-4 text-center" aria-label="User Stats" role="region">
 			<div class="flex-1">
-				<div class="font-display text-2xl font-bold text-brand">{user.stats.routes}</div>
+				<div class="font-display text-2xl font-bold text-brand">{userDetails.stats.routes}</div>
 				<div class="mt-1 text-xs text-muted-foreground">Routes</div>
 			</div>
 			<div class="flex-1 border-x border-border">
-				<div class="font-display text-2xl font-bold text-brand">{user.stats.posts}</div>
+				<div class="font-display text-2xl font-bold text-brand">{userDetails.stats.posts}</div>
 				<div class="mt-1 text-xs text-muted-foreground">Posts</div>
 			</div>
 			<div class="flex-1">
-				<div class="font-display text-2xl font-bold text-brand">{user.stats.followers}</div>
+				<div class="font-display text-2xl font-bold text-brand">{userDetails.stats.followers}</div>
 				<div class="mt-1 text-xs text-muted-foreground">Followers</div>
 			</div>
 		</div>
@@ -135,6 +142,7 @@
 
 		<a
 			href="/login"
+			onclick={signOut}
 			class="flex items-center justify-between rounded-xl bg-card px-4 py-3.5 transition-colors hover:bg-accent"
 		>
 			<div class="flex items-center gap-3">
