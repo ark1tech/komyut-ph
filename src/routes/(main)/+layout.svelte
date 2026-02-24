@@ -1,12 +1,20 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { Map, MessageCircle, UserRound } from '@lucide/svelte';
+	import { Map, MessageCircle, Route, UserRound } from '@lucide/svelte';
+	import { mockNotifications } from '$lib/data/mock_notifications';
 
 	let { children } = $props();
 
+	const unreadForum = mockNotifications.filter(
+		(n) => !n.is_read && (n.kind === 'upvote' || n.kind === 'downvote' || n.kind === 'comment')
+	).length;
+
+	const unreadRoutes = mockNotifications.filter((n) => !n.is_read && n.kind === 'route_alert').length;
+
 	const navItems = [
 		{ href: '/map', label: 'Map', icon: Map },
-		{ href: '/forum', label: 'Forum', icon: MessageCircle },
+		{ href: '/routes', label: 'Routes', icon: Route, badge: unreadRoutes },
+		{ href: '/forum', label: 'Forum', icon: MessageCircle, badge: unreadForum },
 		{ href: '/profile', label: 'Profile', icon: UserRound }
 	];
 </script>
@@ -28,7 +36,17 @@
 						{active ? 'text-brand' : 'text-muted-foreground hover:text-foreground'}"
 					aria-current={active ? 'page' : undefined}
 				>
-					<item.icon class="size-5" strokeWidth={active ? 2.5 : 2} />
+					<span class="relative">
+						<item.icon class="size-5" strokeWidth={active ? 2.5 : 2} />
+						{#if item.badge && item.badge > 0}
+							<span
+								class="absolute -top-1 -right-2 grid min-w-4 place-items-center rounded-full bg-destructive px-1 text-[10px] font-semibold leading-4 text-white"
+								aria-label={`${item.badge} unread`}
+							>
+								{item.badge > 9 ? '9+' : item.badge}
+							</span>
+						{/if}
+					</span>
 					<span>{item.label}</span>
 				</a>
 			{/each}
