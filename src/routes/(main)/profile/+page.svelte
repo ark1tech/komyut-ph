@@ -28,9 +28,7 @@
 		{
 			items: [
 				{ icon: Map, label: 'My Routes', href: '/profile/myroutes' },
-				{ icon: Star, label: 'Saved Routes', href: '/profile/savedroutes' },
 				{ icon: MessageSquare, label: 'My Posts', href: '/profile/myposts' },
-				{ icon: Bell, label: 'Notifications', badge: 3, href: '/profile/notifications' }
 			]
 		},
 		{

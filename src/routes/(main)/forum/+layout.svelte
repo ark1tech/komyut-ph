@@ -1,25 +1,31 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { ArrowLeft } from '@lucide/svelte';
+	import { ArrowLeft, Bell } from '@lucide/svelte';
 	import ForumSearchBar from '$lib/components/forum/ForumSearchBar.svelte';
 	import iconBlue from '$lib/images/komyut_icon_blue.svg';
 	import textBlue from '$lib/images/komyut_text_blue.svg';
+	import { mockNotifications } from '$lib/data/mock_notifications';
 
 	let { children } = $props();
 
 	let isPostRoute = $derived(page.url.pathname !== '/forum');
+
+	let unreadForum = $derived(
+		mockNotifications.filter(
+			(n) => !n.is_read && (n.kind === 'upvote' || n.kind === 'downvote' || n.kind === 'comment')
+		).length
+	);
 </script>
 
 <div class="flex flex-col">
-	<!-- search -->
 	<div
 		class="sticky top-0 z-30 flex flex-row items-center gap-fluid-sm border-b bg-background/95 px-fluid-sm py-fluid-sm backdrop-blur-sm"
 	>
 		<div class="relative flex shrink-0 items-center">
 			<div
-			class="overflow-hidden transition-all ease-[cubic-bezier(0.65,0,0.25,1)] {isPostRoute
-				? 'max-w-0 opacity-0 duration-200'
-				: 'max-w-40 opacity-100 delay-300 duration-200'}"
+				class="overflow-hidden transition-all ease-[cubic-bezier(0.65,0,0.25,1)] {isPostRoute
+					? 'max-w-0 opacity-0 duration-200'
+					: 'max-w-40 opacity-100 delay-300 duration-200'}"
 			>
 				<a
 					href="/forum"
@@ -46,9 +52,26 @@
 				</button>
 			</div>
 		</div>
+
 		<div class="flex-1">
 			<ForumSearchBar />
 		</div>
+
+		<a
+			href="/notifications?scope=forum"
+			class="relative grid size-9 shrink-0 place-items-center rounded-full text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+			aria-label="Forum notifications"
+		>
+			<Bell class="size-5" />
+			{#if unreadForum > 0}
+				<span
+					class="absolute -top-1 -right-1 grid min-w-4 place-items-center rounded-full bg-destructive px-1 text-[10px] font-semibold leading-4 text-white"
+					aria-label={`${unreadForum} unread forum notifications`}
+				>
+					{unreadForum > 9 ? '9+' : unreadForum}
+				</span>
+			{/if}
+		</a>
 	</div>
 
 	{@render children()}
