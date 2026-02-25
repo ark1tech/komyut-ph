@@ -10,6 +10,7 @@ export interface Comment {
 	body: string;
 	upvotes: number;
 	downvotes: number;
+	linked_post_id?: number;
 }
 
 export const mockComments: Comment[] = [
@@ -86,7 +87,8 @@ export const mockComments: Comment[] = [
 		last_edited: '2024-01-17T08:00:00Z',
 		body: "I second the P2P bus! Super convenient and you don't have to deal with train transfers.",
 		upvotes: 12,
-		downvotes: 0
+		downvotes: 0,
+		linked_post_id: 5
 	},
 
 	// Comments on Post 3 (Manila to Tagaytay)
@@ -202,7 +204,8 @@ export const mockComments: Comment[] = [
 		last_edited: '2024-01-21T09:15:00Z',
 		body: "It's definitely doable! 1) From Alabang, take bus to Crossing/Shaw, 2) Ride jeep to Rosario/Sta. Lucia, 3) Transfer to Antipolo-bound jeep. Takes 2-3 hours total. Fare: ~150 pesos",
 		upvotes: 56,
-		downvotes: 0
+		downvotes: 0,
+		linked_post_id: 3
 	},
 	{
 		comment_id: 16,
@@ -226,7 +229,8 @@ export const mockComments: Comment[] = [
 		last_edited: '2024-01-21T12:00:00Z',
 		body: 'Middle ground: Take bus to Cubao, then take UV Express van to Antipolo from Farmers Plaza. Faster than full commute, cheaper than Grab. ~200-250 pesos total.',
 		upvotes: 78,
-		downvotes: 1
+		downvotes: 1,
+		linked_post_id: 2
 	},
 
 	// Comments on Post 10 (PWD-friendly to Manila Ocean Park)

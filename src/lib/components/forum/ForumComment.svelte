@@ -1,8 +1,11 @@
 <script lang="ts">
-	import { ArrowBigUp, ArrowBigDown } from '@lucide/svelte';
+	import { ArrowBigUp, ArrowBigDown, Reply } from '@lucide/svelte';
 	import type { Comment } from '$lib/data/mock_comments';
+	import { mockPosts } from '$lib/data/mock_posts';
 	import { cn } from '$lib/utils';
 	import ForumHeader from './ForumHeader.svelte';
+	import ForumCommentReply from './ForumCommentReply.svelte';
+	import ForumPostLink from './ForumPostLink.svelte';
 
 	interface Props {
 		comment: Comment;
@@ -12,19 +15,22 @@
 	let { comment, class: className }: Props = $props();
 
 	let voted = $state<'up' | 'down' | null>(null);
+	let showReply = $state(false);
 
 	let score = $derived(
 		comment.upvotes - comment.downvotes + (voted === 'up' ? 1 : voted === 'down' ? -1 : 0)
 	);
 
+	let linkedPost = $derived(
+		comment.linked_post_id ? mockPosts.find((p) => p.post_id === comment.linked_post_id) : null
+	);
+
 	function vote(dir: 'up' | 'down') {
 		voted = voted === dir ? null : dir;
 	}
-
 </script>
 
 <div class={cn('flex gap-3 rounded-xl p-fluid-sm', className)}>
-	<!-- vote strip -->
 	<div class="flex flex-col items-center gap-0.5">
 		<button
 			type="button"
@@ -49,7 +55,6 @@
 		</button>
 	</div>
 
-	<!-- body -->
 	<div class="min-w-0 flex-1">
 		<ForumHeader
 			authorUsername={comment.author_username}
@@ -58,5 +63,22 @@
 			showMenu
 		/>
 		<p class="mt-1 text-sm leading-relaxed text-muted-foreground">{comment.body}</p>
+
+		{#if linkedPost}
+			<ForumPostLink post={linkedPost} />
+		{/if}
+
+		<button
+			type="button"
+			onclick={() => (showReply = !showReply)}
+			class="mt-1.5 flex cursor-pointer items-center gap-1 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
+		>
+			<Reply class="size-3" />
+			Reply
+		</button>
+
+		{#if showReply}
+			<ForumCommentReply />
+		{/if}
 	</div>
 </div>

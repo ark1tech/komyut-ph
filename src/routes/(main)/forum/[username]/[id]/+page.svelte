@@ -1,13 +1,32 @@
 <script lang="ts">
-	import { SendHorizontal } from '@lucide/svelte';
+	import { SendHorizontal, Link2 } from '@lucide/svelte';
 	import ForumComment from '$lib/components/forum/ForumComment.svelte';
 	import ForumPost from '$lib/components/forum/ForumPost.svelte';
+	import ForumSortBar from '$lib/components/forum/ForumSortBar.svelte';
 
 	let { data } = $props();
 	let post = $derived(data.post);
 	let comments = $derived(data.comments);
 
 	let commentText = $state('');
+
+	type SortOption = 'top' | 'hot' | 'latest';
+	let commentSort = $state<SortOption>('hot');
+
+	let sortedComments = $derived.by(() => {
+		const list = [...comments];
+		switch (commentSort) {
+			case 'top':
+			case 'hot':
+				return list.sort((a, b) => b.upvotes - b.downvotes - (a.upvotes - a.downvotes));
+			case 'latest':
+				return list.sort(
+					(a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+				);
+			default:
+				return list;
+		}
+	});
 </script>
 
 <svelte:head>
@@ -15,16 +34,20 @@
 </svelte:head>
 <div class="flex flex-col">
 	<ForumPost
-		post={post}
+		{post}
 		commentCount={comments.length}
 		truncate={false}
 		linked={false}
-		class="border-0 rounded-none p-fluid-md bg-primary-foreground"
+		class="rounded-none border-0 bg-primary-foreground p-fluid-md"
 		titleClass="text-xl"
 	/>
 
 	<!-- comment input -->
-	<div class="m-fluid-sm flex gap-3 items-center rounded-2xl border border-border bg-card p-3 flex-row justify-center" role="textbox" aria-label="Forum Comment Input">
+	<div
+		class="m-fluid-sm flex flex-row items-center justify-center gap-3 rounded-2xl border border-border bg-card p-3"
+		role="textbox"
+		aria-label="Forum Comment Input"
+	>
 		<div
 			class="grid size-7 shrink-0 place-items-center rounded-full bg-brand/10 text-xs font-semibold text-brand"
 		>
@@ -39,6 +62,13 @@
 			></textarea>
 			<button
 				type="button"
+				class="shrink-0 rounded-full p-1.5 text-muted-foreground transition-colors hover:text-brand"
+				aria-label="Link a post"
+			>
+				<Link2 class="size-4" />
+			</button>
+			<button
+				type="button"
 				class="shrink-0 rounded-full p-1.5 text-brand transition-opacity disabled:opacity-30"
 				disabled={!commentText.trim()}
 				aria-label="Send comment"
@@ -48,10 +78,15 @@
 		</div>
 	</div>
 
-	<!-- comments -->
 	{#if comments.length > 0}
-		<div class="space-y-2" role="region" aria-label="Forum Comments">
-			{#each comments as comment (comment.comment_id)}
+		<ForumSortBar
+			active={commentSort}
+			onchange={(v) => (commentSort = v)}
+			class="px-fluid-sm"
+		/>
+
+		<div class="space-y-2 pt-2" role="region" aria-label="Forum Comments">
+			{#each sortedComments as comment (comment.comment_id)}
 				<ForumComment {comment} />
 			{/each}
 		</div>

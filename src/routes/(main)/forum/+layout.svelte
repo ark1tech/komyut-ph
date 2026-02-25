@@ -8,7 +8,7 @@
 
 	let { children } = $props();
 
-	let isPostRoute = $derived(page.url.pathname !== '/forum');
+	let isPostRoute = $derived(/^\/forum\/.+\/.+/.test(page.url.pathname));
 
 	let unreadForum = $derived(
 		mockNotifications.filter(

@@ -2,30 +2,24 @@
 	import { goto } from '$app/navigation';
 	import {
 		Map,
-		Star,
 		MessageSquare,
-		Bell,
 		Settings,
 		HelpCircle,
 		Lock,
 		ChevronRight,
-		Home,
-		MessageCircle,
 		LogOut
-
 	} from '@lucide/svelte';
+	import ProfileCard from '$lib/components/profile/ProfileCard.svelte';
+
 	let { data } = $props();
 	let { supabase, session, user } = $derived(data);
 	let full_name: string = $derived(user?.full_name ?? 'Guest');
+	let username: string = $derived(user?.username ?? 'guest');
 	let email: string = $derived(user?.email ?? 'Guest User');
-	let avatar_url: string = $derived(user?.avatar_url ?? '')
+	let avatar_url: string = $derived(user?.avatar_url ?? '');
 
-	// Placeholder data matching the design image
-	// TODO: use supabase client to get these values
 	const userDetails = {
 		initials: 'GU',
-		name: 'Guest',
-		username: '@juandc',
 		stats: {
 			routes: 42,
 			posts: 128,
@@ -37,7 +31,7 @@
 		{
 			items: [
 				{ icon: Map, label: 'My Routes', href: '/profile/myroutes' },
-				{ icon: MessageSquare, label: 'My Posts', href: '/profile/myposts' },
+				{ icon: MessageSquare, label: 'My Posts', href: '/profile/myposts' }
 			]
 		},
 		{
@@ -49,19 +43,12 @@
 		}
 	];
 
-	const navItems = [
-		{ icon: Home, label: 'Home', active: false },
-		{ icon: Map, label: 'Routes', active: false },
-		{ icon: MessageCircle, label: 'Forum', active: false },
-		{ label: 'Profile', active: true }
-	];
-
 	async function signOut() {
 		const { error } = await supabase.auth.signOut();
 		if (error) {
-			console.error("signout error");
+			console.error('signout error');
 		} else {
-			goto("/login");
+			goto('/login');
 		}
 	}
 </script>
@@ -70,42 +57,17 @@
 	<title>Profile | Komyut PH</title>
 </svelte:head>
 
-<div class="">
-	<!-- Profile Header with Blue Background -->
-	<div class="pt-safe-area-pt bg-brand px-4 pb-8" aria-label="Profile Header" role="region">
-		<div class="mb-6 flex items-center justify-between text-brand-foreground"></div>
+<div>
+	<ProfileCard
+		fullName={full_name}
+		{username}
+		{email}
+		avatarUrl={session ? avatar_url : undefined}
+		initials={session ? undefined : userDetails.initials}
+		stats={userDetails.stats}
+		class="pt-safe-area-pt"
+	/>
 
-		<!-- Avatar and Name -->
-		<div class="flex flex-col items-center text-center text-brand-foreground" aria-label="User Information" role="region">
-			<div class="mb-3 grid h-20 w-20 place-items-center rounded-full bg-white text-brand">
-				{#if user}
-					<img class="rounded-full" src={avatar_url} alt="User Avatar"/>
-				{:else}
-					<span class="font-display text-2xl font-bold">{userDetails.initials}</span>
-				{/if}
-			</div>
-			<h1 class="font-display text-xl font-semibold">{full_name}</h1>
-			<p class="mt-1 text-sm opacity-90">{email}</p>
-		</div>
-
-		<!-- Stats Cards -->
-		<div class="mt-6 flex gap-8 rounded-2xl bg-white px-6 py-4 text-center" aria-label="User Stats" role="region">
-			<div class="flex-1">
-				<div class="font-display text-2xl font-bold text-brand">{userDetails.stats.routes}</div>
-				<div class="mt-1 text-xs text-muted-foreground">Routes</div>
-			</div>
-			<div class="flex-1 border-x border-border">
-				<div class="font-display text-2xl font-bold text-brand">{userDetails.stats.posts}</div>
-				<div class="mt-1 text-xs text-muted-foreground">Posts</div>
-			</div>
-			<div class="flex-1">
-				<div class="font-display text-2xl font-bold text-brand">{userDetails.stats.followers}</div>
-				<div class="mt-1 text-xs text-muted-foreground">Followers</div>
-			</div>
-		</div>
-	</div>
-
-	<!-- Menu Sections -->
 	<div class="flex-1 space-y-6 px-4 py-6" aria-label="Menu Sections" role="region">
 		{#each menuSections as section, sectionIndex}
 			<div class="space-y-2">
@@ -121,13 +83,6 @@
 							<span class="text-sm font-medium text-foreground">{item.label}</span>
 						</div>
 						<div class="flex items-center gap-2">
-							{#if item.badge}
-								<div
-									class="flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-xs font-semibold text-white"
-								>
-									{item.badge}
-								</div>
-							{/if}
 							<ChevronRight class="h-5 w-5 text-muted-foreground" />
 						</div>
 					</a>
