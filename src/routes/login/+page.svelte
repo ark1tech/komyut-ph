@@ -1,7 +1,6 @@
 <script lang="ts">
 	import iconBlue from '$lib/images/komyut_icon_blue.svg';
 	import textBlue from '$lib/images/komyut_text_blue.svg';
-	import { goto } from '$app/navigation';
 
 	let { data } = $props();
 	let { supabase, session } = $derived(data);
@@ -14,9 +13,9 @@
 			options: {
 				redirectTo: `http://localhost:5173/auth/callback`,
 				queryParams: {
-					prompt: 'select_account',
-				},
-			},
+					prompt: 'select_account'
+				}
+			}
 		});
 
 		// TODO: no input validation yet, this is just a simple
@@ -29,54 +28,58 @@
 	<meta name="description" content="Your commute companion for the Philippines" />
 </svelte:head>
 
-<div class="loginbg mx-auto h-screen max-w-7xl px-4 py-fluid-lg md:px-6">
-	<section aria-label="Logo" class="mt-24">
-		<div class="flex flex-col justify-center gap-2 text-center">
-			<img src={iconBlue} class="mx-auto w-[40%]" alt="Komyut Logo (Blue)" />
-			<img src={textBlue} class="mx-auto w-[50%]" alt="Komyut Text (Blue)" />
-			<p class="text-center">Ang Komyut ng Komyuniti</p>
-		</div>
-	</section>
+<div
+	class="loginbg mx-auto flex h-screen min-h-dvh max-w-7xl flex-col items-center justify-center px-fluid-sm py-fluid-lg"
+>
+	<div class="flex w-full flex-col items-center gap-fluid-xl">
+		<section aria-label="Logo" class="w-full flex flex-col items-center gap-fluid-sm text-center">
+			<img src={iconBlue} class="w-[40%] max-w-40 sm:max-w-48" alt="Komyut Logo (Blue)" />
+			<img src={textBlue} class="w-[50%] max-w-52 sm:max-w-60" alt="Komyut Text (Blue)" />
+			<p class="text-foreground/90">Ang Komyut ng Komyuniti</p>
+		</section>
 
-	<section class="mt-12 flex flex-col"  aria-label="Input fields">
-		<form class="mx-auto flex w-[85%] flex-col gap-6">
-			<input
-				name="email"
-				type="email"
-				placeholder="Email"
-				class="rounded-xl border border-solid px-4 py-3"
-			/>
-			<input
-				name="password"
-				type="password"
-				placeholder="Password"
-				class="rounded-xl border border-solid px-4 py-3"
-			/>
-		</form>
-
-		<!-- TODO: yung brand color sa styles is different from the logo so hardcoded lang muna bg color here -->
-		<!-- also, since wala pa input validation I put the button outside the form element para instant redirect na muna to map page for testing -->
-		<button
-			aria-label="Login button"
-			onclick={onc}
-			class="mx-auto mt-6 w-[85%] rounded-xl bg-[#2b59ff] px-4 py-3 font-bold text-white"
-			>Log In</button
+		<section
+			class="flex w-full max-w-sm flex-col items-center gap-fluid-md px-fluid-sm"
+			aria-label="Input fields"
 		>
+			<form class="flex w-full flex-col gap-fluid-md">
+				<input
+					name="email"
+					type="email"
+					placeholder="Email"
+					class="rounded-xl border border-input bg-background/95 px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground"
+				/>
+				<input
+					name="password"
+					type="password"
+					placeholder="Password"
+					class="rounded-xl border border-input bg-background/95 px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground"
+				/>
+			</form>
 
-		<button class="mt-4 text-muted-foreground underline underline-offset-4">Create Account</button>
-	</section>
+			<!-- TODO: yung brand color sa styles is different from the logo so hardcoded lang muna bg color here -->
+			<!-- also, since wala pa input validation I put the button outside the form element para instant redirect na muna to map page for testing -->
+			<button
+				aria-label="Login button"
+				onclick={onc}
+				class="w-full rounded-xl bg-[#2b59ff] px-4 py-3 font-bold text-white"
+				><p class="text-sm">Log In</p></button
+			>
+
+			<button class="text-muted-foreground underline underline-offset-4 hover:text-foreground">
+				<p class="text-sm">Create Account</p>
+			</button>
+		</section>
+	</div>
 </div>
 
 <style>
-	/* 
-		TODO: there's probably a better way to do this in tailwind, 
-		or with some overlay components with z-index lang
-	*/
+	/* Light mode: soft blue gradient; dark mode: bold blue/black (matches .dark from layout.css) */
 	.loginbg {
-		background: radial-gradient(
-			ellipse 100% 80% at 50% 30%,
-			black 60%,
-			/* #2b59ff 90%, */ #2b59ff 100%
-		);
+		background: radial-gradient(ellipse 160% 80% at 50% 30%, white 60%, #2b59ff 100%);
+	}
+
+	:global(.dark) .loginbg {
+		background: radial-gradient(ellipse 120% 80% at 50% 30%, rgb(1, 0, 38) 60%, #2b59ff 100%);
 	}
 </style>
