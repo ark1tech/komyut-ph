@@ -4,80 +4,156 @@ import { render } from 'vitest-browser-svelte';
 import Page from './+page.svelte';
 
 /* ════════════════════════════════════════════════════════════════
- * PAGE COMPONENT TESTS (Vitest + Playwright Browser Mode)
+ * PROFILE PAGE COMPONENT TESTS
  * ════════════════════════════════════════════════════════════════
  *
- * This file tests +page.svelte in isolation using Vitest's browser
- * mode with Playwright as the browser provider.
+ * Tests the /profile page which displays:
+ *   - ProfileCard with user info (name, username, email, avatar, stats)
+ *   - Menu sections (My Routes, My Posts, Settings, Help, Privacy)
+ *   - Log Out button
  *
- * FILE NAMING CONVENTIONS:
- *   *.svelte.spec.ts  → Component tests (run in real browser via Playwright)
- *   *.spec.ts         → Unit tests (run in Node.js environment)
- *   e2e/*.test.ts     → End-to-end tests (full Playwright, see e2e/ folder)
+ * The page receives data from +page.server.ts:
+ *   { supabase, session, user: { full_name, username, email, avatar_url } }
  *
  * HOW TO RUN:
  *   pnpm test:unit                → Run all unit + component tests
- *   pnpm test:unit -- --watch     → Watch mode (re-runs on file changes)
- *   pnpm test:unit -- --reporter=verbose  → Detailed output
- *
- * KEY TESTING APIs:
- *   render(Component, { props })  → Mount Svelte component in real browser
- *   page.getByRole(role, opts)    → Query by ARIA role (preferred method)
- *   page.getByText(text)          → Query by visible text content
- *   page.getByTestId(id)          → Query by data-testid attribute
- *   expect.element(el)            → Assert on DOM elements
- *   await el.click()              → Simulate user interaction
- *
- * TESTING BEST PRACTICES:
- *   - Query by role first (getByRole), then text, then testId
- *   - Test behavior, not implementation details
- *   - Each test should be independent (no shared state)
- *   - Name tests by what the USER should see/experience
+ *   pnpm test:unit -- --watch     → Watch mode
  *
  * DOCS: https://vitest.dev/guide/browser/
  * ════════════════════════════════════════════════════════════════ */
 
-describe('unit tests for Profile Page', () => {
-    it('should render the profile header', async () => {
-        render(Page);
+/** Minimal supabase mock to prevent runtime errors */
+function mockSupabase() {
+	return {
+		auth: {
+			signOut: async () => ({ error: null }),
+			getSession: async () => ({ data: { session: null }, error: null }),
+			onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } })
+		}
+	};
+}
 
-        const header = page.getByRole('region', { name: 'Profile Header' });
-        await expect.element(header).toBeInTheDocument();
-    });
+function buildProfileData(overrides: Record<string, unknown> = {}) {
+	return {
+		supabase: mockSupabase(),
+		session: { user: { id: 'test-uid' } },
+		user: {
+			full_name: 'Sarah Martinez',
+			username: 'sarahm',
+			email: 'sarah.martinez@email.com',
+			avatar_url: ''
+		},
+		...overrides
+	};
+}
 
-    it('should render the user information section', async () => {
-        render(Page);
+describe('Profile Page', () => {
+	describe('layout sections', () => {
+		it('should render the profile header region', async () => {
+			render(Page, { props: { data: buildProfileData() } });
 
-        const userInfo = page.getByRole('region', { name: 'User Information' });
-        await expect.element(userInfo).toBeInTheDocument();
-    });
+			const header = page.getByRole('region', { name: 'Profile Header' });
+			await expect.element(header).toBeInTheDocument();
+		});
 
-    it('should render the user stats section', async () => {
-        render(Page);
+		it('should render the user information region', async () => {
+			render(Page, { props: { data: buildProfileData() } });
 
-        const userStats = page.getByRole('region', { name: 'User Stats' });
-        await expect.element(userStats).toBeInTheDocument();
-    });
+			const userInfo = page.getByRole('region', { name: 'User Information' });
+			await expect.element(userInfo).toBeInTheDocument();
+		});
 
-    it('should render the menu sections', async () => {
-        render(Page);
+		it('should render the user stats region', async () => {
+			render(Page, { props: { data: buildProfileData() } });
 
-        const menuSections = page.getByRole('region', { name: 'Menu Sections' });
-        await expect.element(menuSections).toBeInTheDocument();
-    });
+			const userStats = page.getByRole('region', { name: 'User Stats' });
+			await expect.element(userStats).toBeInTheDocument();
+		});
 
+		it('should render the menu sections region', async () => {
+			render(Page, { props: { data: buildProfileData() } });
 
-    // it('should render the page heading', async () => {
-    // 	render(Page);
+			const menuSections = page.getByRole('region', { name: 'Menu Sections' });
+			await expect.element(menuSections).toBeInTheDocument();
+		});
+	});
 
-    // 	const heading = page.getByRole('heading', { level: 1 });
-    // 	await expect.element(heading).toBeInTheDocument();
-    // });
+	describe('user info display', () => {
+		it('should display the user full name', async () => {
+			render(Page, { props: { data: buildProfileData() } });
 
-    // it('should render the welcome section', async () => {
-    // 	render(Page);
+			await expect.element(page.getByText('Sarah Martinez')).toBeInTheDocument();
+		});
 
-    // 	const section = page.getByRole('region', { name: 'Welcome' });
-    // 	await expect.element(section).toBeInTheDocument();
-    // });
+		it('should display the username with @ prefix', async () => {
+			render(Page, { props: { data: buildProfileData() } });
+
+			await expect.element(page.getByText('@sarahm')).toBeInTheDocument();
+		});
+
+		it('should display the user email', async () => {
+			render(Page, { props: { data: buildProfileData() } });
+
+			await expect.element(page.getByText('sarah.martinez@email.com')).toBeInTheDocument();
+		});
+
+		it('should display Guest when no session', async () => {
+			const guestData = buildProfileData({ session: null, user: null });
+			render(Page, { props: { data: guestData } });
+
+			await expect.element(page.getByRole('heading', { level: 1, name: 'Guest' })).toBeInTheDocument();
+		});
+	});
+
+	describe('menu items', () => {
+		it('should display My Routes link', async () => {
+			render(Page, { props: { data: buildProfileData() } });
+
+			await expect.element(page.getByText('My Routes')).toBeInTheDocument();
+		});
+
+		it('should display My Posts link', async () => {
+			render(Page, { props: { data: buildProfileData() } });
+
+			await expect.element(page.getByText('My Posts')).toBeInTheDocument();
+		});
+
+		it('should display Settings link', async () => {
+			render(Page, { props: { data: buildProfileData() } });
+
+			await expect.element(page.getByText('Settings')).toBeInTheDocument();
+		});
+
+		it('should display Help & Support link', async () => {
+			render(Page, { props: { data: buildProfileData() } });
+
+			await expect.element(page.getByText('Help & Support')).toBeInTheDocument();
+		});
+
+		it('should display Privacy link', async () => {
+			render(Page, { props: { data: buildProfileData() } });
+
+			await expect.element(page.getByText('Privacy')).toBeInTheDocument();
+		});
+
+		it('should display Log Out link', async () => {
+			render(Page, { props: { data: buildProfileData() } });
+
+			await expect.element(page.getByText('Log Out')).toBeInTheDocument();
+		});
+
+		it('should link My Routes to /profile/myroutes', async () => {
+			render(Page, { props: { data: buildProfileData() } });
+
+			const link = page.getByRole('link', { name: /My Routes/ });
+			await expect.element(link).toHaveAttribute('href', '/profile/myroutes');
+		});
+
+		it('should link My Posts to /profile/myposts', async () => {
+			render(Page, { props: { data: buildProfileData() } });
+
+			const link = page.getByRole('link', { name: /My Posts/ });
+			await expect.element(link).toHaveAttribute('href', '/profile/myposts');
+		});
+	});
 });
