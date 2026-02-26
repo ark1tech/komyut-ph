@@ -4,73 +4,119 @@ import { render } from 'vitest-browser-svelte';
 import Page from './+page.svelte';
 
 /* ════════════════════════════════════════════════════════════════
- * PAGE COMPONENT TESTS (Vitest + Playwright Browser Mode)
+ * LOGIN PAGE COMPONENT TESTS
  * ════════════════════════════════════════════════════════════════
  *
- * This file tests +page.svelte in isolation using Vitest's browser
- * mode with Playwright as the browser provider.
+ * Tests the /login page which displays:
+ *   - Logo section (icon + text + tagline)
+ *   - Input fields section (email + password)
+ *   - Log In button (Google OAuth)
+ *   - Create Account link
  *
- * FILE NAMING CONVENTIONS:
- *   *.svelte.spec.ts  → Component tests (run in real browser via Playwright)
- *   *.spec.ts         → Unit tests (run in Node.js environment)
- *   e2e/*.test.ts     → End-to-end tests (full Playwright, see e2e/ folder)
+ * The page receives data with { supabase, session } from layout.
  *
  * HOW TO RUN:
  *   pnpm test:unit                → Run all unit + component tests
- *   pnpm test:unit -- --watch     → Watch mode (re-runs on file changes)
- *   pnpm test:unit -- --reporter=verbose  → Detailed output
- *
- * KEY TESTING APIs:
- *   render(Component, { props })  → Mount Svelte component in real browser
- *   page.getByRole(role, opts)    → Query by ARIA role (preferred method)
- *   page.getByText(text)          → Query by visible text content
- *   page.getByTestId(id)          → Query by data-testid attribute
- *   expect.element(el)            → Assert on DOM elements
- *   await el.click()              → Simulate user interaction
- *
- * TESTING BEST PRACTICES:
- *   - Query by role first (getByRole), then text, then testId
- *   - Test behavior, not implementation details
- *   - Each test should be independent (no shared state)
- *   - Name tests by what the USER should see/experience
+ *   pnpm test:unit -- --watch     → Watch mode
  *
  * DOCS: https://vitest.dev/guide/browser/
  * ════════════════════════════════════════════════════════════════ */
 
-describe('unit tests for Login Page', () => {
-    it('should render the logo', async () => {
-        render(Page);
+/** Minimal supabase mock for login page */
+function mockSupabase() {
+	return {
+		auth: {
+			signInWithOAuth: async () => ({ data: null, error: null }),
+			getSession: async () => ({ data: { session: null }, error: null }),
+			onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } })
+		}
+	};
+}
 
-        const logo = page.getByRole('region', { name: 'Logo' });
-        await expect.element(logo).toBeInTheDocument();
-    });
+function buildLoginData() {
+	return {
+		supabase: mockSupabase(),
+		session: null
+	};
+}
 
-    it('should render the input fields', async () => {
-        render(Page);
+describe('Login Page', () => {
+	describe('layout sections', () => {
+		it('should render the logo section', async () => {
+			render(Page, { props: { data: buildLoginData() } });
 
-        const inputFields = page.getByRole('region', { name: 'Input fields' });
-        await expect.element(inputFields).toBeInTheDocument();
-    });
+			const logo = page.getByRole('region', { name: 'Logo' });
+			await expect.element(logo).toBeInTheDocument();
+		});
 
-    it('should render the login button', async () => {
-        render(Page);
+		it('should render the input fields section', async () => {
+			render(Page, { props: { data: buildLoginData() } });
 
-        const loginButton = page.getByRole('button', { name: 'Login button' });
-        await expect.element(loginButton).toBeInTheDocument();
-    });
+			const fields = page.getByRole('region', { name: 'Input fields' });
+			await expect.element(fields).toBeInTheDocument();
+		});
+	});
 
+	describe('logo section', () => {
+		it('should display the Komyut icon image', async () => {
+			render(Page, { props: { data: buildLoginData() } });
 
-    // it('should render the page heading', async () => {
-    // 	render(Page);
+			const icon = page.getByAltText('Komyut Logo (Blue)');
+			await expect.element(icon).toBeInTheDocument();
+		});
 
-    // 	const heading = page.getByRole('heading', { level: 1 });
-    // 	await expect.element(heading).toBeInTheDocument();
-    // });
+		it('should display the Komyut text image', async () => {
+			render(Page, { props: { data: buildLoginData() } });
 
-    // it('should render the welcome section', async () => {
-    // 	render(Page);
+			const text = page.getByAltText('Komyut Text (Blue)');
+			await expect.element(text).toBeInTheDocument();
+		});
 
-    // 	const section = page.getByRole('region', { name: 'Welcome' });
-    // 	await expect.element(section).toBeInTheDocument();
-    // });
+		it('should display the tagline', async () => {
+			render(Page, { props: { data: buildLoginData() } });
+
+			await expect
+				.element(page.getByText('Ang Komyut ng Komyuniti'))
+				.toBeInTheDocument();
+		});
+	});
+
+	describe('form inputs', () => {
+		it('should render email input with placeholder', async () => {
+			render(Page, { props: { data: buildLoginData() } });
+
+			const email = page.getByPlaceholder('Email');
+			await expect.element(email).toBeInTheDocument();
+			await expect.element(email).toHaveAttribute('type', 'email');
+		});
+
+		it('should render password input with placeholder', async () => {
+			render(Page, { props: { data: buildLoginData() } });
+
+			const password = page.getByPlaceholder('Password');
+			await expect.element(password).toBeInTheDocument();
+			await expect.element(password).toHaveAttribute('type', 'password');
+		});
+	});
+
+	describe('buttons', () => {
+		it('should render the login button', async () => {
+			render(Page, { props: { data: buildLoginData() } });
+
+			const btn = page.getByRole('button', { name: 'Login button' });
+			await expect.element(btn).toBeInTheDocument();
+		});
+
+		it('should display "Log In" text on the button', async () => {
+			render(Page, { props: { data: buildLoginData() } });
+
+			await expect.element(page.getByText('Log In')).toBeInTheDocument();
+		});
+
+		it('should display "Create Account" link', async () => {
+			render(Page, { props: { data: buildLoginData() } });
+
+			await expect.element(page.getByText('Create Account')).toBeInTheDocument();
+		});
+	});
 });
