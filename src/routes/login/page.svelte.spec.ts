@@ -11,6 +11,7 @@ import Page from './+page.svelte';
  *   - Logo section (icon + text + tagline)
  *   - Input fields section (email + password)
  *   - Log In button (Google OAuth)
+ *   - Log In as Guest button
  *   - Create Account link
  *
  * The page receives data with { supabase, session } from layout.
@@ -110,7 +111,14 @@ describe('Login Page', () => {
 		it('should display "Log In" text on the button', async () => {
 			render(Page, { props: { data: buildLoginData() } });
 
-			await expect.element(page.getByText('Log In')).toBeInTheDocument();
+			await expect.element(page.getByText(/^Log In$/)).toBeInTheDocument();
+		});
+
+		it('should render the "Log In as Guest" button', async () => {
+			render(Page, { props: { data: buildLoginData() } });
+
+			const guestBtn = page.getByRole('button', { name: 'Log in as guest' });
+			await expect.element(guestBtn).toBeInTheDocument();
 		});
 
 		it('should display "Create Account" link', async () => {

@@ -1,11 +1,12 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import iconBlue from '$lib/images/komyut_icon_blue.svg';
 	import textBlue from '$lib/images/komyut_text_blue.svg';
 
 	let { data } = $props();
-	let { supabase, session } = $derived(data);
+	let { supabase } = $derived(data);
 
-	function onc() {
+	function handleOAuthLogin() {
 		console.log('Login button clicked');
 
 		supabase.auth.signInWithOAuth({
@@ -20,6 +21,10 @@
 
 		// TODO: no input validation yet, this is just a simple
 		// redirect to the map page
+	}
+
+	function handleGuestLogin() {
+		goto('/map');
 	}
 </script>
 
@@ -61,10 +66,20 @@
 			<!-- also, since wala pa input validation I put the button outside the form element para instant redirect na muna to map page for testing -->
 			<button
 				aria-label="Login button"
-				onclick={onc}
+				type="button"
+				onclick={handleOAuthLogin}
 				class="w-full rounded-xl bg-[#2b59ff] px-4 py-3 font-bold text-white"
 				><p class="text-sm">Log In</p></button
 			>
+
+			<button
+				aria-label="Log in as guest"
+				type="button"
+				onclick={handleGuestLogin}
+				class="w-full rounded-xl border border-input bg-background/95 px-4 py-3 text-sm font-semibold text-foreground hover:bg-background"
+			>
+				Log In as Guest
+			</button>
 
 			<button class="text-muted-foreground underline underline-offset-4 hover:text-foreground">
 				<p class="text-sm">Create Account</p>
