@@ -3,10 +3,19 @@
 	import ForumComment from '$lib/components/forum/ForumComment.svelte';
 	import ForumPost from '$lib/components/forum/ForumPost.svelte';
 	import ForumSortBar from '$lib/components/forum/ForumSortBar.svelte';
+	import type { Comment } from '$lib/data/mock_comments';
+	import type { Post } from '$lib/data/mock_posts';
 
-	let { data } = $props();
+	type PageData = {
+		post: Post;
+		comments: Comment[];
+		linkedPosts: Post[];
+	};
+
+	let { data }: { data: PageData } = $props();
 	let post = $derived(data.post);
 	let comments = $derived(data.comments);
+	let linkedPosts = $derived(data.linkedPosts);
 
 	let commentText = $state('');
 
@@ -79,15 +88,11 @@
 	</div>
 
 	{#if comments.length > 0}
-		<ForumSortBar
-			active={commentSort}
-			onchange={(v) => (commentSort = v)}
-			class="px-fluid-sm"
-		/>
+		<ForumSortBar active={commentSort} onchange={(v) => (commentSort = v)} class="px-fluid-sm" />
 
 		<div class="space-y-2 pt-2" role="region" aria-label="Forum Comments">
 			{#each sortedComments as comment (comment.comment_id)}
-				<ForumComment {comment} />
+				<ForumComment {comment} {linkedPosts} />
 			{/each}
 		</div>
 	{/if}

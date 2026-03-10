@@ -42,16 +42,12 @@ describe('Root Page', () => {
 	it('should display introductory text', async () => {
 		render(Page);
 
-		await expect
-			.element(page.getByText(/Start building your page here/))
-			.toBeInTheDocument();
+		await expect.element(page.getByText(/Start building your page here/)).toBeInTheDocument();
 	});
 
 	it('should mention the file path to edit', async () => {
 		render(Page);
 
-		await expect
-			.element(page.getByText('src/routes/+page.svelte'))
-			.toBeInTheDocument();
+		await expect.element(page.getByText('src/routes/+page.svelte')).toBeInTheDocument();
 	});
 });

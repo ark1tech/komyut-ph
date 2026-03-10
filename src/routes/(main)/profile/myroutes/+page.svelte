@@ -1,10 +1,9 @@
 <script lang="ts">
 	import ProfileSubpageHeader from '../ProfileSubpageHeader.svelte';
-	import { mockRoutes, type SavedRoute } from '$lib/data/mock_routes';
 	import { Accessibility, Clock, Coins } from '@lucide/svelte';
+	import { resolve } from '$app/paths';
 
-	// Assumption (temporary): until we have auth + backend, "My Routes" is a believable subset.
-	const myRoutes: SavedRoute[] = mockRoutes.slice(0, 5);
+	let { data } = $props();
 </script>
 
 <svelte:head>
@@ -14,30 +13,31 @@
 
 <ProfileSubpageHeader title="My Routes" />
 
-<section class="space-y-3 px-fluid-sm py-fluid-sm" role="region" aria-label="My routes">
-	{#if myRoutes.length === 0}
+<section class="space-y-3 px-fluid-sm py-fluid-sm" aria-label="My routes">
+	{#if data.routes.length === 0}
 		<div class="rounded-2xl bg-card p-4">
 			<h2 class="text-sm font-semibold text-foreground">No routes yet</h2>
 			<p class="mt-1 text-sm text-muted-foreground">
 				When you record or trace a route, it’ll show up here.
 			</p>
 			<a
-				href="/map"
+				href={resolve("/map")}
 				class="mt-3 inline-flex items-center rounded-full bg-border/40 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
 			>
 				Explore the map
 			</a>
 		</div>
 	{:else}
-		{#each myRoutes as route (route.route_id)}
+		{#each data.routes as route (route.saved_route_id)}
 			<article class="relative rounded-2xl bg-card p-4 transition-colors hover:bg-accent">
 				<a
-					href="/map?route={route.route_id}"
+					href={resolve("/map?route={route.saved_route_id}")}
 					class="block after:absolute after:inset-0 after:rounded-2xl"
 				>
 					<h2 class="text-sm font-semibold text-foreground">{route.route_name}</h2>
 					<p class="mt-1 text-sm text-muted-foreground">
-						{route.start_loc} <span aria-hidden="true">→</span> {route.end_loc}
+						{route.start_loc} <span aria-hidden="true">→</span>
+						{route.end_loc}
 					</p>
 
 					<div class="mt-3 flex flex-wrap gap-2" aria-label="Route attributes">

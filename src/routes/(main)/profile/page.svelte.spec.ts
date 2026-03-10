@@ -37,6 +37,8 @@ function buildProfileData(overrides: Record<string, unknown> = {}) {
 	return {
 		supabase: mockSupabase(),
 		session: { user: { id: 'test-uid' } },
+		unreadForum: 0,
+		unreadRoutes: 0,
 		user: {
 			full_name: 'Sarah Martinez',
 			username: 'sarahm',
@@ -44,7 +46,7 @@ function buildProfileData(overrides: Record<string, unknown> = {}) {
 			avatar_url: ''
 		},
 		...overrides
-	};
+	} as unknown as import('./$types').PageData;
 }
 
 describe('Profile Page', () => {
@@ -101,7 +103,9 @@ describe('Profile Page', () => {
 			const guestData = buildProfileData({ session: null, user: null });
 			render(Page, { props: { data: guestData } });
 
-			await expect.element(page.getByRole('heading', { level: 1, name: 'Guest' })).toBeInTheDocument();
+			await expect
+				.element(page.getByRole('heading', { level: 1, name: 'Guest' }))
+				.toBeInTheDocument();
 		});
 	});
 

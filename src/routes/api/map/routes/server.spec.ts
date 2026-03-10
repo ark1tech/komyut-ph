@@ -21,7 +21,10 @@ import { GET } from './+server';
 /**
  * Creates a mock RequestEvent for the routes endpoint
  */
-function mockEvent(queryParams: Record<string, string> = {}, supabaseOverrides: Record<string, unknown> = {}) {
+function mockEvent(
+	queryParams: Record<string, string> = {},
+	supabaseOverrides: Record<string, unknown> = {}
+) {
 	const url = new URL('http://localhost/api/map/routes');
 	for (const [key, val] of Object.entries(queryParams)) {
 		url.searchParams.set(key, val);

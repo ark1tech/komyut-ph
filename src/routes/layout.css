@@ -315,3 +315,13 @@
 		transform: scale(0.96);
 	}
 }
+
+html {
+	scroll-behavior: smooth;
+	overscroll-behavior: none;
+}
+@media (prefers-reduced-motion: reduce) {
+	html {
+		scroll-behavior: auto;
+	}
+}

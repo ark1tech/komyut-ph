@@ -1,30 +1,52 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { timeAgo } from '$lib/utils';
-	import { mockNotifications, type NotificationItem } from '$lib/data/mock_notifications';
-	import { AlertTriangle, ArrowBigDown, ArrowBigUp, ArrowLeft, Bell, Check, MessageCircle } from '@lucide/svelte';
+	import type { NotificationKind } from '$lib/types/database';
+	import {
+		AlertTriangle,
+		ArrowBigDown,
+		ArrowBigUp,
+		ArrowLeft,
+		Bell,
+		Check,
+		MessageCircle
+	} from '@lucide/svelte';
 	import * as Button from '$lib/components/ui/button/index';
+	import { resolve } from '$app/paths';
 
-	// Assumption (temporary): local-only state until backend + persistence exists.
-	let notifications = $state<NotificationItem[]>(mockNotifications);
+	let { data } = $props();
+
+	type NotificationRow = {
+		notification_id: number;
+		kind: NotificationKind;
+		message: string;
+		is_read: boolean;
+		created_at: string;
+		post_id: number | null;
+		route_id: number | null;
+	};
+
+	let notifications = $derived<NotificationRow[]>(data.notifications as NotificationRow[]);
 
 	let scope = $derived((page.url.searchParams.get('scope') ?? 'forum') as 'forum' | 'routes');
 	let backHref = $derived(scope === 'routes' ? '/routes' : '/forum');
 
 	let filtered = $derived.by(() => {
-		const isForum = (n: NotificationItem) =>
+		const isForum = (n: NotificationRow) =>
 			n.kind === 'upvote' || n.kind === 'downvote' || n.kind === 'comment';
-		return notifications.filter((n) => (scope === 'routes' ? n.kind === 'route_alert' : isForum(n)));
+		return notifications.filter((n) =>
+			scope === 'routes' ? n.kind === 'route_alert' : isForum(n)
+		);
 	});
 
 	let unreadCount = $derived(filtered.filter((n) => !n.is_read).length);
 
-	function hrefFor(n: NotificationItem) {
+	function hrefFor(n: NotificationRow) {
 		if (n.kind === 'route_alert') return `/map?route=${n.route_id ?? ''}`;
 		return `/forum/${n.post_id ?? ''}`;
 	}
 
-	function iconFor(n: NotificationItem) {
+	function iconFor(n: NotificationRow) {
 		switch (n.kind) {
 			case 'upvote':
 				return ArrowBigUp;
@@ -46,9 +68,10 @@
 	}
 
 	function markAllRead() {
-		// Mark all notifications in the *current scope* as read.
 		const ids = new Set(filtered.map((n) => n.notification_id));
-		notifications = notifications.map((n) => (ids.has(n.notification_id) ? { ...n, is_read: true } : n));
+		notifications = notifications.map((n) =>
+			ids.has(n.notification_id) ? { ...n, is_read: true } : n
+		);
 	}
 </script>
 
@@ -83,32 +106,32 @@
 	</div>
 </div>
 
-<section class="space-y-3 px-fluid-sm py-fluid-sm" role="region" aria-label="Notifications">
+<section class="space-y-3 px-fluid-sm py-fluid-sm" aria-label="Notifications">
 	<div class="flex gap-2" role="tablist" aria-label="Notification scope">
-        <a
-            href="/notifications?scope=forum"
-            role="tab"
-            aria-selected={scope === 'forum'}
-            class="rounded-full px-3 py-1.5 text-xs font-medium transition-colors
+		<a
+			href={resolve('/notifications?scope=forum')}
+			role="tab"
+			aria-selected={scope === 'forum'}
+			class="rounded-full px-3 py-1.5 text-xs font-medium transition-colors
                 {scope === 'forum'
-                    ? 'bg-brand text-white'
-                    : 'bg-card text-muted-foreground hover:bg-muted/50 hover:text-foreground'}"
-        >
-            Forum
-        </a>
+				? 'bg-brand text-white'
+				: 'bg-card text-muted-foreground hover:bg-muted/50 hover:text-foreground'}"
+		>
+			Forum
+		</a>
 
-        <a
-            href="/notifications?scope=routes"
-            role="tab"
-            aria-selected={scope === 'routes'}
-            class="rounded-full px-3 py-1.5 text-xs font-medium transition-colors
+		<a
+			href={resolve('/notifications?scope=routes')}
+			role="tab"
+			aria-selected={scope === 'routes'}
+			class="rounded-full px-3 py-1.5 text-xs font-medium transition-colors
                 {scope === 'routes'
-                    ? 'bg-brand text-white'
-                    : 'bg-card text-muted-foreground hover:bg-muted/50 hover:text-foreground'}"
-        >
-            Routes
-        </a>
-    </div>
+				? 'bg-brand text-white'
+				: 'bg-card text-muted-foreground hover:bg-muted/50 hover:text-foreground'}"
+		>
+			Routes
+		</a>
+	</div>
 
 	{#if filtered.length === 0}
 		<div class="rounded-2xl bg-card p-4">
@@ -124,7 +147,9 @@
 
 		{#each filtered as n (n.notification_id)}
 			{@const Icon = iconFor(n)}
-			<article class="relative rounded-2xl bg-card p-4 {n.is_read ? 'opacity-70' : 'ring-1 ring-brand/20'}">
+			<article
+				class="relative rounded-2xl bg-card p-4 {n.is_read ? 'opacity-70' : 'ring-1 ring-brand/20'}"
+			>
 				<a href={hrefFor(n)} class="block">
 					<div class="flex items-start gap-3">
 						<div
@@ -137,14 +162,18 @@
 						</div>
 
 						<div class="min-w-0 flex-1">
-							<p class="text-sm leading-snug {n.is_read ? 'text-muted-foreground' : 'font-medium text-foreground'}">
+							<p
+								class="text-sm leading-snug {n.is_read
+									? 'text-muted-foreground'
+									: 'font-medium text-foreground'}"
+							>
 								{n.message}
 							</p>
 							<div class="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
 								<span>{timeAgo(n.created_at)}</span>
 								{#if !n.is_read}
 									<span class="inline-flex items-center gap-1 text-brand">
-										<span class="size-1.5 rounded-full bg-brand" />
+										<span class="size-1.5 rounded-full bg-brand"></span>
 										Unread
 									</span>
 								{/if}

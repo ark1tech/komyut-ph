@@ -1,18 +1,33 @@
 <script lang="ts">
 	import { ArrowBigUp, ArrowBigDown, Reply } from '@lucide/svelte';
-	import type { Comment } from '$lib/data/mock_comments';
-	import { mockPosts } from '$lib/data/mock_posts';
 	import { cn } from '$lib/utils';
 	import ForumHeader from './ForumHeader.svelte';
 	import ForumCommentReply from './ForumCommentReply.svelte';
 	import ForumPostLink from './ForumPostLink.svelte';
 
+	interface CommentLike {
+		comment_id: number;
+		body: string;
+		upvotes: number;
+		downvotes: number;
+		created_at: string;
+		linked_post_id?: number | null;
+		author?: { username: string; full_name: string } | null;
+	}
+
+	interface LinkedPost {
+		post_id: number;
+		title: string;
+		author?: { username: string } | null;
+	}
+
 	interface Props {
-		comment: Comment;
+		comment: CommentLike;
+		linkedPosts?: Record<number, LinkedPost>;
 		class?: string;
 	}
 
-	let { comment, class: className }: Props = $props();
+	let { comment, linkedPosts = {}, class: className }: Props = $props();
 
 	let voted = $state<'up' | 'down' | null>(null);
 	let showReply = $state(false);
@@ -22,8 +37,10 @@
 	);
 
 	let linkedPost = $derived(
-		comment.linked_post_id ? mockPosts.find((p) => p.post_id === comment.linked_post_id) : null
+		comment.linked_post_id ? (linkedPosts[comment.linked_post_id] ?? null) : null
 	);
+
+	let authorUsername = $derived(comment.author?.username ?? '');
 
 	function vote(dir: 'up' | 'down') {
 		voted = voted === dir ? null : dir;
@@ -56,12 +73,7 @@
 	</div>
 
 	<div class="min-w-0 flex-1">
-		<ForumHeader
-			authorUsername={comment.author_username}
-			createdAt={comment.created_at}
-			showAvatar
-			showMenu
-		/>
+		<ForumHeader {authorUsername} createdAt={comment.created_at} showAvatar showMenu />
 		<p class="mt-1 text-sm leading-relaxed text-muted-foreground">{comment.body}</p>
 
 		{#if linkedPost}

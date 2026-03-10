@@ -2,8 +2,8 @@
 	import ForumPost from '$lib/components/forum/ForumPost.svelte';
 	import ForumSortBar from '$lib/components/forum/ForumSortBar.svelte';
 	import * as Pagination from '$lib/components/ui/pagination';
-	import { mockPosts } from '$lib/data/mock_posts';
-	import { mockComments } from '$lib/data/mock_comments';
+
+	let { data } = $props();
 
 	type SortOption = 'top' | 'hot' | 'latest';
 
@@ -13,11 +13,11 @@
 	let currentPage = $state(1);
 
 	function commentCountFor(postId: number) {
-		return mockComments.filter((c) => c.parent_id === postId).length;
+		return data.commentCounts[postId] ?? 0;
 	}
 
 	let sortedPosts = $derived.by(() => {
-		const posts = [...mockPosts];
+		const posts = [...data.posts];
 		switch (activeSort) {
 			case 'top':
 				return posts.sort((a, b) => b.upvotes - b.downvotes - (a.upvotes - a.downvotes));
@@ -47,11 +47,7 @@
 	<meta name="description" content="Community forum for Philippine commuters" />
 </svelte:head>
 
-<ForumSortBar
-	active={activeSort}
-	onchange={handleSortChange}
-	class="px-fluid-sm pt-fluid-sm"
-/>
+<ForumSortBar active={activeSort} onchange={handleSortChange} class="px-fluid-sm pt-fluid-sm" />
 
 <div class="space-y-3 px-fluid-sm py-fluid-sm" role="region" aria-label="Forum Posts">
 	{#each pagedPosts as post (post.post_id)}

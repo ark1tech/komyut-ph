@@ -32,7 +32,7 @@
 	class="loginbg mx-auto flex h-screen min-h-dvh max-w-7xl flex-col items-center justify-center px-fluid-sm py-fluid-lg"
 >
 	<div class="flex w-full flex-col items-center gap-fluid-xl">
-		<section aria-label="Logo" class="w-full flex flex-col items-center gap-fluid-sm text-center">
+		<section aria-label="Logo" class="flex w-full flex-col items-center gap-fluid-sm text-center">
 			<img src={iconBlue} class="w-[40%] max-w-40 sm:max-w-48" alt="Komyut Logo (Blue)" />
 			<img src={textBlue} class="w-[50%] max-w-52 sm:max-w-60" alt="Komyut Text (Blue)" />
 			<p class="text-foreground/90">Ang Komyut ng Komyuniti</p>
