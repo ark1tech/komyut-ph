@@ -1,4 +1,5 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { invalidateCache } from '$lib/server/cache';
 import { GET } from './+server';
 
 /* ════════════════════════════════════════════════════════════════
@@ -48,11 +49,16 @@ function mockEvent(
 
 	return {
 		url,
-		locals: { supabase }
+		locals: { supabase },
+		setHeaders: vi.fn()
 	} as unknown as Parameters<typeof GET>[0];
 }
 
 describe('GET /api/map/locations', () => {
+	beforeEach(() => {
+		invalidateCache('map:locations:');
+	});
+
 	describe('input validation', () => {
 		it('should return 400 when q param is missing', async () => {
 			const event = mockEvent();
@@ -131,6 +137,7 @@ describe('GET /api/map/locations', () => {
 			const response = await GET(event);
 			const body = await response.json();
 
+			expect(response.status).toBe(500);
 			expect(body.error).toBe('Failed to perform search');
 		});
 	});

@@ -1,9 +1,24 @@
 import { page } from 'vitest/browser';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
-import Page from './+page.svelte';
 import type { Post } from '$lib/data/mock_posts';
 import type { Comment } from '$lib/data/mock_comments';
+
+const { gotoMock } = vi.hoisted(() => ({
+	gotoMock: vi.fn()
+}));
+
+vi.mock('$app/navigation', () => ({
+	goto: gotoMock
+}));
+
+vi.mock('$app/state', () => ({
+	page: {
+		url: new URL('http://localhost/forum?page=1')
+	}
+}));
+
+import Page from './+page.svelte';
 
 const mockPosts: Post[] = [
 	{
@@ -138,17 +153,46 @@ const mockComments: Comment[] = [
 
 const PER_PAGE = 5;
 
+function buildForumData() {
+	const commentCounts = Object.fromEntries(
+		mockComments.reduce((entries, comment) => {
+			entries.set(comment.parent_id, (entries.get(comment.parent_id) ?? 0) + 1);
+			return entries;
+		}, new Map<number, number>())
+	);
+
+	return {
+		posts: mockPosts.map((post) => ({
+			post_id: post.post_id,
+			title: post.title,
+			body: post.body,
+			upvotes: post.upvotes,
+			downvotes: post.downvotes,
+			created_at: post.created_at,
+			author: {
+				username: post.author_username,
+				full_name: post.author_name
+			}
+		})),
+		commentCounts
+	} as unknown as import('./$types').PageData;
+}
+
 describe('Forum Page', () => {
+	beforeEach(() => {
+		gotoMock.mockReset();
+	});
+
 	describe('layout', () => {
 		it('should render the forum posts region', async () => {
-			render(Page);
+			render(Page, { props: { data: buildForumData() } });
 
 			const postsRegion = page.getByRole('region', { name: 'Forum Posts' });
 			await expect.element(postsRegion).toBeInTheDocument();
 		});
 
 		it('should render the sort bar', async () => {
-			render(Page);
+			render(Page, { props: { data: buildForumData() } });
 
 			const sortBar = page.getByRole('radiogroup', { name: 'Sort by' });
 			await expect.element(sortBar).toBeInTheDocument();
@@ -157,50 +201,52 @@ describe('Forum Page', () => {
 
 	describe('sort options', () => {
 		it('should display Top sort button', async () => {
-			render(Page);
+			render(Page, { props: { data: buildForumData() } });
 
 			await expect.element(page.getByRole('radio', { name: /Top/ })).toBeInTheDocument();
 		});
 
 		it('should display Hot sort button', async () => {
-			render(Page);
+			render(Page, { props: { data: buildForumData() } });
 
 			await expect.element(page.getByRole('radio', { name: /Hot/ })).toBeInTheDocument();
 		});
 
 		it('should display Latest sort button', async () => {
-			render(Page);
+			render(Page, { props: { data: buildForumData() } });
 
 			await expect.element(page.getByRole('radio', { name: /Latest/ })).toBeInTheDocument();
 		});
 
 		it('should default to "Hot" as active sort', async () => {
-			render(Page);
+			render(Page, { props: { data: buildForumData() } });
 
 			const hotBtn = page.getByRole('radio', { name: /Hot/ });
 			await expect.element(hotBtn).toHaveAttribute('aria-checked', 'true');
 		});
 
 		it('should switch to "Latest" sort on click', async () => {
-			render(Page);
+			render(Page, { props: { data: buildForumData() } });
 
 			const latestBtn = page.getByRole('radio', { name: /Latest/ });
 			await latestBtn.click();
 			await expect.element(latestBtn).toHaveAttribute('aria-checked', 'true');
+			expect(gotoMock).toHaveBeenCalledWith('?page=1', { keepFocus: true, noScroll: true });
 		});
 
 		it('should switch to "Top" sort on click', async () => {
-			render(Page);
+			render(Page, { props: { data: buildForumData() } });
 
 			const topBtn = page.getByRole('radio', { name: /Top/ });
 			await topBtn.click();
 			await expect.element(topBtn).toHaveAttribute('aria-checked', 'true');
+			expect(gotoMock).toHaveBeenCalledWith('?page=1', { keepFocus: true, noScroll: true });
 		});
 	});
 
 	describe('post rendering', () => {
 		it('should display at most 5 posts per page', async () => {
-			render(Page);
+			render(Page, { props: { data: buildForumData() } });
 
 			const articles = page.getByRole('article');
 			// Count visible articles — should be PER_PAGE or less
@@ -209,28 +255,28 @@ describe('Forum Page', () => {
 		});
 
 		it('should render upvote buttons', async () => {
-			render(Page);
+			render(Page, { props: { data: buildForumData() } });
 
 			const upvote = page.getByRole('button', { name: 'Upvote' }).first();
 			await expect.element(upvote).toBeInTheDocument();
 		});
 
 		it('should render downvote buttons', async () => {
-			render(Page);
+			render(Page, { props: { data: buildForumData() } });
 
 			const downvote = page.getByRole('button', { name: 'Downvote' }).first();
 			await expect.element(downvote).toBeInTheDocument();
 		});
 
 		it('should render share buttons', async () => {
-			render(Page);
+			render(Page, { props: { data: buildForumData() } });
 
 			const share = page.getByRole('button', { name: 'Share' }).first();
 			await expect.element(share).toBeInTheDocument();
 		});
 
 		it('should display post titles', async () => {
-			render(Page);
+			render(Page, { props: { data: buildForumData() } });
 
 			// At least one post title from mock data should be visible
 			const firstPost = page.getByRole('article').first();
@@ -240,7 +286,7 @@ describe('Forum Page', () => {
 
 	describe('pagination', () => {
 		it('should show pagination when posts exceed PER_PAGE', async () => {
-			render(Page);
+			render(Page, { props: { data: buildForumData() } });
 
 			if (mockPosts.length > PER_PAGE) {
 				const nav = page.getByRole('navigation');

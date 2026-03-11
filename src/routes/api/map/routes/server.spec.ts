@@ -1,5 +1,6 @@
-import { describe, expect, it, vi } from 'vitest';
-import { GET } from './+server';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { invalidateCache } from '$lib/server/cache';
+import { GET, POST } from './+server';
 
 /* ════════════════════════════════════════════════════════════════
  * API UNIT TESTS — /api/map/routes
@@ -48,11 +49,16 @@ function mockEvent(
 
 	return {
 		url,
-		locals: { supabase }
+		locals: { supabase },
+		setHeaders: vi.fn()
 	} as unknown as Parameters<typeof GET>[0];
 }
 
 describe('GET /api/map/routes', () => {
+	beforeEach(() => {
+		invalidateCache('map:routes:');
+	});
+
 	describe('input validation', () => {
 		it('should return 400 when end param is missing', async () => {
 			const event = mockEvent();
@@ -106,13 +112,13 @@ describe('GET /api/map/routes', () => {
 			const selectCall = fromCall.mock.results[0].value.select;
 			expect(selectCall).toHaveBeenCalledWith('route_id, geometry');
 
-			// First .eq() is start_loc_osmid
+			// First .eq() is start_loc_osmid (number, not string)
 			const firstEq = selectCall.mock.results[0].value.eq;
-			expect(firstEq).toHaveBeenCalledWith('start_loc_osmid', '371357222');
+			expect(firstEq).toHaveBeenCalledWith('start_loc_osmid', 371357222);
 
-			// Second .eq() is end_loc_osmid
+			// Second .eq() is end_loc_osmid (schema transforms string → number)
 			const secondEq = firstEq.mock.results[0].value.eq;
-			expect(secondEq).toHaveBeenCalledWith('end_loc_osmid', '123456');
+			expect(secondEq).toHaveBeenCalledWith('end_loc_osmid', 123456);
 		});
 
 		it('should return multiple routes when available', async () => {
@@ -141,6 +147,125 @@ describe('GET /api/map/routes', () => {
 			const body = await response.json();
 
 			expect(body.error).toBe('failed to view routes');
+		});
+	});
+});
+
+/**
+ * Creates a mock RequestEvent for the POST handler
+ */
+function mockPostEvent(
+	body: unknown,
+	supabaseOverrides: Record<string, unknown> = {}
+) {
+	const mockData = supabaseOverrides.data ?? { route_id: 1 };
+	const mockError = supabaseOverrides.error ?? null;
+
+	const supabase = {
+		from: vi.fn().mockReturnValue({
+			insert: vi.fn().mockReturnValue({
+				select: vi.fn().mockReturnValue({
+					single: vi.fn().mockResolvedValue({
+						data: mockData,
+						error: mockError
+					})
+				})
+			})
+		})
+	};
+
+	return {
+		request: {
+			json: async () => body
+		},
+		locals: { supabase }
+	} as unknown as Parameters<typeof POST>[0];
+}
+
+describe('POST /api/map/routes', () => {
+	describe('input validation', () => {
+		it('should return 400 when body is missing required fields', async () => {
+			const event = mockPostEvent({});
+
+			await expect(POST(event)).rejects.toThrow();
+		});
+
+		it('should return 400 when geometry has fewer than 2 points', async () => {
+			const event = mockPostEvent({
+				start_loc_osmid: 1,
+				end_loc_osmid: 2,
+				geometry: { type: 'LineString', coordinates: [[0, 0]] }
+			});
+
+			await expect(POST(event)).rejects.toThrow();
+		});
+
+		it('should return 400 when geometry type is not LineString', async () => {
+			const event = mockPostEvent({
+				start_loc_osmid: 1,
+				end_loc_osmid: 2,
+				geometry: { type: 'Point', coordinates: [0, 0] }
+			});
+
+			await expect(POST(event)).rejects.toThrow();
+		});
+	});
+
+	describe('successful creation', () => {
+		it('should create a route and return 201', async () => {
+			const event = mockPostEvent(
+				{
+					start_loc_osmid: 100,
+					end_loc_osmid: 200,
+					geometry: { type: 'LineString', coordinates: [[0, 0], [1, 1]] }
+				},
+				{ data: { route_id: 42 } }
+			);
+			const response = await POST(event);
+			const body = await response.json();
+
+			expect(response.status).toBe(201);
+			expect(body.success).toBe(true);
+			expect(body.route_id).toBe(42);
+		});
+
+		it('should call supabase insert with correct data', async () => {
+			const event = mockPostEvent(
+				{
+					start_loc_osmid: 100,
+					end_loc_osmid: 200,
+					geometry: { type: 'LineString', coordinates: [[0, 0], [1, 1]] }
+				},
+				{ data: { route_id: 1 } }
+			);
+			await POST(event);
+
+			const fromCall = event.locals.supabase.from as ReturnType<typeof vi.fn>;
+			expect(fromCall).toHaveBeenCalledWith('route');
+
+			const insertCall = fromCall.mock.results[0].value.insert;
+			expect(insertCall).toHaveBeenCalledWith({
+				start_loc_osmid: 100,
+				end_loc_osmid: 200,
+				geometry: { type: 'LineString', coordinates: [[0, 0], [1, 1]] }
+			});
+		});
+	});
+
+	describe('error handling', () => {
+		it('should return 500 when supabase insert fails', async () => {
+			const event = mockPostEvent(
+				{
+					start_loc_osmid: 100,
+					end_loc_osmid: 200,
+					geometry: { type: 'LineString', coordinates: [[0, 0], [1, 1]] }
+				},
+				{ error: { message: 'Insert failed' }, data: null }
+			);
+			const response = await POST(event);
+			const body = await response.json();
+
+			expect(body.error).toBe('failed to create route');
 		});
 	});
 });
