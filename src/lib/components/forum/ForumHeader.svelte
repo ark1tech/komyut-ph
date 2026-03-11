@@ -1,9 +1,10 @@
 <script lang="ts">
+	/* eslint-disable svelte/no-navigation-without-resolve */
+
 	import { Ellipsis, Flag } from '@lucide/svelte';
 	import { timeAgo } from '$lib/utils';
 
 	interface Props {
-		authorName?: string;
 		authorUsername: string;
 		createdAt: string;
 		showAvatar?: boolean;
@@ -12,7 +13,6 @@
 	}
 
 	let {
-		authorName,
 		authorUsername,
 		createdAt,
 		showAvatar = false,
@@ -28,7 +28,10 @@
 		? 'pointer-events-none relative z-10 *:pointer-events-auto [&_a,&_button]:cursor-pointer'
 		: ''} {className ?? ''}"
 >
-	<a href="/{authorUsername}" class="flex items-center gap-1.5 transition-opacity hover:opacity-80">
+	<a
+		href={`/${authorUsername}`}
+		class="flex items-center gap-1.5 transition-opacity hover:opacity-80"
+	>
 		{#if showAvatar && authorUsername}
 			<div
 				class="grid size-6 place-items-center rounded-full bg-brand/10 text-[10px] font-semibold text-brand"

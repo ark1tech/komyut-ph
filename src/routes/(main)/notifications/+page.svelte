@@ -1,4 +1,6 @@
 <script lang="ts">
+	/* eslint-disable svelte/no-navigation-without-resolve */
+
 	import { page } from '$app/state';
 	import { timeAgo } from '$lib/utils';
 	import type { NotificationKind } from '$lib/types/database';
@@ -12,7 +14,6 @@
 		MessageCircle
 	} from '@lucide/svelte';
 	import * as Button from '$lib/components/ui/button/index';
-	import { resolve } from '$app/paths';
 
 	let { data } = $props();
 
@@ -109,7 +110,7 @@
 <section class="space-y-3 px-fluid-sm py-fluid-sm" aria-label="Notifications">
 	<div class="flex gap-2" role="tablist" aria-label="Notification scope">
 		<a
-			href={resolve('/notifications?scope=forum')}
+			href="/notifications?scope=forum"
 			role="tab"
 			aria-selected={scope === 'forum'}
 			class="rounded-full px-3 py-1.5 text-xs font-medium transition-colors
@@ -121,7 +122,7 @@
 		</a>
 
 		<a
-			href={resolve('/notifications?scope=routes')}
+			href="/notifications?scope=routes"
 			role="tab"
 			aria-selected={scope === 'routes'}
 			class="rounded-full px-3 py-1.5 text-xs font-medium transition-colors

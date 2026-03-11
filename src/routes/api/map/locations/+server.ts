@@ -1,5 +1,6 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
+import { mapLocationQuerySchema } from '$lib/validation/schemas';
 
 export const GET: RequestHandler = async (event) => {
 	const {
@@ -7,13 +8,11 @@ export const GET: RequestHandler = async (event) => {
 		locals: { supabase }
 	} = event;
 
-	const search_input = url.searchParams.get('q');
-
-	if (!search_input || search_input.trim() === '') {
+	const parseResult = mapLocationQuerySchema.safeParse({ q: url.searchParams.get('q') ?? '' });
+	if (!parseResult.success) {
 		return error(400, 'Invalid location');
 	}
-
-	const search_pattern = `%${search_input}%`;
+	const search_pattern = `%${parseResult.data.q}%`;
 
 	try {
 		const { data, error } = await supabase

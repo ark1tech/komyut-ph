@@ -3,19 +3,11 @@
 	import ForumComment from '$lib/components/forum/ForumComment.svelte';
 	import ForumPost from '$lib/components/forum/ForumPost.svelte';
 	import ForumSortBar from '$lib/components/forum/ForumSortBar.svelte';
-	import type { Comment } from '$lib/data/mock_comments';
-	import type { Post } from '$lib/data/mock_posts';
 
-	type PageData = {
-		post: Post;
-		comments: Comment[];
-		linkedPosts: Post[];
-	};
-
-	let { data }: { data: PageData } = $props();
+	let { data } = $props();
 	let post = $derived(data.post);
-	let comments = $derived(data.comments);
-	let linkedPosts = $derived(data.linkedPosts);
+	let comments = $derived(data.comments ?? []);
+	let linkedPosts = $derived(data.linkedPosts ?? {});
 
 	let commentText = $state('');
 

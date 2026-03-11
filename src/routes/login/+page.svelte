@@ -1,4 +1,6 @@
 <script lang="ts">
+	/* eslint-disable svelte/no-navigation-without-resolve */
+
 	import { goto } from '$app/navigation';
 	import iconBlue from '$lib/images/komyut_icon_blue.svg';
 	import textBlue from '$lib/images/komyut_text_blue.svg';

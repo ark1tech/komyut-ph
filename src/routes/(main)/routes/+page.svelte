@@ -25,7 +25,7 @@
 		</div>
 
 		<a
-			href={resolve("/notifications?scope=routes")}
+			href={resolve('/notifications?scope=routes')}
 			class="relative grid size-9 place-items-center rounded-full text-muted-foreground hover:bg-muted/50 hover:text-foreground"
 			aria-label="Route notifications"
 		>
@@ -81,12 +81,15 @@
 		</h2>
 
 		{#if view === 'recent'}
-			<a href={resolve("/map")} class="text-xs font-medium text-muted-foreground hover:text-foreground">
+			<a
+				href={resolve('/map')}
+				class="text-xs font-medium text-muted-foreground hover:text-foreground"
+			>
 				Open map
 			</a>
 		{:else}
 			<a
-				href={resolve("/profile/savedroutes")}
+				href={resolve('/profile/savedroutes')}
 				class="text-xs font-medium text-muted-foreground hover:text-foreground"
 			>
 				Manage
@@ -105,7 +108,7 @@
 					: 'Star a route and it’ll show up here for quick access.'}
 			</p>
 			<a
-				href={resolve("/map")}
+				href={resolve('/map')}
 				class="mt-3 inline-flex items-center rounded-full bg-border/40 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
 			>
 				Find routes
@@ -114,7 +117,7 @@
 	{:else}
 		{#each activeList as route (route.saved_route_id)}
 			<article class="rounded-2xl bg-card p-4 transition-colors hover:bg-accent">
-				<a href={resolve("/map?route={route.saved_route_id}")} class="block">
+				<a href={resolve('/map?route={route.saved_route_id}')} class="block">
 					<div class="flex items-start justify-between gap-3">
 						<div class="min-w-0">
 							<h3 class="truncate text-sm font-semibold text-foreground">{route.route_name}</h3>

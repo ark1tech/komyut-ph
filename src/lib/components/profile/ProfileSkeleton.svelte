@@ -12,7 +12,7 @@
 	</div>
 
 	<div class="mt-6 flex gap-8 rounded-2xl bg-white/10 px-6 py-4">
-		{#each Array(3) as _}
+		{#each Array(3) as _, i (i)}
 			<div class="flex flex-1 flex-col items-center gap-1">
 				<Skeleton class="h-8 w-12 rounded bg-white/20" />
 				<Skeleton class="h-3 w-16 rounded bg-white/20" />

@@ -21,7 +21,7 @@
 				When you record or trace a route, it’ll show up here.
 			</p>
 			<a
-				href={resolve("/map")}
+				href={resolve('/map')}
 				class="mt-3 inline-flex items-center rounded-full bg-border/40 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
 			>
 				Explore the map
@@ -31,7 +31,7 @@
 		{#each data.routes as route (route.saved_route_id)}
 			<article class="relative rounded-2xl bg-card p-4 transition-colors hover:bg-accent">
 				<a
-					href={resolve("/map?route={route.saved_route_id}")}
+					href={resolve('/map?route={route.saved_route_id}')}
 					class="block after:absolute after:inset-0 after:rounded-2xl"
 				>
 					<h2 class="text-sm font-semibold text-foreground">{route.route_name}</h2>

@@ -23,7 +23,7 @@
 					: 'max-w-40 opacity-100 delay-300 duration-200'}"
 			>
 				<a
-					href={resolve("/forum")}
+					href={resolve('/forum')}
 					class="flex shrink-0 cursor-default items-center gap-1.5"
 					aria-label="Komyut PH home"
 					tabindex={isPostRoute ? -1 : 0}
@@ -53,7 +53,7 @@
 		</div>
 
 		<a
-			href={resolve("/notifications?scope=forum")}
+			href={resolve('/notifications?scope=forum')}
 			class="relative grid size-9 shrink-0 place-items-center rounded-full text-muted-foreground hover:bg-muted/50 hover:text-foreground"
 			aria-label="Forum notifications"
 		>

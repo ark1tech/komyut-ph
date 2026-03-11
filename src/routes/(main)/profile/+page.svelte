@@ -1,5 +1,8 @@
 <script lang="ts">
+	/* eslint-disable svelte/no-navigation-without-resolve */
+
 	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 	import {
 		Map,
 		MessageSquare,
@@ -101,9 +104,9 @@
 			</p>
 		{/if}
 
-		{#each menuSections as section, sectionIndex}
+		{#each menuSections as section, sectionIndex (sectionIndex)}
 			<div class="space-y-2">
-				{#each section.items as item}
+				{#each section.items as item (item.href)}
 					<a
 						href={item.href}
 						class="flex items-center justify-between rounded-xl bg-card px-4 py-3.5 transition-colors hover:bg-accent"
@@ -127,7 +130,7 @@
 
 		{#if isGuest}
 			<a
-				href="/login"
+				href={resolve('/login')}
 				class="flex items-center justify-between rounded-xl bg-card px-4 py-3.5 transition-colors hover:bg-accent"
 			>
 				<div class="flex items-center gap-3">
@@ -142,7 +145,7 @@
 			</a>
 		{:else}
 			<a
-				href="/login"
+				href={resolve('/login')}
 				onclick={signOut}
 				class="flex items-center justify-between rounded-xl bg-card px-4 py-3.5 transition-colors hover:bg-accent"
 			>

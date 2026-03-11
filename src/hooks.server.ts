@@ -27,21 +27,30 @@ export const handle: Handle = async ({ event, resolve }) => {
 	 * JWT before returning the session.
 	 */
 	event.locals.safeGetSession = async () => {
-		const {
-			data: { session }
-		} = await event.locals.supabase.auth.getSession();
-		if (!session) {
+		try {
+			const {
+				data: { session }
+			} = await event.locals.supabase.auth.getSession();
+
+			if (!session) {
+				return { session: null, user: null };
+			}
+
+			const {
+				data: { user },
+				error
+			} = await event.locals.supabase.auth.getUser();
+
+			if (error) {
+				console.error('Failed to validate auth user', error);
+				return { session: null, user: null };
+			}
+
+			return { session, user };
+		} catch (error) {
+			console.error('safeGetSession failed (auth/network error)', error);
 			return { session: null, user: null };
 		}
-		const {
-			data: { user },
-			error
-		} = await event.locals.supabase.auth.getUser();
-		if (error) {
-			// JWT validation has failed
-			return { session: null, user: null };
-		}
-		return { session, user };
 	};
 	return resolve(event, {
 		filterSerializedResponseHeaders(name) {

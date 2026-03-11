@@ -22,14 +22,25 @@ export const load: LayoutLoad = async ({ fetch, data, depends }) => {
 				}
 			});
 
-	/**
-	 * It's fine to use `getSession` here, because on the client, `getSession` is
-	 * safe, and on the server, it reads `session` from the `LayoutData`, which
-	 * safely checked the session using `safeGetSession`.
-	 */
-	const {
-		data: { session }
-	} = await supabase.auth.getSession();
+	let session = null;
+	let authError: string | null = null;
 
-	return { supabase, session };
+	try {
+		const {
+			data: sessionData,
+			error: sessionError
+		} = await supabase.auth.getSession();
+
+		if (sessionError) {
+			console.error('Failed to get auth session', sessionError);
+			authError = sessionError.message ?? 'Failed to get auth session';
+		} else {
+			session = sessionData.session;
+		}
+	} catch (error) {
+		console.error('Failed to get auth session (network or unexpected error)', error);
+		authError = 'Failed to contact auth server';
+	}
+
+	return { supabase, session, authError };
 };

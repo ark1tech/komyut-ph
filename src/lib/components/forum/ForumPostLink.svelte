@@ -1,4 +1,6 @@
 <script lang="ts">
+	/* eslint-disable svelte/no-navigation-without-resolve */
+
 	import { FileText } from '@lucide/svelte';
 	import { cn } from '$lib/utils';
 
@@ -18,7 +20,7 @@
 </script>
 
 <a
-	href="/forum/{authorUsername}/{post.post_id}"
+	href={`/forum/${authorUsername}/${post.post_id}`}
 	class={cn(
 		'mt-2 flex items-center gap-2 rounded-lg border border-border/60 bg-card/60 px-3 py-2 transition-colors hover:bg-accent',
 		className

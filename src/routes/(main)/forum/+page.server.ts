@@ -1,7 +1,8 @@
+import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals: { supabase } }) => {
-	const { data: posts } = await supabase
+	const { data: posts, error: postsError } = await supabase
 		.from('post')
 		.select(
 			`
@@ -21,7 +22,17 @@ export const load: PageServerLoad = async ({ locals: { supabase } }) => {
 		)
 		.order('created_at', { ascending: false });
 
-	const { data: commentCounts } = await supabase.from('comment').select('parent_id');
+	if (postsError) {
+		console.error('Failed to load forum posts', postsError);
+		throw error(500, 'Failed to load forum');
+	}
+
+	const { data: commentCounts, error: commentsError } = await supabase.from('comment').select('parent_id');
+
+	if (commentsError) {
+		console.error('Failed to load forum comment counts', commentsError);
+		throw error(500, 'Failed to load forum');
+	}
 
 	const countMap: Record<number, number> = {};
 	for (const row of commentCounts ?? []) {

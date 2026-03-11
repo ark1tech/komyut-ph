@@ -1,5 +1,6 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
+import { mapRouteQuerySchema } from '$lib/validation/schemas';
 
 export const GET: RequestHandler = async (event) => {
 	const {
@@ -8,12 +9,11 @@ export const GET: RequestHandler = async (event) => {
 	} = event;
 
 	const start_loc = 371357222;
-	const end_loc_str = url.searchParams.get('end');
-	const end_loc = end_loc_str ? Number(end_loc_str) : null;
-
-	if (!end_loc || isNaN(end_loc)) {
+	const parsed = mapRouteQuerySchema.safeParse({ end: url.searchParams.get('end') ?? '' });
+	if (!parsed.success) {
 		return error(400, 'Invalid location');
 	}
+	const end_loc = parsed.data.end;
 
 	try {
 		const { data, error } = await supabase

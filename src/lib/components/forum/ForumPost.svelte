@@ -1,4 +1,6 @@
 <script lang="ts">
+	/* eslint-disable svelte/no-navigation-without-resolve */
+
 	import { ArrowBigUp, ArrowBigDown, MessageCircle, Share2 } from '@lucide/svelte';
 	import { cn } from '$lib/utils';
 	import ForumHeader from './ForumHeader.svelte';
@@ -53,7 +55,6 @@
 	)}
 >
 	<ForumHeader
-		authorName={post.author?.full_name}
 		{authorUsername}
 		createdAt={post.created_at}
 		showAvatar

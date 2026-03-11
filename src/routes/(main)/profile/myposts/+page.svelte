@@ -21,7 +21,7 @@
 				When you post in the forum, you'll see your threads here.
 			</p>
 			<a
-				href={resolve("/forum")}
+				href={resolve('/forum')}
 				class="mt-3 inline-flex items-center rounded-full bg-border/40 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
 			>
 				Browse forum

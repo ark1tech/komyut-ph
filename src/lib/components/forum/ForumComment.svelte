@@ -6,7 +6,6 @@
 	import ForumPostLink from './ForumPostLink.svelte';
 
 	interface CommentLike {
-		comment_id: number;
 		body: string;
 		upvotes: number;
 		downvotes: number;

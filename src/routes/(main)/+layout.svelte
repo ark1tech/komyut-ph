@@ -1,6 +1,14 @@
 <script lang="ts">
+	/* eslint-disable svelte/no-navigation-without-resolve */
+
 	import { page } from '$app/state';
+	import { navigating } from '$app/stores';
 	import { Map, MessageCircle, Route, UserRound } from '@lucide/svelte';
+	import { onDestroy } from 'svelte';
+	import RouteLoaderBar from '$lib/components/ui/RouteLoaderBar.svelte';
+	import ForumSkeleton from '$lib/components/forum/ForumSkeleton.svelte';
+	import ProfileSkeleton from '$lib/components/profile/ProfileSkeleton.svelte';
+	import RoutesSkeleton from '$lib/components/routes/RoutesSkeleton.svelte';
 
 	let { children, data } = $props();
 
@@ -10,11 +18,51 @@
 		{ href: '/forum', label: 'Forum', icon: MessageCircle, badge: data.unreadForum },
 		{ href: '/profile', label: 'Profile', icon: UserRound }
 	]);
+
+	const DELAY_MS = 200;
+	let showPending = $state(false);
+	let pendingPath = $state<string | null>(null);
+	let timeout: ReturnType<typeof setTimeout> | undefined;
+
+	$effect(() => {
+		if ($navigating) {
+			pendingPath = $navigating.to?.url?.pathname ?? null;
+			timeout = setTimeout(() => {
+				showPending = true;
+			}, DELAY_MS);
+		} else {
+			if (timeout) clearTimeout(timeout);
+			timeout = undefined;
+			showPending = false;
+			pendingPath = null;
+		}
+
+		return () => {
+			if (timeout) clearTimeout(timeout);
+		};
+	});
+
+	onDestroy(() => {
+		if (timeout) clearTimeout(timeout);
+	});
 </script>
 
 <div class="flex h-dvh flex-col">
+	<RouteLoaderBar />
 	<main class="flex min-h-0 flex-1 flex-col overflow-y-auto stable-scroll">
-		{@render children()}
+		{#if showPending && pendingPath}
+			{#if pendingPath.startsWith('/routes')}
+				<RoutesSkeleton />
+			{:else if pendingPath.startsWith('/forum')}
+				<ForumSkeleton />
+			{:else if pendingPath.startsWith('/profile')}
+				<ProfileSkeleton />
+			{:else}
+				{@render children()}
+			{/if}
+		{:else}
+			{@render children()}
+		{/if}
 	</main>
 
 	<nav
