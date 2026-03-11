@@ -2,6 +2,8 @@
 	import ForumPost from '$lib/components/forum/ForumPost.svelte';
 	import ForumSortBar from '$lib/components/forum/ForumSortBar.svelte';
 	import * as Pagination from '$lib/components/ui/pagination';
+	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 
 	let { data } = $props();
 
@@ -10,7 +12,8 @@
 	const PER_PAGE = 5;
 
 	let activeSort = $state<SortOption>('hot');
-	let currentPage = $state(1);
+
+	let currentPage = $derived(Number(page.url.searchParams.get('page')) || 1);
 
 	function commentCountFor(postId: number) {
 		return data.commentCounts[postId] ?? 0;
@@ -36,9 +39,15 @@
 		sortedPosts.slice((currentPage - 1) * PER_PAGE, currentPage * PER_PAGE)
 	);
 
+	function setPage(p: number) {
+		// eslint-disable-next-line svelte/no-navigation-without-resolve
+		goto(`?page=${p}`, { keepFocus: true, noScroll: true });
+	}
+
 	function handleSortChange(value: SortOption) {
 		activeSort = value;
-		currentPage = 1;
+		// eslint-disable-next-line svelte/no-navigation-without-resolve
+		goto('?page=1', { keepFocus: true, noScroll: true });
 	}
 </script>
 
@@ -60,7 +69,8 @@
 		<Pagination.Root
 			count={sortedPosts.length}
 			perPage={PER_PAGE}
-			bind:page={currentPage}
+			page={currentPage}
+			onPageChange={setPage}
 			siblingCount={1}
 		>
 			{#snippet children({ pages })}

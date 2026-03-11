@@ -3,6 +3,7 @@
 
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
+	import { page } from '$app/state';
 	import {
 		Map,
 		MessageSquare,
@@ -16,7 +17,9 @@
 	import ProfileCard from '$lib/components/profile/ProfileCard.svelte';
 
 	let { data } = $props();
-	let { supabase, session, user } = $derived(data);
+	let user = $derived(data.user);
+	let session = $derived(data.session);
+	let supabase = $derived(page.data.supabase);
 	let isGuest = $derived(!session);
 	let full_name: string = $derived(user?.full_name ?? 'Guest');
 	let username: string = $derived(user?.username ?? 'guest');
@@ -106,7 +109,7 @@
 
 		{#each menuSections as section, sectionIndex (sectionIndex)}
 			<div class="space-y-2">
-				{#each section.items as item (item.href)}
+				{#each section.items as item, itemIndex (`${sectionIndex}-${itemIndex}-${item.label}`)}
 					<a
 						href={item.href}
 						class="flex items-center justify-between rounded-xl bg-card px-4 py-3.5 transition-colors hover:bg-accent"
@@ -144,10 +147,10 @@
 				</div>
 			</a>
 		{:else}
-			<a
-				href={resolve('/login')}
+			<button
+				type="button"
 				onclick={signOut}
-				class="flex items-center justify-between rounded-xl bg-card px-4 py-3.5 transition-colors hover:bg-accent"
+				class="flex w-full cursor-pointer items-center justify-between rounded-xl bg-card px-4 py-3.5 text-left transition-colors hover:bg-accent"
 			>
 				<div class="flex items-center gap-3">
 					<div class="text-foreground">
@@ -158,7 +161,7 @@
 				<div class="flex items-center gap-2">
 					<ChevronRight class="h-5 w-5 text-muted-foreground" />
 				</div>
-			</a>
+			</button>
 		{/if}
 	</div>
 </div>

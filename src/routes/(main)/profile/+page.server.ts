@@ -1,4 +1,4 @@
-import { error } from '@sveltejs/kit';
+import { error, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { userProfileSchema } from '$lib/validation/schemas';
 
@@ -6,9 +6,7 @@ export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession 
 	const { session } = await safeGetSession();
 
 	if (!session) {
-		return {
-			user: null
-		};
+		throw redirect(302, '/login');
 	}
 
 	let user: unknown = null;
@@ -40,5 +38,5 @@ export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession 
 		throw error(500, 'Failed to load profile');
 	}
 
-	return { user: parsed.data };
+	return { user: parsed.data, session };
 };

@@ -2,8 +2,8 @@
 	import { Skeleton } from '$lib/components/ui/skeleton';
 </script>
 
-<div class="px-4 pt-safe-area-pt pb-6" aria-hidden="true">
-	<div class="mx-auto max-w-3xl space-y-4">
+<div class="flex h-screen flex-col overflow-hidden px-4 pt-safe-area-pt pb-6" aria-hidden="true">
+	<div class="flex-1 space-y-4">
 		<div class="space-y-2">
 			<Skeleton class="h-7 w-44" />
 			<Skeleton class="h-4 w-72" />
@@ -38,4 +38,3 @@
 		</div>
 	</div>
 </div>
-

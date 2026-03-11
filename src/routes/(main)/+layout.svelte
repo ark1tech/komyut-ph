@@ -7,7 +7,6 @@
 	import { onDestroy } from 'svelte';
 	import RouteLoaderBar from '$lib/components/ui/RouteLoaderBar.svelte';
 	import ForumSkeleton from '$lib/components/forum/ForumSkeleton.svelte';
-	import ProfileSkeleton from '$lib/components/profile/ProfileSkeleton.svelte';
 	import RoutesSkeleton from '$lib/components/routes/RoutesSkeleton.svelte';
 
 	let { children, data } = $props();
@@ -45,23 +44,23 @@
 	onDestroy(() => {
 		if (timeout) clearTimeout(timeout);
 	});
+
+	let showRoutesSkeleton = $derived(showPending && !!pendingPath?.startsWith('/routes'));
+	let showForumSkeleton = $derived(showPending && !!pendingPath?.startsWith('/forum'));
 </script>
 
 <div class="flex h-dvh flex-col">
 	<RouteLoaderBar />
-	<main class="flex min-h-0 flex-1 flex-col overflow-y-auto stable-scroll">
-		{#if showPending && pendingPath}
-			{#if pendingPath.startsWith('/routes')}
+	<main class="relative flex min-h-0 flex-1 flex-col overflow-y-auto stable-scroll">
+		{@render children()}
+		{#if showRoutesSkeleton}
+			<div class="pointer-events-none absolute inset-0 z-20 bg-background">
 				<RoutesSkeleton />
-			{:else if pendingPath.startsWith('/forum')}
+			</div>
+		{:else if showForumSkeleton}
+			<div class="pointer-events-none absolute inset-0 z-20 bg-background">
 				<ForumSkeleton />
-			{:else if pendingPath.startsWith('/profile')}
-				<ProfileSkeleton />
-			{:else}
-				{@render children()}
-			{/if}
-		{:else}
-			{@render children()}
+			</div>
 		{/if}
 	</main>
 

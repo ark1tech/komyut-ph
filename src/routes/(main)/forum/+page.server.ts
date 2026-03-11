@@ -27,16 +27,23 @@ export const load: PageServerLoad = async ({ locals: { supabase } }) => {
 		throw error(500, 'Failed to load forum');
 	}
 
-	const { data: commentCounts, error: commentsError } = await supabase.from('comment').select('parent_id');
-
-	if (commentsError) {
-		console.error('Failed to load forum comment counts', commentsError);
-		throw error(500, 'Failed to load forum');
-	}
-
+	const postIds = (posts ?? []).map((post) => post.post_id as number);
 	const countMap: Record<number, number> = {};
-	for (const row of commentCounts ?? []) {
-		countMap[row.parent_id] = (countMap[row.parent_id] ?? 0) + 1;
+
+	if (postIds.length > 0) {
+		const { data: commentCounts, error: commentsError } = await supabase
+			.from('comment')
+			.select('parent_id')
+			.in('parent_id', postIds);
+
+		if (commentsError) {
+			console.error('Failed to load forum comment counts', commentsError);
+			throw error(500, 'Failed to load forum');
+		}
+
+		for (const row of commentCounts ?? []) {
+			countMap[row.parent_id] = (countMap[row.parent_id] ?? 0) + 1;
+		}
 	}
 
 	return {
