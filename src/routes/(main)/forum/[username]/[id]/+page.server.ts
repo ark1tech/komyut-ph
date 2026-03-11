@@ -1,6 +1,10 @@
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
-import { commentSchema, forumPostParamsSchema, postDetailSchema } from '$lib/validation/schemas';
+import {
+	commentWithAuthorSchema,
+	forumPostParamsSchema,
+	postDetailSchema
+} from '$lib/validation/schemas';
 
 export const load: PageServerLoad = async ({ params, locals: { supabase } }) => {
 	const parsedParams = forumPostParamsSchema.safeParse(params);
@@ -70,7 +74,7 @@ export const load: PageServerLoad = async ({ params, locals: { supabase } }) => 
 		throw error(500, 'Failed to load comments');
 	}
 
-	const parsedComments = commentSchema.array().safeParse(rawComments ?? []);
+	const parsedComments = commentWithAuthorSchema.array().safeParse(rawComments ?? []);
 	if (!parsedComments.success) {
 		console.error('Invalid comment data from Supabase', parsedComments.error);
 		throw error(500, 'Failed to load comments');

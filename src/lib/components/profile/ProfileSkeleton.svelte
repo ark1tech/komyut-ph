@@ -3,7 +3,7 @@
 </script>
 
 <div class="flex h-screen flex-col overflow-hidden" aria-hidden="true">
-	<div class="bg-brand px-4 pb-8 pt-safe-area-pt">
+	<div class="pt-safe-area-pt bg-brand px-4 pb-8">
 		<div class="mb-6 h-6"></div>
 
 		<div class="flex flex-col items-center">

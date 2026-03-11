@@ -1,6 +1,6 @@
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
-import { postSummarySchema } from '$lib/validation/schemas';
+import { postDetailSchema } from '$lib/validation/schemas';
 
 export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession } }) => {
 	const { session } = await safeGetSession();
@@ -8,7 +8,22 @@ export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession 
 
 	const { data: posts, error: postsError } = await supabase
 		.from('post')
-		.select('post_id, title, body, upvotes, downvotes, created_at, last_edited')
+		.select(
+			`
+			post_id,
+			title,
+			body,
+			upvotes,
+			downvotes,
+			created_at,
+			last_edited,
+			author:user!post_author_id_fkey (
+				uid,
+				username,
+				full_name
+			)
+		`
+		)
 		.eq('author_id', session.user.id)
 		.order('created_at', { ascending: false });
 
@@ -17,7 +32,7 @@ export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession 
 		throw error(500, 'Failed to load posts');
 	}
 
-	const parsedPosts = postSummarySchema.array().safeParse(posts ?? []);
+	const parsedPosts = postDetailSchema.array().safeParse(posts ?? []);
 	if (!parsedPosts.success) {
 		console.error('Invalid post data from Supabase', parsedPosts.error);
 		throw error(500, 'Failed to load posts');

@@ -54,11 +54,11 @@
 	<main class="relative flex min-h-0 flex-1 flex-col overflow-y-auto stable-scroll">
 		{@render children()}
 		{#if showRoutesSkeleton}
-			<div class="pointer-events-none absolute inset-0 z-20 bg-background">
+			<div class="pointer-events-none fixed inset-0 z-20 bg-background">
 				<RoutesSkeleton />
 			</div>
 		{:else if showForumSkeleton}
-			<div class="pointer-events-none absolute inset-0 z-20 bg-background">
+			<div class="pointer-events-none fixed inset-0 z-20 bg-background">
 				<ForumSkeleton />
 			</div>
 		{/if}
@@ -72,6 +72,7 @@
 				{@const active = page.url.pathname.startsWith(item.href)}
 				<a
 					href={item.href}
+					data-sveltekit-preload-data="hover"
 					class="flex flex-col items-center gap-0.5 rounded-lg px-5 py-1.5 text-xs font-medium transition-colors
 						{active ? 'text-brand' : 'text-muted-foreground hover:text-foreground'}"
 					aria-current={active ? 'page' : undefined}

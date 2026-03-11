@@ -19,7 +19,22 @@ export const load: PageServerLoad = async ({ params, locals: { supabase } }) => 
 
 	const { data: posts, error: postsError } = await supabase
 		.from('post')
-		.select('post_id, title, body, upvotes, downvotes, created_at, last_edited')
+		.select(
+			`
+			post_id,
+			title,
+			body,
+			upvotes,
+			downvotes,
+			created_at,
+			last_edited,
+			author:user!post_author_id_fkey (
+				uid,
+				username,
+				full_name
+			)
+		`
+		)
 		.eq('author_id', profileUser.uid)
 		.order('created_at', { ascending: false });
 

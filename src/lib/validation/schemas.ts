@@ -76,6 +76,12 @@ export const postDetailSchema = postSummarySchema.extend({
 	author: postAuthorSchema.nullable()
 });
 
+export const commentAuthorSchema = z.object({
+	uid: z.string(),
+	username: z.string(),
+	full_name: z.string()
+});
+
 export const commentSchema = z.object({
 	comment_id: z.number().int(),
 	parent_id: z.number().int(),
@@ -98,6 +104,10 @@ export const commentSchema = z.object({
 		| 'linked_post_id'
 	>
 >;
+
+export const commentWithAuthorSchema = commentSchema.extend({
+	author: commentAuthorSchema.nullable()
+});
 
 export const notificationSchema = z.object({
 	notification_id: z.number().int(),
@@ -157,6 +167,7 @@ export const userProfileSchema = z.object({
 export type PostSummary = z.infer<typeof postSummarySchema>;
 export type PostDetail = z.infer<typeof postDetailSchema>;
 export type CommentDTO = z.infer<typeof commentSchema>;
+export type CommentWithAuthorDTO = z.infer<typeof commentWithAuthorSchema>;
 export type NotificationDTO = z.infer<typeof notificationSchema>;
 export type SavedRouteDTO = z.infer<typeof savedRouteSchema>;
 export type UserProfileDTO = z.infer<typeof userProfileSchema>;
