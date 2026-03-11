@@ -250,6 +250,16 @@
 	let ready = $state(false);
 	let activeLocationId = $state<string | null>(null);
 
+	// Route tracing state
+	let tracingMode = $state(false);
+	let tracedPoints = $state<[number, number][]>([]);
+	let traceMarkers: maplibregl.Marker[] = [];
+	let savingRoute = $state(false);
+
+	// Hardcoded start/end location OSM IDs
+	const TRACE_START_LOC = 371357222;
+	const TRACE_END_LOC = 28756784;
+
 	// Convert from Web Mercator (EPSG:3857) to WGS84 (EPSG:4326)
 	function mercatorToWgs84(x: number, y: number): [number, number] {
 		const lng = (x / 20037508.34) * 180;
@@ -353,10 +363,156 @@
 		activeLocationId = osmId;
 	}
 
+	// --- Route tracing functions ---
+
+	function startTracing() {
+		tracingMode = true;
+		tracedPoints = [];
+		clearTraceMarkers();
+		removeTraceLayers();
+		if (map) {
+			map.getCanvas().style.cursor = 'crosshair';
+		}
+	}
+
+	function cancelTracing() {
+		tracingMode = false;
+		tracedPoints = [];
+		clearTraceMarkers();
+		removeTraceLayers();
+		if (map) {
+			map.getCanvas().style.cursor = '';
+		}
+	}
+
+	function clearTraceMarkers() {
+		for (const marker of traceMarkers) {
+			marker.remove();
+		}
+		traceMarkers = [];
+	}
+
+	function removeTraceLayers() {
+		if (!map) return;
+		if (map.getLayer('trace-line')) map.removeLayer('trace-line');
+		if (map.getSource('trace')) map.removeSource('trace');
+	}
+
+	function updateTraceLine() {
+		if (!map) return;
+
+		const geojson: GeoJSON.FeatureCollection = {
+			type: 'FeatureCollection',
+			features:
+				tracedPoints.length >= 2
+					? [
+							{
+								type: 'Feature',
+								properties: {},
+								geometry: {
+									type: 'LineString',
+									coordinates: tracedPoints
+								}
+							}
+						]
+					: []
+		};
+
+		const source = map.getSource('trace');
+		if (source && source.type === 'geojson') {
+			(source as GeoJSONSource).setData(geojson);
+		} else {
+			map.addSource('trace', { type: 'geojson', data: geojson });
+			map.addLayer({
+				id: 'trace-line',
+				type: 'line',
+				source: 'trace',
+				layout: { 'line-join': 'round', 'line-cap': 'round' },
+				paint: { 'line-color': '#ef4444', 'line-width': 3, 'line-dasharray': [2, 2] }
+			});
+		}
+	}
+
+	function addTracePoint(lngLat: maplibregl.LngLat) {
+		if (!map) return;
+
+		const coord: [number, number] = [lngLat.lng, lngLat.lat];
+		tracedPoints = [...tracedPoints, coord];
+
+		const index = tracedPoints.length - 1;
+		const isFirst = index === 0;
+
+		const el = document.createElement('div');
+		el.className = 'trace-marker';
+		el.style.width = isFirst ? '14px' : '10px';
+		el.style.height = isFirst ? '14px' : '10px';
+		el.style.borderRadius = '50%';
+		el.style.backgroundColor = isFirst ? '#22c55e' : '#ef4444';
+		el.style.border = '2px solid white';
+		el.style.cursor = 'pointer';
+		el.style.boxShadow = '0 1px 3px rgba(0,0,0,0.3)';
+
+		const marker = new maplibregl.Marker({ element: el })
+			.setLngLat(coord)
+			.addTo(map);
+
+		traceMarkers.push(marker);
+
+		updateTraceLine();
+	}
+
+	function undoLastPoint() {
+		if (tracedPoints.length === 0) return;
+
+		tracedPoints = tracedPoints.slice(0, -1);
+
+		const lastMarker = traceMarkers.pop();
+		if (lastMarker) lastMarker.remove();
+
+		updateTraceLine();
+	}
+
+	async function saveTracedRoute() {
+		if (tracedPoints.length < 2) return;
+
+		savingRoute = true;
+		try {
+			const response = await fetch('/api/map/routes', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					start_loc_osmid: TRACE_START_LOC,
+					end_loc_osmid: TRACE_END_LOC,
+					geometry: {
+						type: 'LineString',
+						coordinates: tracedPoints
+					}
+				})
+			});
+
+			if (!response.ok) {
+				console.error('Failed to save route:', response.status);
+				return;
+			}
+
+			cancelTracing();
+		} catch (err) {
+			console.error('Error saving route:', err);
+		} finally {
+			savingRoute = false;
+		}
+	}
+
+	function onMapClickForTracing(e: maplibregl.MapMouseEvent) {
+		if (!tracingMode) return;
+		addTracePoint(e.lngLat);
+	}
+
 	// Handle location click
 	async function onLocationClick(
 		e: maplibregl.MapMouseEvent & { features?: maplibregl.GeoJSONFeature[] }
 	) {
+		if (tracingMode) return; // Don't handle location clicks while tracing
 		if (!e.features || e.features.length === 0) return;
 
 		const feature = e.features[0];
@@ -411,6 +567,9 @@
 			// activate tracking once the map style is loaded
 			instance.on('load', () => {
 				geolocate.trigger();
+
+				// Add map click handler for route tracing
+				instance.on('click', onMapClickForTracing);
 
 				// Add location sources and layers
 				if (locations.length > 0) {
@@ -477,6 +636,7 @@
 			cancelled = true;
 			if (map) {
 				clearRoutes();
+				clearTraceMarkers();
 				map.remove();
 				map = null;
 			}
@@ -518,7 +678,7 @@
 		<p class="text-sm text-muted-foreground">Loading map...</p>
 	</div>
 {/if}
-{#if activeLocationId}
+{#if activeLocationId && !tracingMode}
 	<button
 		onclick={() => clearRoutes()}
 		class="absolute top-4 left-4 z-10 rounded-lg bg-white px-4 py-2 text-black shadow-md hover:bg-gray-50"
@@ -526,4 +686,44 @@
 		Clear Routes
 	</button>
 {/if}
+
+<!-- Trace Route button (shown when not in tracing mode) -->
+{#if ready && !tracingMode}
+	<button
+		onclick={startTracing}
+		class="absolute bottom-20 left-4 z-10 rounded-lg bg-blue-500 px-4 py-2 text-white shadow-md hover:bg-red-600"
+	>
+		Trace Route
+	</button>
+{/if}
+
+<!-- Tracing mode controls -->
+{#if tracingMode}
+	<div class="absolute bottom-20 left-4 z-10 flex items-center gap-2">
+		<button
+			onclick={undoLastPoint}
+			disabled={tracedPoints.length === 0}
+			class="rounded-lg bg-white px-4 py-2 text-black shadow-md hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+		>
+			Undo Point
+		</button>
+		<button
+			onclick={saveTracedRoute}
+			disabled={tracedPoints.length < 2 || savingRoute}
+			class="rounded-lg bg-green-500 px-4 py-2 text-white shadow-md hover:bg-green-600 disabled:opacity-40 disabled:cursor-not-allowed"
+		>
+			{savingRoute ? 'Saving...' : 'Save Route'}
+		</button>
+		<button
+			onclick={cancelTracing}
+			class="rounded-lg bg-gray-500 px-4 py-2 text-white shadow-md hover:bg-gray-600"
+		>
+			Cancel
+		</button>
+	</div>
+	<div class="absolute max-w-75 top-4 left-4 z-10 rounded-lg bg-red-500/90 px-3 py-1.5 text-sm text-white shadow-md">
+		Tracing Mode — Click on the map to add points ({tracedPoints.length} point{tracedPoints.length !== 1 ? 's' : ''})
+	</div>
+{/if}
+
 <div bind:this={container} class="absolute inset-0 h-full w-full"></div>

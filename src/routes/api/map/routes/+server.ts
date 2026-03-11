@@ -1,6 +1,6 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { mapRouteQuerySchema } from '$lib/validation/schemas';
+import { mapRouteQuerySchema, mapRouteCreateSchema } from '$lib/validation/schemas';
 import { getOrSetCached } from '$lib/server/cache';
 
 const ROUTE_TTL_MS = 10 * 60_000;
@@ -43,5 +43,38 @@ export const GET: RequestHandler = async (event) => {
 	} catch (err) {
 		console.error('route error: ', err);
 		return json({ error: 'failed to view routes' }, { status: 500 });
+	}
+};
+
+export const POST: RequestHandler = async (event) => {
+	const {
+		locals: { supabase }
+	} = event;
+
+	const body = await event.request.json();
+	const parsed = mapRouteCreateSchema.safeParse(body);
+	if (!parsed.success) {
+		return error(400, 'Invalid route data');
+	}
+
+	const { start_loc_osmid, end_loc_osmid, geometry } = parsed.data;
+
+	try {
+		const { data, error: dbError } = await supabase
+			.from('route')
+			.insert({
+				start_loc_osmid,
+				end_loc_osmid,
+				geometry
+			})
+			.select('route_id')
+			.single();
+
+		if (dbError) throw dbError;
+
+		return json({ success: true, route_id: data.route_id }, { status: 201 });
+	} catch (err) {
+		console.error('route create error: ', err);
+		return json({ error: 'failed to create route' }, { status: 500 });
 	}
 };

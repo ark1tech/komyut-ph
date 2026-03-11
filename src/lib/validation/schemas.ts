@@ -37,6 +37,15 @@ export const mapRouteQuerySchema = z.object({
 		.transform((v: string) => Number(v))
 });
 
+export const mapRouteCreateSchema = z.object({
+	start_loc_osmid: z.number().int(),
+	end_loc_osmid: z.number().int(),
+	geometry: z.object({
+		type: z.literal('LineString'),
+		coordinates: z.array(z.tuple([z.number(), z.number()])).min(2, 'Route must have at least 2 points')
+	})
+});
+
 export const userProfileUpdateSchema = z.object({
 	full_name: z.string().min(1).max(255),
 	username: z.string().min(1).max(64),
