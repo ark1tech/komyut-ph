@@ -38,7 +38,7 @@ function buildLoginData() {
 	return {
 		supabase: mockSupabase(),
 		session: null
-	};
+	} as unknown as import('./$types').PageData;
 }
 
 describe('Login Page', () => {
@@ -76,9 +76,7 @@ describe('Login Page', () => {
 		it('should display the tagline', async () => {
 			render(Page, { props: { data: buildLoginData() } });
 
-			await expect
-				.element(page.getByText('Ang Komyut ng Komyuniti'))
-				.toBeInTheDocument();
+			await expect.element(page.getByText('Ang Komyut ng Komyuniti')).toBeInTheDocument();
 		});
 	});
 

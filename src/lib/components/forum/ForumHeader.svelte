@@ -28,10 +28,7 @@
 		? 'pointer-events-none relative z-10 *:pointer-events-auto [&_a,&_button]:cursor-pointer'
 		: ''} {className ?? ''}"
 >
-	<a
-		href="/{authorUsername}"
-		class="flex items-center gap-1.5 transition-opacity hover:opacity-80"
-	>
+	<a href="/{authorUsername}" class="flex items-center gap-1.5 transition-opacity hover:opacity-80">
 		{#if showAvatar && authorUsername}
 			<div
 				class="grid size-6 place-items-center rounded-full bg-brand/10 text-[10px] font-semibold text-brand"

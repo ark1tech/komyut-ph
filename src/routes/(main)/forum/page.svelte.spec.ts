@@ -2,8 +2,122 @@ import { page } from 'vitest/browser';
 import { describe, expect, it } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import Page from './+page.svelte';
-import { mockPosts } from '$lib/data/mock_posts';
-import { mockComments } from '$lib/data/mock_comments';
+import type { Post } from '$lib/data/mock_posts';
+import type { Comment } from '$lib/data/mock_comments';
+
+const mockPosts: Post[] = [
+	{
+		post_id: 1,
+		author_id: 1,
+		author_name: 'Sarah Martinez',
+		author_username: 'sarahm',
+		created_at: '2024-01-10T10:00:00Z',
+		last_edited: '2024-01-10T10:00:00Z',
+		title: 'How to get from Quezon City to Makati?',
+		body: 'Looking for the best route.',
+		upvotes: 10,
+		downvotes: 2
+	},
+	{
+		post_id: 2,
+		author_id: 2,
+		author_name: 'James Chen',
+		author_username: 'jchen',
+		created_at: '2024-01-09T10:00:00Z',
+		last_edited: '2024-01-09T10:00:00Z',
+		title: 'Best way to Mall of Asia from Cubao?',
+		body: 'Any tips?',
+		upvotes: 5,
+		downvotes: 1
+	},
+	{
+		post_id: 3,
+		author_id: 3,
+		author_name: 'Emily Johnson',
+		author_username: 'emilyjay',
+		created_at: '2024-01-08T10:00:00Z',
+		last_edited: '2024-01-08T10:00:00Z',
+		title: 'Commuting tips for beginners',
+		body: 'New to commuting here.',
+		upvotes: 8,
+		downvotes: 0
+	},
+	{
+		post_id: 4,
+		author_id: 1,
+		author_name: 'Sarah Martinez',
+		author_username: 'sarahm',
+		created_at: '2024-01-07T10:00:00Z',
+		last_edited: '2024-01-07T10:00:00Z',
+		title: 'Late night commute from BGC to Fairview',
+		body: 'Is it safe?',
+		upvotes: 3,
+		downvotes: 1
+	},
+	{
+		post_id: 5,
+		author_id: 3,
+		author_name: 'Emily Johnson',
+		author_username: 'emilyjay',
+		created_at: '2024-01-06T10:00:00Z',
+		last_edited: '2024-01-06T10:00:00Z',
+		title: 'Jeepney routes in Mandaluyong',
+		body: 'Which ones go to Ortigas?',
+		upvotes: 6,
+		downvotes: 0
+	},
+	{
+		post_id: 6,
+		author_id: 2,
+		author_name: 'James Chen',
+		author_username: 'jchen',
+		created_at: '2024-01-05T10:00:00Z',
+		last_edited: '2024-01-05T10:00:00Z',
+		title: 'Edsa bus tips',
+		body: 'Which bus lines are fastest?',
+		upvotes: 4,
+		downvotes: 0
+	}
+];
+
+const mockComments: Comment[] = [
+	{
+		comment_id: 1,
+		author_id: 2,
+		author_name: 'James Chen',
+		author_username: 'jchen',
+		parent_id: 1,
+		created_at: '2024-01-10T11:00:00Z',
+		last_edited: '2024-01-10T11:00:00Z',
+		body: 'MRT then jeepney!',
+		upvotes: 2,
+		downvotes: 0
+	},
+	{
+		comment_id: 2,
+		author_id: 3,
+		author_name: 'Emily Johnson',
+		author_username: 'emilyjay',
+		parent_id: 1,
+		created_at: '2024-01-10T12:00:00Z',
+		last_edited: '2024-01-10T12:00:00Z',
+		body: 'Bus is cheaper.',
+		upvotes: 1,
+		downvotes: 0
+	},
+	{
+		comment_id: 3,
+		author_id: 1,
+		author_name: 'Sarah Martinez',
+		author_username: 'sarahm',
+		parent_id: 2,
+		created_at: '2024-01-09T11:00:00Z',
+		last_edited: '2024-01-09T11:00:00Z',
+		body: 'Thanks!',
+		upvotes: 0,
+		downvotes: 0
+	}
+];
 
 /* ════════════════════════════════════════════════════════════════
  * FORUM PAGE COMPONENT TESTS
@@ -144,8 +258,8 @@ describe('Forum Page', () => {
 
 		it('should compute comment counts from mock comments', async () => {
 			// Each post referenced in comments should appear in mockPosts
-			const postIds = new Set(mockPosts.map((p) => p.post_id));
-			const commentParentIds = new Set(mockComments.map((c) => c.parent_id));
+			const postIds = new Set(mockPosts.map((p: Post) => p.post_id));
+			const commentParentIds = new Set(mockComments.map((c: Comment) => c.parent_id));
 
 			for (const parentId of commentParentIds) {
 				expect(postIds.has(parentId)).toBe(true);

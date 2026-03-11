@@ -1,12 +1,14 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte';
 	import { ArrowLeft } from '@lucide/svelte';
 
 	interface Props {
 		title: string;
 		backHref?: string;
+		right?: Snippet;
 	}
 
-	let { title, backHref = '/profile' }: Props = $props();
+	let { title, backHref = '/profile', right }: Props = $props();
 </script>
 
 <div class="sticky top-0 z-30 border-b bg-background/95 backdrop-blur-sm">
@@ -26,7 +28,7 @@
 		</div>
 
 		<div class="flex min-w-9 items-center justify-end">
-			<slot name="right" />
+			{@render right?.()}
 		</div>
 	</div>
 </div>

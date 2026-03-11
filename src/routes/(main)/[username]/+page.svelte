@@ -19,11 +19,15 @@
 	});
 
 	function fullName(u: typeof user) {
-		return `${u.first_name} ${u.last_name}`;
+		return u.full_name ?? `${u.first_name ?? ''} ${u.last_name ?? ''}`.trim();
 	}
 
 	function initials(u: typeof user) {
-		return `${u.first_name.charAt(0)}${u.last_name.charAt(0)}`;
+		const name = fullName(u);
+		const parts = name.split(' ').filter(Boolean);
+		return parts.length >= 2
+			? `${parts[0].charAt(0)}${parts[parts.length - 1].charAt(0)}`
+			: name.charAt(0).toUpperCase();
 	}
 </script>
 
@@ -52,7 +56,7 @@
 			fullName={fullName(user)}
 			username={user.username}
 			initials={initials(user)}
-			stats={stats}
+			{stats}
 		/>
 
 		<div class="space-y-3 px-fluid-sm py-fluid-sm" role="region" aria-label="User posts">

@@ -4,17 +4,12 @@
 	import ForumSearchBar from '$lib/components/forum/ForumSearchBar.svelte';
 	import iconBlue from '$lib/images/komyut_icon_blue.svg';
 	import textBlue from '$lib/images/komyut_text_blue.svg';
-	import { mockNotifications } from '$lib/data/mock_notifications';
-
-	let { children } = $props();
+	import { resolve } from '$app/paths';
+	let { children, data } = $props();
 
 	let isPostRoute = $derived(/^\/forum\/.+\/.+/.test(page.url.pathname));
 
-	let unreadForum = $derived(
-		mockNotifications.filter(
-			(n) => !n.is_read && (n.kind === 'upvote' || n.kind === 'downvote' || n.kind === 'comment')
-		).length
-	);
+	let unreadForum = $derived(data.unreadForum);
 </script>
 
 <div class="flex flex-col">
@@ -28,7 +23,7 @@
 					: 'max-w-40 opacity-100 delay-300 duration-200'}"
 			>
 				<a
-					href="/forum"
+					href={resolve("/forum")}
 					class="flex shrink-0 cursor-default items-center gap-1.5"
 					aria-label="Komyut PH home"
 					tabindex={isPostRoute ? -1 : 0}
@@ -58,14 +53,14 @@
 		</div>
 
 		<a
-			href="/notifications?scope=forum"
+			href={resolve("/notifications?scope=forum")}
 			class="relative grid size-9 shrink-0 place-items-center rounded-full text-muted-foreground hover:bg-muted/50 hover:text-foreground"
 			aria-label="Forum notifications"
 		>
 			<Bell class="size-5" />
 			{#if unreadForum > 0}
 				<span
-					class="absolute -top-1 -right-1 grid min-w-4 place-items-center rounded-full bg-destructive px-1 text-[10px] font-semibold leading-4 text-white"
+					class="absolute -top-1 -right-1 grid min-w-4 place-items-center rounded-full bg-destructive px-1 text-[10px] leading-4 font-semibold text-white"
 					aria-label={`${unreadForum} unread forum notifications`}
 				>
 					{unreadForum > 9 ? '9+' : unreadForum}

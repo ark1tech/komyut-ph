@@ -21,7 +21,10 @@ import { GET } from './+server';
 /**
  * Creates a mock RequestEvent for the locations endpoint
  */
-function mockEvent(queryParams: Record<string, string> = {}, supabaseOverrides: Record<string, unknown> = {}) {
+function mockEvent(
+	queryParams: Record<string, string> = {},
+	supabaseOverrides: Record<string, unknown> = {}
+) {
 	const url = new URL('http://localhost/api/map/locations');
 	for (const [key, val] of Object.entries(queryParams)) {
 		url.searchParams.set(key, val);
@@ -115,17 +118,16 @@ describe('GET /api/map/locations', () => {
 			await GET(event);
 
 			const fromCall = event.locals.supabase.from as ReturnType<typeof vi.fn>;
-			const limitCall = fromCall.mock.results[0].value.select.mock.results[0].value.ilike.mock.results[0].value.limit;
+			const limitCall =
+				fromCall.mock.results[0].value.select.mock.results[0].value.ilike.mock.results[0].value
+					.limit;
 			expect(limitCall).toHaveBeenCalledWith(5);
 		});
 	});
 
 	describe('error handling', () => {
 		it('should return 500 when supabase throws an error', async () => {
-			const event = mockEvent(
-				{ q: 'test' },
-				{ error: { message: 'Database error' }, data: null }
-			);
+			const event = mockEvent({ q: 'test' }, { error: { message: 'Database error' }, data: null });
 			const response = await GET(event);
 			const body = await response.json();
 

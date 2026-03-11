@@ -1,11 +1,20 @@
 <script lang="ts">
 	import { ArrowBigUp, ArrowBigDown, MessageCircle, Share2 } from '@lucide/svelte';
-	import type { Post } from '$lib/data/mock_posts';
 	import { cn } from '$lib/utils';
 	import ForumHeader from './ForumHeader.svelte';
 
+	interface PostLike {
+		post_id: number;
+		title: string;
+		body: string;
+		upvotes: number;
+		downvotes: number;
+		created_at: string;
+		author?: { username: string; full_name: string } | null;
+	}
+
 	interface Props {
-		post: Post;
+		post: PostLike;
 		commentCount?: number;
 		truncate?: boolean;
 		linked?: boolean;
@@ -32,7 +41,8 @@
 		voted = voted === dir ? null : dir;
 	}
 
-	let postHref = $derived(`/forum/${post.author_username}/${post.post_id}`);
+	let authorUsername = $derived(post.author?.username ?? '');
+	let postHref = $derived(`/forum/${authorUsername}/${post.post_id}`);
 </script>
 
 <article
@@ -43,8 +53,8 @@
 	)}
 >
 	<ForumHeader
-		authorName={post.author_name}
-		authorUsername={post.author_username}
+		authorName={post.author?.full_name}
+		{authorUsername}
 		createdAt={post.created_at}
 		showAvatar
 		showMenu
@@ -52,10 +62,7 @@
 	/>
 
 	{#if linked}
-		<a
-			href={postHref}
-			class="mt-2 block after:absolute after:inset-0 after:rounded-2xl"
-		>
+		<a href={postHref} class="mt-2 block after:absolute after:inset-0 after:rounded-2xl">
 			<h3 class={cn('text-sm leading-snug font-semibold text-foreground', titleClass)}>
 				{post.title}
 			</h3>

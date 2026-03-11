@@ -1,8 +1,8 @@
 <script lang="ts">
 	import Map from '$lib/components/map/Map.svelte';
 	import MapSearchBar from '$lib/components/map/MapSearchBar.svelte';
-	import * as Drawer from "$lib/components/ui/drawer/index";
-	import * as Button from "$lib/components/ui/button/index";
+	import * as Drawer from '$lib/components/ui/drawer/index';
+	import * as Button from '$lib/components/ui/button/index';
 </script>
 
 <svelte:head>
@@ -21,7 +21,7 @@
 				<Drawer.Description>This action cannot be undone.</Drawer.Description>
 			</Drawer.Header>
 			<Drawer.Footer>
-				<Button>Submit</Button>
+				<Button.Root>Submit</Button.Root>
 				<Drawer.Close>Cancel</Drawer.Close>
 			</Drawer.Footer>
 		</Drawer.Content>
