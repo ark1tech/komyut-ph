@@ -9,8 +9,8 @@ import Page from './+page.svelte';
  *
  * Tests the /profile page which displays:
  *   - ProfileCard with user info (name, username, email, avatar, stats)
- *   - Menu sections (My Routes, My Posts, Settings, Help, Privacy)
- *   - Log Out button
+ *   - Menu sections (member vs guest)
+ *   - Log Out button for members, Log In button for guests
  *
  * The page receives data from +page.server.ts:
  *   { supabase, session, user: { full_name, username, email, avatar_url } }
@@ -109,7 +109,7 @@ describe('Profile Page', () => {
 		});
 	});
 
-	describe('menu items', () => {
+	describe('member menu items', () => {
 		it('should display My Routes link', async () => {
 			render(Page, { props: { data: buildProfileData() } });
 
@@ -158,6 +158,25 @@ describe('Profile Page', () => {
 
 			const link = page.getByRole('link', { name: /My Posts/ });
 			await expect.element(link).toHaveAttribute('href', '/profile/myposts');
+		});
+	});
+
+	describe('guest menu items', () => {
+		it('should display Log In link when user is a guest', async () => {
+			const guestData = buildProfileData({ session: null, user: null });
+			render(Page, { props: { data: guestData } });
+
+			const link = page.getByRole('link', { name: /Log In/ });
+			await expect.element(link).toHaveAttribute('href', '/login');
+		});
+
+		it('should hide member-only links when user is a guest', async () => {
+			const guestData = buildProfileData({ session: null, user: null });
+			render(Page, { props: { data: guestData } });
+
+			await expect.element(page.getByText('My Routes')).not.toBeInTheDocument();
+			await expect.element(page.getByText('My Posts')).not.toBeInTheDocument();
+			await expect.element(page.getByText('Log Out')).not.toBeInTheDocument();
 		});
 	});
 });
