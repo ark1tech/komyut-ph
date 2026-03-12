@@ -14,11 +14,13 @@
 		id?: number;
 		label?: string;
 		username?: string;
+		description?: string;
 	};
 
 	type PostSearchItem = {
 		post_id: number;
 		title: string;
+		description?: string;
 		author: {
 			username: string;
 		} | null;
@@ -248,7 +250,8 @@
 			type: 'forum',
 			id: post.post_id,
 			label: post.title,
-			username
+			username,
+			description: post.description
 		});
 
 		closeDropdown();
@@ -341,14 +344,32 @@
 						<p class="px-2 py-2 text-sm text-muted-foreground">No recent searches yet.</p>
 					{:else}
 						{#each recent as item, idx (`${item.type}-${item.id ?? item.query}-${idx}`)}
+							{@const isRoute = item.type === 'route' && item.id != null}
+							{@const isForum = item.type === 'forum' && item.id != null && item.username != null}
 							<div class="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-accent/70">
 								<button
 									type="button"
 									onclick={() => selectRecent(item)}
-									class="flex min-w-0 flex-1 items-center gap-2 text-left"
+									class="flex min-w-0 flex-1 gap-2 text-left {isRoute || isForum ? 'items-start' : 'items-center'}"
 								>
-									<Search class="size-4 shrink-0 text-muted-foreground" />
-									<span class="truncate text-sm text-foreground">{item.label ?? item.query}</span>
+									{#if isRoute}
+										<Route class="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+										<span class="min-w-0">
+											<span class="block truncate text-sm font-medium text-foreground">{item.label ?? item.query}</span>
+											<span class="block truncate text-xs text-muted-foreground">Route</span>
+										</span>
+									{:else if isForum}
+										<MessageCircle class="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+										<span class="min-w-0">
+											<span class="block truncate text-sm font-medium text-foreground">{item.label ?? item.query}</span>
+											<span class="block truncate text-xs text-muted-foreground">
+												{item.description ?? (item.username ? `@${item.username}` : 'Forum post')}
+											</span>
+										</span>
+									{:else}
+										<Search class="size-4 shrink-0 text-muted-foreground" />
+										<span class="truncate text-sm text-foreground">{item.label ?? item.query}</span>
+									{/if}
 								</button>
 								<button
 									type="button"
@@ -398,7 +419,7 @@
 										<span class="min-w-0">
 											<span class="block truncate text-sm font-medium text-foreground">{post.title}</span>
 											<span class="block truncate text-xs text-muted-foreground">
-												{post.author?.username ? `@${post.author.username}` : 'Unknown author'}
+												{post.description ?? (post.author?.username ? `@${post.author.username}` : 'Forum post')}
 											</span>
 										</span>
 									</button>
@@ -465,7 +486,7 @@
 										<span class="min-w-0">
 											<span class="block truncate text-sm font-medium text-foreground">{post.title}</span>
 											<span class="block truncate text-xs text-muted-foreground">
-												{post.author?.username ? `@${post.author.username}` : 'Unknown author'}
+												{post.description ?? (post.author?.username ? `@${post.author.username}` : 'Forum post')}
 											</span>
 										</span>
 									</button>

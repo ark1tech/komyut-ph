@@ -9,11 +9,13 @@ type RpcResponse = {
 function mockEvent({
 	q = '',
 	sessionUserId = '11111111-1111-1111-1111-111111111111',
-	rpcResults = {}
+	rpcResults = {},
+	postBodiesById = {}
 }: {
 	q?: string;
 	sessionUserId?: string | null;
 	rpcResults?: Record<string, RpcResponse>;
+	postBodiesById?: Record<number, string>;
 } = {}) {
 	const url = new URL('http://localhost/api/search');
 	url.searchParams.set('q', q);
@@ -27,10 +29,46 @@ function mockEvent({
 		);
 	});
 
+	const inFn = vi.fn().mockImplementation((_column: string, values: number[]) => {
+		const rows = values
+			.map((id) =>
+				id in postBodiesById
+					? {
+							post_id: id,
+							body: postBodiesById[id]
+						}
+					: null
+			)
+			.filter((row): row is { post_id: number; body: string } => row !== null);
+
+		return Promise.resolve({
+			data: rows,
+			error: null
+		});
+	});
+
+	const selectFn = vi.fn().mockReturnValue({
+		in: inFn
+	});
+
+	const from = vi.fn().mockImplementation((tableName: string) => {
+		if (tableName !== 'post') {
+			return {
+				select: vi.fn().mockReturnValue({
+					in: vi.fn().mockResolvedValue({ data: [], error: null })
+				})
+			};
+		}
+
+		return {
+			select: selectFn
+		};
+	});
+
 	return {
 		url,
 		locals: {
-			supabase: { rpc },
+			supabase: { rpc, from },
 			safeGetSession: vi.fn().mockResolvedValue({
 				session: sessionUserId
 					? { user: { id: sessionUserId } }
@@ -166,6 +204,99 @@ describe('GET /api/search', () => {
 		expect(event.locals.supabase.rpc).toHaveBeenCalledWith('search_posts', { p_query: 'PWD' });
 		expect(body.routes).toEqual([]);
 		expect(body.posts).toHaveLength(1);
+	});
+
+	it('returns truncated one-line description for posts when body is provided by RPC', async () => {
+		const event = mockEvent({
+			q: 'test',
+			rpcResults: {
+				search_posts: {
+					data: [
+						{
+							search_path: 'fts',
+							post_id: 1,
+							title: 'A post',
+							author_username: 'alice',
+							body: '<p>First line of content.</p><p>Second paragraph with more text.</p>'
+						}
+					],
+					error: null
+				},
+				search_routes: { data: [], error: null }
+			}
+		});
+
+		const response = await GET(event);
+		const body = await response.json();
+
+		expect(body.posts).toHaveLength(1);
+		expect(body.posts[0].description).toBe('First line of content. Second paragraph with more text.');
+	});
+
+	it('uses RPC description as post description when body is not provided', async () => {
+		const event = mockEvent({
+			q: 'forum',
+			rpcResults: {
+				search_posts: {
+					data: [
+						{
+							search_path: 'fts',
+							post_id: 13,
+							title: 'Bus commute tips',
+							author_username: 'carlo',
+							description: 'Ride MRT first, then transfer to EDSA Carousel.'
+						}
+					],
+					error: null
+				},
+				search_routes: { data: [], error: null }
+			}
+		});
+
+		const response = await GET(event);
+		const body = await response.json();
+
+		expect(body.posts).toHaveLength(1);
+		expect(body.posts[0]).toMatchObject({
+			post_id: 13,
+			title: 'Bus commute tips',
+			description: 'Ride MRT first, then transfer to EDSA Carousel.',
+			author: { username: 'carlo' }
+		});
+	});
+
+	it('fetches post body by post_id when RPC result has no body field', async () => {
+		const event = mockEvent({
+			q: 'PWD',
+			rpcResults: {
+				search_posts: {
+					data: [
+						{
+							search_path: 'fts',
+							post_id: 10,
+							title: 'PWD-friendly route to Manila Ocean Park',
+							author_username: 'ryant'
+						}
+					],
+					error: null
+				},
+				search_routes: { data: [], error: null }
+			},
+			postBodiesById: {
+				10: 'Looking for wheelchair-accessible transportation from Quezon Avenue to Manila Ocean Park.'
+			}
+		});
+
+		const response = await GET(event);
+		const body = await response.json();
+
+		expect(body.posts).toHaveLength(1);
+		expect(body.posts[0]).toMatchObject({
+			post_id: 10,
+			title: 'PWD-friendly route to Manila Ocean Park',
+			description: 'Looking for wheelchair-accessible transportation from Quezon Avenue to Manila Ocean Park.',
+			author: { username: 'ryant' }
+		});
 	});
 
 	it('keeps response section ordering deterministic', async () => {
