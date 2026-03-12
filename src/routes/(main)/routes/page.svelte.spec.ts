@@ -1,6 +1,21 @@
 import { page } from 'vitest/browser';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
+
+const { gotoMock } = vi.hoisted(() => ({
+	gotoMock: vi.fn()
+}));
+
+vi.mock('$app/navigation', () => ({
+	goto: gotoMock
+}));
+
+vi.mock('$app/state', () => ({
+	page: {
+		url: new URL('http://localhost/routes?page=1')
+	}
+}));
+
 import Page from './+page.svelte';
 
 /* ════════════════════════════════════════════════════════════════
@@ -8,11 +23,10 @@ import Page from './+page.svelte';
  * ════════════════════════════════════════════════════════════════
  *
  * Tests the /routes page which displays:
- *   - "Routes" title in sticky header
  *   - Recents / Saved toggle (radiogroup)
  *   - Route cards with name, locations, attributes
- *   - Empty state messages
- *   - Notification bell link
+	*   - Empty route list behavior
+	*   - Pagination state updates when switching views
  *
  * HOW TO RUN:
  *   pnpm test:unit                → Run all unit + component tests
@@ -43,19 +57,16 @@ function buildRoutesData(overrides: Record<string, unknown> = {}) {
 }
 
 describe('Routes Page', () => {
+	beforeEach(() => {
+		gotoMock.mockReset();
+	});
+
 	describe('layout', () => {
 		it('should render the routes section', async () => {
 			render(Page, { props: { data: buildRoutesData() } });
 
 			const section = page.getByRole('region', { name: 'Routes' });
 			await expect.element(section).toBeInTheDocument();
-		});
-
-		it('should render notification bell link', async () => {
-			render(Page, { props: { data: buildRoutesData() } });
-
-			const bell = page.getByRole('link', { name: /Route notifications/ });
-			await expect.element(bell).toBeInTheDocument();
 		});
 	});
 
@@ -87,6 +98,7 @@ describe('Routes Page', () => {
 			const saved = page.getByRole('radio', { name: /Saved/ });
 			await saved.click();
 			await expect.element(saved).toHaveAttribute('aria-checked', 'true');
+			expect(gotoMock).toHaveBeenCalledWith('?page=1', { keepFocus: true, noScroll: true });
 		});
 
 		it('should render "Routes list" radiogroup', async () => {
@@ -98,26 +110,34 @@ describe('Routes Page', () => {
 	});
 
 	describe('empty state', () => {
-		it('should show "No recent routes yet" when recentRoutes is empty', async () => {
+		it('should render no route cards when recentRoutes is empty', async () => {
 			render(Page, { props: { data: buildRoutesData() } });
 
-			await expect.element(page.getByText('No recent routes yet')).toBeInTheDocument();
+			await expect.element(page.getByRole('region', { name: 'Routes' })).toBeInTheDocument();
+			await expect.element(page.getByRole('article').first()).not.toBeInTheDocument();
 		});
 
-		it('should show "No saved routes yet" when savedRoutes is empty', async () => {
+		it('should render no route cards when savedRoutes is empty', async () => {
 			render(Page, { props: { data: buildRoutesData() } });
 
-			// Switch to Saved view
 			const saved = page.getByRole('radio', { name: /Saved/ });
 			await saved.click();
 
-			await expect.element(page.getByText('No saved routes yet')).toBeInTheDocument();
+			await expect.element(page.getByRole('article').first()).not.toBeInTheDocument();
 		});
 
-		it('should show "Find routes" link in empty state', async () => {
-			render(Page, { props: { data: buildRoutesData() } });
+		it('should clear recent route cards after switching to an empty saved list', async () => {
+			render(
+				Page,
+				{ props: { data: buildRoutesData({ recentRoutes: [mockRoute], savedRoutes: [] }) } }
+			);
 
-			await expect.element(page.getByText('Find routes')).toBeInTheDocument();
+			await expect.element(page.getByText('Morning Commute')).toBeInTheDocument();
+
+			const saved = page.getByRole('radio', { name: /Saved/ });
+			await saved.click();
+
+			await expect.element(page.getByText('Morning Commute')).not.toBeInTheDocument();
 		});
 	});
 
@@ -161,19 +181,4 @@ describe('Routes Page', () => {
 		});
 	});
 
-	describe('notification badge', () => {
-		it('should show unread count badge when alerts exist', async () => {
-			render(Page, { props: { data: buildRoutesData({ unreadRouteAlerts: 3 }) } });
-
-			await expect
-				.element(page.getByText('3', { exact: true }))
-				.toBeInTheDocument();
-		});
-
-		it('should show 9+ when unread alerts exceed 9', async () => {
-			render(Page, { props: { data: buildRoutesData({ unreadRouteAlerts: 15 }) } });
-
-			await expect.element(page.getByText('9+')).toBeInTheDocument();
-		});
-	});
 });
