@@ -2,7 +2,7 @@ import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { getOrSetCached } from '$lib/server/cache';
 
-const FORUM_TTL_MS = 15_000;
+const FORUM_TTL_MS = 55_000;
 
 export const load: PageServerLoad = async ({ locals: { supabase } }) => {
 	const cacheKey = 'forum:posts-and-comments';

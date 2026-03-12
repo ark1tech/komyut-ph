@@ -3,7 +3,7 @@ import type { PageServerLoad } from './$types';
 import { savedRouteSchema } from '$lib/validation/schemas';
 import { getOrSetCached } from '$lib/server/cache';
 
-const ROUTES_TTL_MS = 10_000;
+const ROUTES_TTL_MS = 55_000;
 
 export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession } }) => {
 	const { session } = await safeGetSession();

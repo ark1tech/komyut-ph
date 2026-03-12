@@ -1,13 +1,50 @@
 <script lang="ts">
-	import { Accessibility, Bell, Clock, Coins, Star } from '@lucide/svelte';
-	import { resolve } from '$app/paths';
+	import RouteCard from '$lib/components/routes/RouteCard.svelte';
+	import RoutesSortBar from '$lib/components/routes/RoutesSortBar.svelte';
+	import * as Pagination from '$lib/components/ui/pagination';
+	import { routesSearchQuery } from '$lib/stores/routesSearch';
+	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 
 	let { data } = $props();
 
-	type View = 'recent' | 'saved';
-	let view = $state<View>('recent');
+	type ViewOption = 'recent' | 'saved';
 
-	const activeList = $derived(view === 'recent' ? data.recentRoutes : data.savedRoutes);
+	const PER_PAGE = 5;
+
+	let activeView = $state<ViewOption>('recent');
+
+	let currentPage = $derived(Number(page.url.searchParams.get('page')) || 1);
+
+	const activeList = $derived(
+		activeView === 'recent' ? data.recentRoutes : data.savedRoutes
+	);
+
+	let filteredRoutes = $derived.by(() => {
+		const q = $routesSearchQuery.trim().toLowerCase();
+		if (!q) return activeList;
+		return activeList.filter(
+			(route) =>
+				route.route_name.toLowerCase().includes(q) ||
+				route.start_loc.toLowerCase().includes(q) ||
+				route.end_loc.toLowerCase().includes(q)
+		);
+	});
+
+	let pagedRoutes = $derived(
+		filteredRoutes.slice((currentPage - 1) * PER_PAGE, currentPage * PER_PAGE)
+	);
+
+	function setPage(p: number) {
+		// eslint-disable-next-line svelte/no-navigation-without-resolve
+		goto(`?page=${p}`, { keepFocus: true, noScroll: true });
+	}
+
+	function handleViewChange(value: ViewOption) {
+		activeView = value;
+		// eslint-disable-next-line svelte/no-navigation-without-resolve
+		goto('?page=1', { keepFocus: true, noScroll: true });
+	}
 </script>
 
 <svelte:head>
@@ -15,159 +52,44 @@
 	<meta name="description" content="Recently used and saved routes" />
 </svelte:head>
 
-<!-- Sticky header (same style as forum) -->
-<div class="sticky top-0 z-30 border-b bg-background/95 backdrop-blur-sm">
-	<div class="relative flex items-center justify-between gap-fluid-sm px-fluid-sm py-fluid-sm">
-		<div class="min-w-9" aria-hidden="true"></div>
+<RoutesSortBar active={activeView} onchange={handleViewChange} class="px-fluid-sm pt-fluid-sm" />
 
-		<div class="pointer-events-none absolute left-1/2 -translate-x-1/2 text-base font-semibold">
-			Routes
-		</div>
-
-		<a
-			href={resolve('/notifications?scope=routes')}
-			class="relative grid size-9 place-items-center rounded-full text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-			aria-label="Route notifications"
-		>
-			<Bell class="size-5" />
-			{#if data.unreadRouteAlerts > 0}
-				<span
-					class="absolute -top-1 -right-1 grid min-w-4 place-items-center rounded-full bg-destructive px-1 text-[10px] leading-4 font-semibold text-white"
-					aria-label={`${data.unreadRouteAlerts} unread route notifications`}
-				>
-					{data.unreadRouteAlerts > 9 ? '9+' : data.unreadRouteAlerts}
-				</span>
-			{/if}
-		</a>
-	</div>
-
-	<!-- Recents / Saved toggle -->
-	<div class="px-fluid-sm pb-fluid-sm">
-		<div class="flex gap-2" role="radiogroup" aria-label="Routes list">
-			<button
-				type="button"
-				role="radio"
-				aria-checked={view === 'recent'}
-				onclick={() => (view = 'recent')}
-				class="flex cursor-pointer items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors
-                    {view === 'recent'
-					? 'bg-brand text-white'
-					: 'bg-card text-muted-foreground hover:bg-muted/50 hover:text-foreground'}"
-			>
-				Recents
-			</button>
-
-			<button
-				type="button"
-				role="radio"
-				aria-checked={view === 'saved'}
-				onclick={() => (view = 'saved')}
-				class="flex cursor-pointer items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors
-                    {view === 'saved'
-					? 'bg-brand text-white'
-					: 'bg-card text-muted-foreground hover:bg-muted/50 hover:text-foreground'}"
-			>
-				Saved
-			</button>
-		</div>
-	</div>
+<div class="space-y-3 px-fluid-sm py-fluid-sm" role="region" aria-label="Routes">
+	{#each pagedRoutes as route (route.saved_route_id)}
+		<RouteCard {route} view={activeView} />
+	{/each}
 </div>
 
-<section class="space-y-3 px-fluid-sm py-fluid-sm" aria-label="Routes">
-	<!-- Optional little header text for context -->
-	<div class="flex items-center justify-between">
-		<h2 class="text-sm font-semibold text-foreground">
-			{view === 'recent' ? 'Recently used' : 'Saved routes'}
-		</h2>
-
-		{#if view === 'recent'}
-			<a
-				href={resolve('/map')}
-				class="text-xs font-medium text-muted-foreground hover:text-foreground"
-			>
-				Open map
-			</a>
-		{:else}
-			<a
-				href={resolve('/profile/savedroutes')}
-				class="text-xs font-medium text-muted-foreground hover:text-foreground"
-			>
-				Manage
-			</a>
-		{/if}
+{#if filteredRoutes.length > PER_PAGE}
+	<div class="px-fluid-sm pb-fluid-sm">
+		<Pagination.Root
+			count={filteredRoutes.length}
+			perPage={PER_PAGE}
+			page={currentPage}
+			onPageChange={setPage}
+			siblingCount={1}
+		>
+			{#snippet children({ pages })}
+				<Pagination.Content>
+					<Pagination.Item>
+						<Pagination.Previous />
+					</Pagination.Item>
+					{#each pages as p (p.key)}
+						{#if p.type === 'ellipsis'}
+							<Pagination.Item>
+								<Pagination.Ellipsis />
+							</Pagination.Item>
+						{:else}
+							<Pagination.Item>
+								<Pagination.Link page={p} isActive={currentPage === p.value} />
+							</Pagination.Item>
+						{/if}
+					{/each}
+					<Pagination.Item>
+						<Pagination.Next />
+					</Pagination.Item>
+				</Pagination.Content>
+			{/snippet}
+		</Pagination.Root>
 	</div>
-
-	{#if activeList.length === 0}
-		<div class="rounded-2xl bg-card p-4">
-			<h3 class="text-sm font-semibold text-foreground">
-				{view === 'recent' ? 'No recent routes yet' : 'No saved routes yet'}
-			</h3>
-			<p class="mt-1 text-sm text-muted-foreground">
-				{view === 'recent'
-					? 'When you use a route, it will show up here.'
-					: 'Star a route and it’ll show up here for quick access.'}
-			</p>
-			<a
-				href={resolve('/map')}
-				class="mt-3 inline-flex items-center rounded-full bg-border/40 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
-			>
-				Find routes
-			</a>
-		</div>
-	{:else}
-		{#each activeList as route (route.saved_route_id)}
-			<article class="rounded-2xl bg-card p-4 transition-colors hover:bg-accent">
-				<a href={resolve('/map?route={route.saved_route_id}')} class="block">
-					<div class="flex items-start justify-between gap-3">
-						<div class="min-w-0">
-							<h3 class="truncate text-sm font-semibold text-foreground">{route.route_name}</h3>
-							<p class="mt-1 text-sm text-muted-foreground">
-								{route.start_loc} <span aria-hidden="true">→</span>
-								{route.end_loc}
-							</p>
-						</div>
-
-						{#if view === 'saved'}
-							<div
-								class="grid size-9 shrink-0 place-items-center rounded-full bg-border/40 text-brand"
-								aria-label="Saved route"
-							>
-								<Star class="size-4" fill="currentColor" />
-							</div>
-						{/if}
-					</div>
-
-					<div class="mt-3 flex flex-wrap gap-2" aria-label="Route attributes">
-						{#each route.vehicle_types as vt (vt)}
-							<span
-								class="rounded-full bg-border/40 px-3 py-1.5 text-xs font-medium text-muted-foreground"
-							>
-								{vt}
-							</span>
-						{/each}
-
-						{#if route.pwd_friendly}
-							<span
-								class="inline-flex items-center gap-1.5 rounded-full bg-success/15 px-3 py-1.5 text-xs font-medium text-success"
-							>
-								<Accessibility class="size-4" />
-								PWD-friendly
-							</span>
-						{/if}
-					</div>
-
-					<div class="mt-3 flex items-center gap-fluid-md text-xs text-muted-foreground">
-						<span class="inline-flex items-center gap-1.5">
-							<Clock class="size-4" />
-							{route.est_time_of_arrival} min
-						</span>
-						<span class="inline-flex items-center gap-1.5">
-							<Coins class="size-4" />
-							₱{route.fare}
-						</span>
-					</div>
-				</a>
-			</article>
-		{/each}
-	{/if}
-</section>
+{/if}

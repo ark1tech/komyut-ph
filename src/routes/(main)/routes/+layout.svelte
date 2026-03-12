@@ -7,9 +7,9 @@
 	import { resolve } from '$app/paths';
 	let { children, data } = $props();
 
-	let isPostRoute = $derived(/^\/forum\/.+\/.+/.test(page.url.pathname));
+	let isRouteDetail = $derived(/^\/routes\/.+\/.+/.test(page.url.pathname));
 
-	let unreadForum = $derived(data.unreadForum);
+	let unreadRoutes = $derived(data.unreadRoutes);
 </script>
 
 <div class="flex flex-col">
@@ -18,22 +18,22 @@
 	>
 		<div class="relative flex shrink-0 items-center">
 			<div
-				class="overflow-hidden transition-all ease-[cubic-bezier(0.65,0,0.25,1)] {isPostRoute
+				class="overflow-hidden transition-all ease-[cubic-bezier(0.65,0,0.25,1)] {isRouteDetail
 					? 'max-w-0 opacity-0 duration-200'
 					: 'max-w-40 opacity-100 delay-300 duration-200'}"
 			>
 				<a
-					href={resolve('/forum')}
+					href={resolve('/routes')}
 					class="flex shrink-0 cursor-default items-center gap-1.5"
-					aria-label="Komyut PH home"
-					tabindex={isPostRoute ? -1 : 0}
+					aria-label="Komyut PH routes"
+					tabindex={isRouteDetail ? -1 : 0}
 				>
 					<img src={iconBlue} class="h-7 w-7" alt="Komyut logo" />
 					<img src={textBlue} class="hidden h-5 sm:block" alt="Komyut" />
 				</a>
 			</div>
 			<div
-				class=" flex flex-row items-center overflow-hidden transition-all ease-[cubic-bezier(0.65,0,0.25,1)] {isPostRoute
+				class=" flex flex-row items-center overflow-hidden transition-all ease-[cubic-bezier(0.65,0,0.25,1)] {isRouteDetail
 					? 'max-w-10 opacity-100 delay-300 duration-200'
 					: 'max-w-0 opacity-0 duration-200'}"
 			>
@@ -41,7 +41,7 @@
 					onclick={() => history.back()}
 					class="shrink-0 cursor-pointer rounded-full text-muted-foreground hover:bg-muted/50 hover:text-foreground"
 					aria-label="Go back"
-					tabindex={isPostRoute ? 0 : -1}
+					tabindex={isRouteDetail ? 0 : -1}
 				>
 					<ArrowLeft class="size-6" />
 				</button>
@@ -53,17 +53,17 @@
 		</div>
 
 		<a
-			href={resolve('/notifications?scope=forum')}
+			href={resolve('/notifications?scope=routes')}
 			class="relative grid size-9 shrink-0 place-items-center rounded-full text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-			aria-label="Forum notifications"
+			aria-label="Route notifications"
 		>
 			<Bell class="size-5" />
-			{#if unreadForum > 0}
+			{#if unreadRoutes > 0}
 				<span
 					class="absolute -top-1 -right-1 grid min-w-4 place-items-center rounded-full bg-destructive px-1 text-[10px] leading-4 font-semibold text-white"
-					aria-label={`${unreadForum} unread forum notifications`}
+					aria-label={`${unreadRoutes} unread route notifications`}
 				>
-					{unreadForum > 9 ? '9+' : unreadForum}
+					{unreadRoutes > 9 ? '9+' : unreadRoutes}
 				</span>
 			{/if}
 		</a>
