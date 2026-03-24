@@ -2,16 +2,29 @@ import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { savedRouteSchema } from '$lib/validation/schemas';
 import { getOrSetCached } from '$lib/server/cache';
+import { listRouteSubscriptions } from '$lib/server/routeSubscriptions';
+import {
+	findMockSavedRouteById,
+	getMockSavedRoutes,
+	toSubscribableSavedRoute
+} from '$lib/data/mock_routes';
 
 const ROUTES_TTL_MS = 55_000;
 
 export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession } }) => {
 	const { session } = await safeGetSession();
-	if (!session) return { recentRoutes: [], savedRoutes: [], unreadRouteAlerts: 0 };
+	if (!session) {
+		const routes = getMockSavedRoutes();
+		return {
+			recentRoutes: routes.slice(0, 4),
+			subscribedRoutes: [],
+			unreadRouteAlerts: 0
+		};
+	}
 
 	const cacheKey = `routes:user=${session.user.id}`;
 
-	const { recentRoutes, savedRoutes, unreadRouteAlerts } = await getOrSetCached(
+	const { recentRoutes, subscribedRoutes, unreadRouteAlerts } = await getOrSetCached(
 		cacheKey,
 		ROUTES_TTL_MS,
 		async () => {
@@ -34,34 +47,35 @@ export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession 
 				throw error(500, 'Failed to load routes');
 			}
 
-			const routes = parsedRoutes.data;
-			// Split: most recent 6 as "recent", next 6 as "saved"
+			const routes =
+				parsedRoutes.data.length > 0
+					? parsedRoutes.data.map(toSubscribableSavedRoute)
+					: getMockSavedRoutes();
+			const subscriptions = await listRouteSubscriptions(supabase, session.user.id);
+			const subscribedRoutes = subscriptions
+				.map((subscription) => {
+					if (subscription.saved_route) {
+						return toSubscribableSavedRoute(subscription.saved_route);
+					}
+
+					return findMockSavedRouteById(subscription.saved_route_id ?? subscription.route_id);
+				})
+				.filter((route): route is NonNullable<typeof route> => route != null);
+
+			// Most recent 6 as "recent"
 			const recentRoutes = routes.slice(0, 6);
-			const savedRoutes = routes.slice(6, 12);
-
-			const { count: unreadRouteAlerts, error: alertsError } = await supabase
-				.from('notification')
-				.select('*', { count: 'exact', head: true })
-				.eq('user_id', session.user.id)
-				.eq('kind', 'route_alert')
-				.eq('is_read', false);
-
-			if (alertsError) {
-				console.error('Failed to count route alerts', alertsError);
-				throw error(500, 'Failed to load routes');
-			}
 
 			return {
 				recentRoutes,
-				savedRoutes,
-				unreadRouteAlerts: unreadRouteAlerts ?? 0
+				subscribedRoutes,
+				unreadRouteAlerts: 0
 			};
 		}
 	);
 
 	return {
 		recentRoutes,
-		savedRoutes,
+		subscribedRoutes,
 		unreadRouteAlerts
 	};
 };

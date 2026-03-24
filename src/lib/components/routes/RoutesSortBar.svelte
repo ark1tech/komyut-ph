@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { Clock, Star } from '@lucide/svelte';
+	import { Bell, Clock } from '@lucide/svelte';
 	import { cn } from '$lib/utils';
 
-	type ViewOption = 'recent' | 'saved';
+	type ViewOption = 'recent' | 'subscribed';
 
 	interface Props {
 		active?: ViewOption;
@@ -14,7 +14,7 @@
 
 	const viewOptions: { value: ViewOption; label: string; icon: typeof Clock }[] = [
 		{ value: 'recent', label: 'Recents', icon: Clock },
-		{ value: 'saved', label: 'Saved', icon: Star }
+		{ value: 'subscribed', label: 'Subscribed', icon: Bell }
 	];
 </script>
 

@@ -1,12 +1,12 @@
 <script lang="ts">
-	import { Accessibility, Clock, Coins, Star } from '@lucide/svelte';
+	import { Accessibility, Bell, Clock, Coins } from '@lucide/svelte';
 	import { resolve } from '$app/paths';
 	import { cn } from '$lib/utils';
 	import type { SavedRouteDTO } from '$lib/validation/schemas';
 
 	interface Props {
 		route: SavedRouteDTO;
-		view: 'recent' | 'saved';
+		view: 'recent' | 'subscribed';
 		class?: string;
 	}
 
@@ -32,12 +32,12 @@
 					</p>
 				</div>
 
-				{#if view === 'saved'}
+				{#if view === 'subscribed'}
 					<div
 						class="grid size-9 shrink-0 place-items-center rounded-full bg-border/40 text-brand"
-						aria-label="Saved route"
+						aria-label="Subscribed route"
 					>
-						<Star class="size-4" fill="currentColor" />
+						<Bell class="size-4" />
 					</div>
 				{/if}
 			</div>
