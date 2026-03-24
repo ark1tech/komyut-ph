@@ -6,7 +6,7 @@
 	import textBlue from '$lib/images/komyut_text_blue.svg';
 
 	let { data } = $props();
-	let { supabase, session } = $derived(data);
+	let { supabase } = $derived(data);
 
 	function handleOAuthLogin() {
 		console.log('Login button clicked');
@@ -66,16 +66,6 @@
 
 			<!-- TODO: yung brand color sa styles is different from the logo so hardcoded lang muna bg color here -->
 			<!-- also, since wala pa input validation I put the button outside the form element para instant redirect na muna to map page for testing -->
-			{#if session}
-				<button
-					aria-label="Continue button"
-					type="button"
-					onclick={handleGuestLogin}
-					class="w-full rounded-xl bg-[#2b59ff] px-4 py-3 font-bold text-white"
-					><p class="text-sm">Continue from last Log In</p></button
-				>
-			{/if}
-			
 			<button
 				aria-label="Login button"
 				type="button"
