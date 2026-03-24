@@ -1,8 +1,149 @@
 <script lang="ts">
+	import { invalidateAll } from '$app/navigation';
 	import Map from '$lib/components/map/Map.svelte';
 	import MapSearchBar from '$lib/components/map/MapSearchBar.svelte';
-	import * as Drawer from '$lib/components/ui/drawer/index';
-	import * as Button from '$lib/components/ui/button/index';
+	import RouteSubscribeButton from '$lib/components/routes/RouteSubscribeButton.svelte';
+	import RouteSubscriptionPreferences from '$lib/components/routes/RouteSubscriptionPreferences.svelte';
+	import * as Button from '$lib/components/ui/button';
+	import { tick } from 'svelte';
+	import { Accessibility, Bell, Check, Clock, Coins, Info, Pencil, X } from '@lucide/svelte';
+	import type { RouteSubscriptionDTO } from '$lib/validation/schemas';
+
+	let { data } = $props();
+
+	let subscription = $state<typeof data.selectedSubscription>(null);
+	let routeNameDraft = $state('');
+	let routeNameInput = $state<HTMLInputElement | null>(null);
+	let isEditingRouteName = $state(false);
+	let savingRouteName = $state(false);
+	let routeNameError = $state<string | null>(null);
+	let routeNameSuccess = $state<string | null>(null);
+	let previousRouteKey = $state<number | null>(null);
+
+	let displayedRouteName = $derived(
+		subscription?.saved_route?.route_name ?? data.selectedRoute?.route_name ?? ''
+	);
+	let currentRouteKey = $derived(
+		data.selectedRoute?.geo_route_id ?? data.selectedRoute?.saved_route_id ?? null
+	);
+	let canEditRouteName = $derived(Boolean(subscription && data.selectedRoute?.geo_route_id));
+	let canSaveRouteName = $derived(
+		Boolean(
+			routeNameDraft.trim() &&
+				routeNameDraft.trim() !== displayedRouteName.trim() &&
+				!savingRouteName
+		)
+	);
+
+	$effect(() => {
+		subscription = data.selectedSubscription;
+	});
+
+	$effect(() => {
+		if (currentRouteKey !== previousRouteKey) {
+			previousRouteKey = currentRouteKey;
+			isEditingRouteName = false;
+			routeNameError = null;
+			routeNameSuccess = null;
+		}
+
+		routeNameDraft = displayedRouteName;
+		if (!subscription) {
+			isEditingRouteName = false;
+			savingRouteName = false;
+			routeNameError = null;
+			routeNameSuccess = null;
+		}
+	});
+
+	function handleSubscriptionChange(nextSubscription: typeof data.selectedSubscription) {
+		subscription = nextSubscription;
+		if (!nextSubscription) {
+			isEditingRouteName = false;
+			routeNameError = null;
+			routeNameSuccess = null;
+		}
+	}
+
+	async function beginRouteNameEdit() {
+		if (!canEditRouteName) return;
+
+		routeNameDraft = displayedRouteName;
+		routeNameError = null;
+		routeNameSuccess = null;
+		isEditingRouteName = true;
+
+		await tick();
+		routeNameInput?.focus();
+		routeNameInput?.select();
+	}
+
+	function cancelRouteNameEdit() {
+		isEditingRouteName = false;
+		routeNameDraft = displayedRouteName;
+		routeNameError = null;
+	}
+
+	async function saveRouteName() {
+		if (!data.selectedRoute?.geo_route_id || !subscription || savingRouteName) return;
+
+		const routeName = routeNameDraft.trim();
+		if (!routeName) {
+			routeNameError = 'Enter a route name first';
+			routeNameSuccess = null;
+			return;
+		}
+
+		if (routeName === displayedRouteName.trim()) {
+			isEditingRouteName = false;
+			routeNameError = null;
+			return;
+		}
+
+		savingRouteName = true;
+		routeNameError = null;
+		routeNameSuccess = null;
+
+		try {
+			const response = await fetch(`/api/route-subscriptions/${data.selectedRoute.geo_route_id}`, {
+				method: 'PATCH',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					routeName
+				})
+			});
+
+			if (!response.ok) {
+				const body = (await response.json().catch(() => null)) as { message?: string } | null;
+				throw new Error(body?.message ?? 'Failed to update route name');
+			}
+
+			const body = (await response.json()) as { subscription: RouteSubscriptionDTO };
+			handleSubscriptionChange(body.subscription);
+			isEditingRouteName = false;
+			routeNameSuccess = 'Subscribed name updated';
+			await invalidateAll();
+		} catch (err) {
+			routeNameError = err instanceof Error ? err.message : 'Something went wrong';
+		} finally {
+			savingRouteName = false;
+		}
+	}
+
+	function handleRouteNameKeydown(event: KeyboardEvent) {
+		if (event.key === 'Enter') {
+			event.preventDefault();
+			void saveRouteName();
+			return;
+		}
+
+		if (event.key === 'Escape') {
+			event.preventDefault();
+			cancelRouteNameEdit();
+		}
+	}
 </script>
 
 <svelte:head>
@@ -13,17 +154,156 @@
 <div class="relative flex-1">
 	<Map />
 	<MapSearchBar />
-	<Drawer.Root>
-		<Drawer.Trigger>Open</Drawer.Trigger>
-		<Drawer.Content>
-			<Drawer.Header>
-				<Drawer.Title>Are you sure absolutely sure?</Drawer.Title>
-				<Drawer.Description>This action cannot be undone.</Drawer.Description>
-			</Drawer.Header>
-			<Drawer.Footer>
-				<Button.Root>Submit</Button.Root>
-				<Drawer.Close>Cancel</Drawer.Close>
-			</Drawer.Footer>
-		</Drawer.Content>
-	</Drawer.Root>
+
+	{#if data.routeSelectionInvalid}
+		<div class="pointer-events-none absolute inset-x-0 top-4 z-20 px-4">
+			<div class="pointer-events-auto rounded-2xl border border-destructive/20 bg-card/95 p-3 text-sm text-destructive shadow-lg backdrop-blur">
+				The selected route could not be found for this account.
+			</div>
+		</div>
+	{/if}
+
+	{#if data.selectedRoute}
+		<div class="pointer-events-none absolute inset-x-0 bottom-20 z-20 px-4">
+			<section class="pointer-events-auto rounded-[1.75rem] border border-border/70 bg-card/95 p-4 shadow-xl backdrop-blur">
+				<div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+					<div class="min-w-0 flex-1">
+						<p class="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+							Route details
+						</p>
+
+						{#if canEditRouteName}
+							{#if isEditingRouteName}
+								<div class="mt-1 flex items-start gap-2">
+									<input
+										bind:this={routeNameInput}
+										bind:value={routeNameDraft}
+										class="min-w-0 flex-1 rounded-xl border border-border bg-background px-3 py-2 text-lg font-semibold text-foreground outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/30"
+										maxlength="255"
+										onkeydown={handleRouteNameKeydown}
+										placeholder="Route name"
+										type="text"
+									/>
+									<Button.Root
+										variant="secondary"
+										size="icon-sm"
+										disabled={!canSaveRouteName}
+										onclick={() => void saveRouteName()}
+									>
+										<Check class="size-4" />
+										<span class="sr-only">Save route name</span>
+									</Button.Root>
+									<Button.Root
+										variant="ghost"
+										size="icon-sm"
+										disabled={savingRouteName}
+										onclick={cancelRouteNameEdit}
+									>
+										<X class="size-4" />
+										<span class="sr-only">Cancel editing route name</span>
+									</Button.Root>
+								</div>
+							{:else}
+								<div class="mt-1 flex items-center gap-2">
+									<button
+										type="button"
+										class="group min-w-0 text-left"
+										onclick={() => void beginRouteNameEdit()}
+									>
+										<span class="block truncate text-lg font-semibold text-foreground">
+											{displayedRouteName}
+										</span>
+									</button>
+									<Button.Root
+										variant="ghost"
+										size="icon-sm"
+										class="shrink-0 text-muted-foreground transition-colors hover:text-foreground"
+										onclick={() => void beginRouteNameEdit()}
+									>
+										<Pencil class="size-4" />
+										<span class="sr-only">Edit route name</span>
+									</Button.Root>
+								</div>
+							{/if}
+						{:else}
+							<h2 class="mt-1 truncate text-lg font-semibold text-foreground">
+								{data.selectedRoute.route_name}
+							</h2>
+						{/if}
+
+						<p class="mt-1 text-sm text-muted-foreground">
+							{data.selectedRoute.start_loc} <span aria-hidden="true">→</span>
+							{data.selectedRoute.end_loc}
+						</p>
+
+						{#if routeNameSuccess}
+							<p class="mt-2 text-xs text-success" role="status">{routeNameSuccess}</p>
+						{/if}
+
+						{#if routeNameError}
+							<p class="mt-2 text-xs text-destructive" role="alert">{routeNameError}</p>
+						{/if}
+					</div>
+
+					{#if data.selectedRoute.geo_route_id}
+						<RouteSubscribeButton
+							routeId={data.selectedRoute.geo_route_id}
+							savedRouteId={data.selectedRoute.saved_route_id}
+							savedRoute={data.selectedRoute}
+							defaultRouteName={data.selectedRoute.route_name}
+							initialSubscription={subscription}
+							onchange={handleSubscriptionChange}
+						/>
+					{/if}
+				</div>
+
+				<div class="mt-3 flex flex-wrap gap-2" aria-label="Route attributes">
+					{#each data.selectedRoute.vehicle_types as vehicleType (vehicleType)}
+						<span class="rounded-full bg-border/40 px-3 py-1.5 text-xs font-medium text-muted-foreground">
+							{vehicleType}
+						</span>
+					{/each}
+
+					{#if data.selectedRoute.pwd_friendly}
+						<span class="inline-flex items-center gap-1.5 rounded-full bg-success/15 px-3 py-1.5 text-xs font-medium text-success">
+							<Accessibility class="size-4" />
+							PWD-friendly
+						</span>
+					{/if}
+
+					{#if subscription}
+						<span class="inline-flex items-center gap-1.5 rounded-full bg-brand/10 px-3 py-1.5 text-xs font-medium text-brand">
+							<Bell class="size-4" />
+							Subscribed
+						</span>
+					{/if}
+				</div>
+
+				<div class="mt-3 flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+					<span class="inline-flex items-center gap-1.5">
+						<Clock class="size-4" />
+						{data.selectedRoute.est_time_of_arrival} min
+					</span>
+					<span class="inline-flex items-center gap-1.5">
+						<Coins class="size-4" />
+						₱{data.selectedRoute.fare}
+					</span>
+				</div>
+
+				{#if data.selectedRoute.geo_route_id}
+					<RouteSubscriptionPreferences
+						class="mt-4"
+						routeId={data.selectedRoute.geo_route_id}
+						{subscription}
+						onchange={handleSubscriptionChange}
+					/>
+				{:else}
+					<div class="mt-4 inline-flex items-start gap-2 rounded-2xl bg-muted/60 p-3 text-xs text-muted-foreground">
+						<Info class="mt-0.5 size-4 shrink-0" />
+						This route has not been linked to a canonical `route_id` yet, so subscription alerts are not available for it.
+					</div>
+				{/if}
+			</section>
+		</div>
+	{/if}
 </div>
