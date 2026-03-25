@@ -52,6 +52,9 @@ function buildRoutesData(overrides: Record<string, unknown> = {}) {
 		recentRoutes: [],
 		subscribedRoutes: [],
 		unreadRouteAlerts: 0,
+		alertsRouteInvalid: false,
+		alertsRoute: null,
+		alertsSubscription: null,
 		...overrides
 	} as unknown as import('./$types').PageData;
 }
@@ -98,7 +101,10 @@ describe('Routes Page', () => {
 			const subscribed = page.getByRole('radio', { name: /Subscribed/ });
 			await subscribed.click();
 			await expect.element(subscribed).toHaveAttribute('aria-checked', 'true');
-			expect(gotoMock).toHaveBeenCalledWith('?page=1', { keepFocus: true, noScroll: true });
+			expect(gotoMock).toHaveBeenCalledWith('http://localhost/routes?page=1', {
+				keepFocus: true,
+				noScroll: true
+			});
 		});
 
 		it('should render "Routes list" radiogroup', async () => {

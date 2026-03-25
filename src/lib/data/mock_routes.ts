@@ -1,5 +1,5 @@
 // added for the sake of testing the subscribed routes page 
-import type { SavedRouteDTO } from '$lib/validation/schemas';
+import type { MapRouteSearchHit, SavedRouteDTO } from '$lib/validation/schemas';
 
 export type MockSavedRoute = SavedRouteDTO;
 
@@ -135,4 +135,36 @@ export function searchMockSavedRoutes(query: string) {
 			route.end_loc.toLowerCase().includes(normalized) ||
 			route.vehicle_types.some((type) => type.toLowerCase().includes(normalized))
 	);
+}
+
+/** Map search against canonical route ids (matches `route.route_id` in the DB). */
+export function searchMockCanonicalRouteHits(query: string): MapRouteSearchHit[] {
+	const normalized = query.trim().toLowerCase();
+	if (!normalized) return [];
+
+	const seen = new Set<number>();
+	const out: MapRouteSearchHit[] = [];
+
+	for (const route of mockSavedRoutes) {
+		const route_id = route.geo_route_id ?? route.saved_route_id;
+		if (seen.has(route_id)) continue;
+
+		const matches =
+			route.route_name.toLowerCase().includes(normalized) ||
+			route.start_loc.toLowerCase().includes(normalized) ||
+			route.end_loc.toLowerCase().includes(normalized) ||
+			route.vehicle_types.some((type) => type.toLowerCase().includes(normalized));
+
+		if (!matches) continue;
+
+		seen.add(route_id);
+		out.push({
+			route_id,
+			route_name: route.route_name,
+			start_loc: route.start_loc,
+			end_loc: route.end_loc
+		});
+	}
+
+	return out;
 }

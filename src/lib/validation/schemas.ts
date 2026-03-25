@@ -4,7 +4,6 @@ import type {
 	NotificationKind,
 	NotificationRow,
 	PostRow,
-	SavedRouteRow,
 	UserRow
 } from '$lib/types/database';
 import {
@@ -199,11 +198,9 @@ export const notificationSchema = z.object({
 >;
 
 export const savedRouteSchema = z.object({
-	saved_route_id: z.number().int(),
+	saved_route_id: z.coerce.number().int(),
 	geo_route_id: z
-		.number()
-		.int()
-		.nullable()
+		.union([z.coerce.number().int(), z.null()])
 		.optional()
 		.transform((value) => value ?? null),
 	route_name: z.string(),
@@ -211,24 +208,18 @@ export const savedRouteSchema = z.object({
 	end_loc: z.string(),
 	vehicle_types: z.array(z.string()),
 	pwd_friendly: z.boolean(),
-	est_time_of_arrival: z.number(),
-	fare: z.number(),
+	est_time_of_arrival: z.coerce.number().int(),
+	fare: z.coerce.number(),
 	created_at: z.string()
-}) satisfies z.ZodType<
-	Pick<
-		SavedRouteRow,
-		| 'saved_route_id'
-		| 'geo_route_id'
-		| 'route_name'
-		| 'start_loc'
-		| 'end_loc'
-		| 'vehicle_types'
-		| 'pwd_friendly'
-		| 'est_time_of_arrival'
-		| 'fare'
-		| 'created_at'
-	>
->;
+});
+
+/** Public `route` table row shape for map search results (canonical routes). */
+export const mapRouteSearchHitSchema = z.object({
+	route_id: z.coerce.number().int(),
+	route_name: z.string(),
+	start_loc: z.string(),
+	end_loc: z.string()
+});
 
 export const userProfileSchema = z.object({
 	full_name: z.string(),
@@ -293,6 +284,7 @@ export type CommentDTO = z.infer<typeof commentSchema>;
 export type CommentWithAuthorDTO = z.infer<typeof commentWithAuthorSchema>;
 export type NotificationDTO = z.infer<typeof notificationSchema>;
 export type SavedRouteDTO = z.infer<typeof savedRouteSchema>;
+export type MapRouteSearchHit = z.infer<typeof mapRouteSearchHitSchema>;
 export type UserProfileDTO = z.infer<typeof userProfileSchema>;
 export type RouteSubscriptionDTO = z.infer<typeof routeSubscriptionSchema>;
 export type RouteSubscriptionPreferenceInput = z.infer<typeof routeSubscriptionPreferenceSchema>;

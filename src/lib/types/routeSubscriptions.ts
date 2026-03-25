@@ -15,6 +15,10 @@ export const routeSubscriptionStatuses = ['active', 'muted', 'unsubscribed'] as 
 export const routeNotificationChannels = ['in_app', 'push', 'email'] as const;
 
 export type RouteChangeType = (typeof routeChangeTypes)[number];
+
+/** Default route-event filters for new subscriptions and unset preferences. */
+export const defaultRouteSubscriptionAlertTypes: RouteChangeType[] = ['road_closure'];
+
 export type RouteChangeSeverity = (typeof routeChangeSeverities)[number];
 export type RouteSubscriptionStatus = (typeof routeSubscriptionStatuses)[number];
 export type RouteNotificationChannel = (typeof routeNotificationChannels)[number];

@@ -4,12 +4,10 @@ import type {
 	RouteSubscriptionDTO,
 	SavedRouteDTO
 } from '$lib/validation/schemas';
-import { routeChangeTypes } from '$lib/types/routeSubscriptions';
+import { defaultRouteSubscriptionAlertTypes } from '$lib/types/routeSubscriptions';
 import { findMockSavedRouteById } from '$lib/data/mock_routes';
 
-function cloneSubscription(
-	subscription: RouteSubscriptionDTO
-): RouteSubscriptionDTO {
+function cloneSubscription(subscription: RouteSubscriptionDTO): RouteSubscriptionDTO {
 	return {
 		...subscription,
 		alert_types: [...subscription.alert_types],
@@ -22,9 +20,7 @@ function cloneSubscription(
 	};
 }
 
-function cloneNotification(
-	notification: RouteNotificationDTO
-): RouteNotificationDTO {
+function cloneNotification(notification: RouteNotificationDTO): RouteNotificationDTO {
 	return {
 		...notification,
 		metadata: { ...notification.metadata }
@@ -123,8 +119,7 @@ function fallbackSavedRoute(
 ) {
 	const preferredRoute = savedRouteId ?? routeId;
 	const fromMockRoutes = findMockSavedRouteById(preferredRoute);
-	const baseRoute =
-		savedRoute ??
+	const baseRoute = savedRoute ??
 		fromMockRoutes ?? {
 			saved_route_id: savedRouteId ?? routeId * 10,
 			geo_route_id: routeId,
@@ -204,7 +199,7 @@ export function upsertMockRouteSubscription(
 		notify_in_app: true,
 		notify_push: true,
 		notify_email: false,
-		alert_types: [...routeChangeTypes],
+		alert_types: [...defaultRouteSubscriptionAlertTypes],
 		created_at: new Date().toISOString(),
 		updated_at: new Date().toISOString(),
 		saved_route: nextSavedRoute
@@ -223,7 +218,9 @@ export function upsertMockRouteSubscription(
 	};
 
 	if (existing) {
-		const index = subscriptions.findIndex((subscription) => subscription.route_id === input.routeId);
+		const index = subscriptions.findIndex(
+			(subscription) => subscription.route_id === input.routeId
+		);
 		subscriptions[index] = nextSubscription;
 	} else {
 		subscriptions.unshift(nextSubscription);
@@ -301,14 +298,14 @@ export function getMockRouteNotifications(
 		notifications = notifications.filter((notification) => notification.is_read);
 	}
 	if (options.routeId) {
-		notifications = notifications.filter((notification) => notification.route_id === options.routeId);
+		notifications = notifications.filter(
+			(notification) => notification.route_id === options.routeId
+		);
 	}
 
 	notifications.sort((a, b) => b.created_at.localeCompare(a.created_at));
 
-	return notifications
-		.slice(0, options.limit ?? notifications.length)
-		.map(cloneNotification);
+	return notifications.slice(0, options.limit ?? notifications.length).map(cloneNotification);
 }
 
 export function markMockRouteNotificationsRead(

@@ -41,7 +41,6 @@ export const LINKED_POST_SELECT = `
 	)
 `;
 
-export const SAVED_ROUTE_SELECT =
-	'saved_route_id, route_name, start_loc, end_loc, vehicle_types, pwd_friendly, est_time_of_arrival, fare, created_at';
+export { SAVED_ROUTE_WITH_ROUTE_SELECT as SAVED_ROUTE_SELECT } from '$lib/server/savedRouteJoin';
 
 export const USER_PROFILE_SELECT = 'full_name, username, email, avatar_url';

@@ -1,6 +1,7 @@
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
-import { savedRouteSchema } from '$lib/validation/schemas';
+import { SAVED_ROUTE_SELECT } from '$lib/server/supabaseSelects';
+import { flattenSavedRouteJoinList, type SavedRouteJoinRow } from '$lib/server/savedRouteJoin';
 
 export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession } }) => {
 	const { session } = await safeGetSession();
@@ -8,9 +9,7 @@ export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession 
 
 	const { data: routes, error: routesError } = await supabase
 		.from('saved_route')
-		.select(
-			'saved_route_id, route_name, start_loc, end_loc, vehicle_types, pwd_friendly, est_time_of_arrival, fare'
-		)
+		.select(SAVED_ROUTE_SELECT)
 		.eq('user_id', session.user.id)
 		.order('created_at', { ascending: false });
 
@@ -19,11 +18,12 @@ export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession 
 		throw error(500, 'Failed to load routes');
 	}
 
-	const parsed = savedRouteSchema.array().safeParse(routes ?? []);
-	if (!parsed.success) {
-		console.error('Invalid saved route data from Supabase', parsed.error);
+	const rawRows = (routes ?? []) as SavedRouteJoinRow[];
+	const flattened = flattenSavedRouteJoinList(rawRows);
+	if (rawRows.length > 0 && flattened.length === 0) {
+		console.error('My routes: join to route failed');
 		throw error(500, 'Failed to load routes');
 	}
 
-	return { routes: parsed.data };
+	return { routes: flattened };
 };

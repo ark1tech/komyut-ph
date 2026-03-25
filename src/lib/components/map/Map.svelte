@@ -2,6 +2,8 @@
 	import { onMount } from 'svelte';
 	import maplibregl, { type GeoJSONSource } from 'maplibre-gl';
 	import 'maplibre-gl/dist/maplibre-gl.css';
+	import * as Button from '$lib/components/ui/button';
+	import { PenLine } from '@lucide/svelte';
 
 	interface Route {
 		route_id: number | string;
@@ -14,6 +16,10 @@
 		style?: string;
 		selectedRoute?: Route | null;
 		controlsHidden?: boolean;
+		/** When true (e.g. `/map?trace=1`), map enters trace mode. */
+		tracingActive?: boolean;
+		/** Clear the `trace` query param after cancel or successful save. */
+		onTraceSessionEnd?: () => void | Promise<void>;
 	}
 
 	let {
@@ -21,7 +27,9 @@
 		zoom = 12,
 		style = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
 		selectedRoute = null,
-		controlsHidden = false
+		controlsHidden = false,
+		tracingActive = false,
+		onTraceSessionEnd
 	}: Props = $props();
 
 	const FALLBACK_CENTER: [number, number] = [120.9842, 14.5995];
@@ -267,7 +275,12 @@
 				type: 'line',
 				source: 'trace',
 				layout: { 'line-join': 'round', 'line-cap': 'round' },
-				paint: { 'line-color': '#ef4444', 'line-width': 3, 'line-dasharray': [2, 2] }
+				paint: {
+					'line-color': '#3b82f6',
+					'line-width': 3,
+					'line-opacity': 0.9,
+					'line-dasharray': [2, 2]
+				}
 			});
 		}
 	}
@@ -286,7 +299,7 @@
 		el.style.width = isFirst ? '14px' : '10px';
 		el.style.height = isFirst ? '14px' : '10px';
 		el.style.borderRadius = '50%';
-		el.style.backgroundColor = isFirst ? '#22c55e' : '#ef4444';
+		el.style.backgroundColor = isFirst ? '#16a34a' : '#3b82f6';
 		el.style.border = '2px solid white';
 		el.style.cursor = 'pointer';
 		el.style.boxShadow = '0 1px 3px rgba(0,0,0,0.3)';
@@ -333,6 +346,7 @@
 			}
 
 			cancelTracing();
+			await onTraceSessionEnd?.();
 		} catch (err) {
 			console.error('Error saving route:', err);
 		} finally {
@@ -422,61 +436,91 @@
 		displayRoute(selectedRoute);
 		void fitRouteWhenNew(selectedRoute);
 	});
+
+	let prevTracingActive = $state<boolean | undefined>(undefined);
+
+	$effect(() => {
+		if (!map || !mapStyleLoaded) return;
+		if (tracingActive === prevTracingActive) return;
+
+		if (tracingActive) {
+			startTracing();
+		} else if (prevTracingActive !== undefined) {
+			cancelTracing();
+		}
+		prevTracingActive = tracingActive;
+	});
+
+	async function handleCancelTrace() {
+		cancelTracing();
+		await onTraceSessionEnd?.();
+	}
 </script>
 
 {#if !ready}
-	<div class="absolute inset-0 flex items-center justify-center bg-white">
+	<div class="absolute inset-0 flex items-center justify-center bg-background">
 		<p class="text-sm text-muted-foreground">Loading map...</p>
 	</div>
 {/if}
 {#if activeRouteId && !tracingMode && !controlsHidden}
-	<button
+	<Button.Root
+		variant="secondary"
+		size="sm"
+		class="absolute top-16 left-4 z-20 shadow-md"
 		onclick={() => clearRoutes()}
-		class="absolute top-16 left-4 z-20 w-32 rounded-lg bg-white px-4 py-2 text-sm font-medium text-black shadow-md hover:bg-gray-50"
 	>
 		Clear Route
-	</button>
-{/if}
-
-{#if ready && !tracingMode && !controlsHidden}
-	<button
-		onclick={startTracing}
-		class="absolute bottom-52 left-4 z-20 rounded-lg bg-blue-500 px-4 py-2 text-white shadow-md hover:bg-red-600"
-	>
-		Trace Route
-	</button>
+	</Button.Root>
 {/if}
 
 {#if tracingMode && !controlsHidden}
-	<div class="absolute bottom-52 left-4 z-20 flex items-center gap-2">
-		<button
-			onclick={undoLastPoint}
-			disabled={tracedPoints.length === 0}
-			class="rounded-lg bg-white px-4 py-2 text-black shadow-md hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
-		>
-			Undo Point
-		</button>
-		<button
-			onclick={saveTracedRoute}
-			disabled={tracedPoints.length < 2 || savingRoute}
-			class="rounded-lg bg-green-500 px-4 py-2 text-white shadow-md hover:bg-green-600 disabled:cursor-not-allowed disabled:opacity-40"
-		>
-			{savingRoute ? 'Saving...' : 'Save Route'}
-		</button>
-		<button
-			onclick={cancelTracing}
-			class="rounded-lg bg-gray-500 px-4 py-2 text-white shadow-md hover:bg-gray-600"
-		>
-			Cancel
-		</button>
-	</div>
 	<div
-		class="absolute top-4 left-4 z-10 max-w-75 rounded-lg bg-red-500/90 px-3 py-1.5 text-sm text-white shadow-md"
+		class="pointer-events-none absolute top-4 left-4 z-20 max-w-[min(100%-2rem,20rem)] px-4 sm:left-auto sm:right-4"
 	>
-		Tracing Mode - Click on the map to add points ({tracedPoints.length} point{tracedPoints.length !==
-		1
-			? 's'
-			: ''})
+		<div
+			class="pointer-events-auto flex items-start gap-2 rounded-2xl border border-border/60 bg-card/95 p-3 text-sm shadow-lg backdrop-blur"
+		>
+			<div
+				class="mt-0.5 grid size-8 shrink-0 place-items-center rounded-full bg-brand/10 text-brand"
+				aria-hidden="true"
+			>
+				<PenLine class="size-4" />
+			</div>
+			<div class="min-w-0">
+				<p class="font-medium text-foreground">Trace a route</p>
+				<p class="mt-0.5 text-muted-foreground">
+					Click the map to add points ({tracedPoints.length} point{tracedPoints.length !== 1
+						? 's'
+						: ''})
+				</p>
+			</div>
+		</div>
+	</div>
+
+	<div
+		class="absolute bottom-6 left-4 right-4 z-20 flex flex-wrap items-center justify-center gap-2 sm:left-auto sm:right-auto sm:justify-start"
+	>
+		<Button.Root
+			variant="outline"
+			size="sm"
+			class="shadow-md"
+			disabled={tracedPoints.length === 0}
+			onclick={undoLastPoint}
+		>
+			Undo
+		</Button.Root>
+		<Button.Root
+			variant="default"
+			size="sm"
+			class="bg-success text-success-foreground shadow-md hover:bg-success/90"
+			disabled={tracedPoints.length < 2 || savingRoute}
+			onclick={() => void saveTracedRoute()}
+		>
+			{savingRoute ? 'Saving…' : 'Save route'}
+		</Button.Root>
+		<Button.Root variant="ghost" size="sm" class="shadow-sm" onclick={() => void handleCancelTrace()}>
+			Cancel
+		</Button.Root>
 	</div>
 {/if}
 

@@ -7,8 +7,8 @@ import {
 	getMockRouteNotifications,
 	markMockRouteNotificationsRead
 } from '$lib/data/mock_route_subscriptions';
-import type { SavedRouteRow } from '$lib/types/database';
-import { routeChangeTypes } from '$lib/types/routeSubscriptions';
+import { defaultRouteSubscriptionAlertTypes } from '$lib/types/routeSubscriptions';
+import { flattenSavedRouteJoin, type SavedRouteJoinRow } from '$lib/server/savedRouteJoin';
 import {
 	routeChangeEventCreateSchema,
 	routeNotificationSchema,
@@ -26,7 +26,7 @@ import type {
 
 type RouteNotificationsStatus = 'all' | 'unread' | 'read';
 type RouteSubscriptionRow = Omit<RouteSubscriptionDTO, 'saved_route'> & {
-	saved_route?: SavedRouteRow | null;
+	saved_route?: SavedRouteJoinRow | null;
 };
 
 const ROUTE_SUBSCRIPTION_SELECT = `
@@ -43,14 +43,16 @@ const ROUTE_SUBSCRIPTION_SELECT = `
 	saved_route:saved_route_id (
 		saved_route_id,
 		geo_route_id,
-		route_name,
-		start_loc,
-		end_loc,
-		vehicle_types,
-		pwd_friendly,
-		est_time_of_arrival,
-		fare,
-		created_at
+		created_at,
+		route:geo_route_id (
+			route_name,
+			start_loc,
+			end_loc,
+			vehicle_types,
+			pwd_friendly,
+			est_time_of_arrival,
+			fare
+		)
 	)
 `;
 
@@ -60,7 +62,16 @@ function routeSubscriptionTable(supabase: App.Locals['supabase']) {
 }
 
 function parseSubscription(payload: unknown): RouteSubscriptionDTO {
-	const parsed = routeSubscriptionSchema.safeParse(payload);
+	const row = payload as RouteSubscriptionRow;
+	const normalized =
+		row?.saved_route != null
+			? {
+					...row,
+					saved_route: flattenSavedRouteJoin(row.saved_route) ?? undefined
+				}
+			: payload;
+
+	const parsed = routeSubscriptionSchema.safeParse(normalized);
 	if (!parsed.success) {
 		console.error('Invalid route subscription payload from Supabase', parsed.error);
 		throw error(500, 'Failed to load route subscription');
@@ -101,14 +112,7 @@ async function ensureSavedRouteId(
 		.from('saved_route')
 		.insert({
 			user_id: userId,
-			geo_route_id: input.savedRoute.geo_route_id ?? routeId,
-			route_name: input.routeName ?? input.savedRoute.route_name,
-			start_loc: input.savedRoute.start_loc,
-			end_loc: input.savedRoute.end_loc,
-			vehicle_types: input.savedRoute.vehicle_types,
-			pwd_friendly: input.savedRoute.pwd_friendly,
-			est_time_of_arrival: input.savedRoute.est_time_of_arrival,
-			fare: input.savedRoute.fare
+			geo_route_id: input.savedRoute.geo_route_id ?? routeId
 		})
 		.select('saved_route_id')
 		.single();
@@ -192,17 +196,16 @@ export async function subscribeToRoute(
 		throw error(500, 'Failed to subscribe to route');
 	}
 
-	if (parsedInput.routeName && savedRouteId) {
+	if (parsedInput.routeName) {
 		const { error: routeNameError } = await supabase
-			.from('saved_route')
+			.from('route')
 			.update({
 				route_name: parsedInput.routeName
 			})
-			.eq('saved_route_id', savedRouteId)
-			.eq('user_id', userId);
+			.eq('route_id', parsedInput.routeId);
 
 		if (routeNameError) {
-			console.error('Failed to update saved route name during subscribe', routeNameError);
+			console.error('Failed to update route display name during subscribe', routeNameError);
 			throw error(500, 'Failed to subscribe to route');
 		}
 	}
@@ -214,7 +217,7 @@ export async function subscribeToRoute(
 		notify_in_app: preferencePayload?.notifyInApp ?? true,
 		notify_push: preferencePayload?.notifyPush ?? true,
 		notify_email: preferencePayload?.notifyEmail ?? false,
-		alert_types: preferencePayload?.alertTypes ?? [...routeChangeTypes]
+		alert_types: preferencePayload?.alertTypes ?? [...defaultRouteSubscriptionAlertTypes]
 	};
 
 	const existingSubscription = existing as {
@@ -289,17 +292,16 @@ export async function updateRouteSubscriptionPreferences(
 		throw error(404, 'Route subscription not found');
 	}
 
-	if (preferences.routeName !== undefined && currentSubscription.saved_route_id) {
+	if (preferences.routeName !== undefined) {
 		const { error: routeNameError } = await supabase
-			.from('saved_route')
+			.from('route')
 			.update({
 				route_name: preferences.routeName
 			})
-			.eq('saved_route_id', currentSubscription.saved_route_id)
-			.eq('user_id', userId);
+			.eq('route_id', routeId);
 
 		if (routeNameError) {
-			console.error('Failed to update saved route name', routeNameError);
+			console.error('Failed to update route display name', routeNameError);
 			throw error(500, 'Failed to update route subscription');
 		}
 	}

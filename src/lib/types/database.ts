@@ -214,24 +214,45 @@ export type Database = {
 			route: {
 				Row: {
 					created_at: string;
+					end_loc: string;
 					end_loc_osmid: number | null;
+					est_time_of_arrival: number;
+					fare: number;
 					geometry: unknown;
+					pwd_friendly: boolean;
 					route_id: number;
+					route_name: string;
+					start_loc: string;
 					start_loc_osmid: number | null;
+					vehicle_types: string[];
 				};
 				Insert: {
 					created_at?: string;
+					end_loc?: string;
 					end_loc_osmid?: number | null;
-					geometry: unknown;
+					est_time_of_arrival?: number;
+					fare?: number;
+					geometry?: unknown;
+					pwd_friendly?: boolean;
 					route_id?: number;
+					route_name?: string;
+					start_loc?: string;
 					start_loc_osmid?: number | null;
+					vehicle_types?: string[];
 				};
 				Update: {
 					created_at?: string;
+					end_loc?: string;
 					end_loc_osmid?: number | null;
+					est_time_of_arrival?: number;
+					fare?: number;
 					geometry?: unknown;
+					pwd_friendly?: boolean;
 					route_id?: number;
+					route_name?: string;
+					start_loc?: string;
 					start_loc_osmid?: number | null;
+					vehicle_types?: string[];
 				};
 				Relationships: [];
 			};
@@ -302,44 +323,30 @@ export type Database = {
 			saved_route: {
 				Row: {
 					created_at: string;
-					end_loc: string;
-					est_time_of_arrival: number;
-					fare: number;
 					geo_route_id: number | null;
-					pwd_friendly: boolean;
-					route_name: string;
 					saved_route_id: number;
-					start_loc: string;
 					user_id: string;
-					vehicle_types: string[];
 				};
 				Insert: {
 					created_at?: string;
-					end_loc: string;
-					est_time_of_arrival: number;
-					fare: number;
 					geo_route_id?: number | null;
-					pwd_friendly?: boolean;
-					route_name: string;
 					saved_route_id?: number;
-					start_loc: string;
 					user_id: string;
-					vehicle_types?: string[];
 				};
 				Update: {
 					created_at?: string;
-					end_loc?: string;
-					est_time_of_arrival?: number;
-					fare?: number;
 					geo_route_id?: number | null;
-					pwd_friendly?: boolean;
-					route_name?: string;
 					saved_route_id?: number;
-					start_loc?: string;
 					user_id?: string;
-					vehicle_types?: string[];
 				};
 				Relationships: [
+					{
+						foreignKeyName: 'saved_route_geo_route_id_fkey';
+						columns: ['geo_route_id'];
+						isOneToOne: false;
+						referencedRelation: 'route';
+						referencedColumns: ['route_id'];
+					},
 					{
 						foreignKeyName: 'saved_route_user_id_fkey';
 						columns: ['user_id'];

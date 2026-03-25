@@ -1,8 +1,13 @@
 <script lang="ts">
+	import { invalidateAll } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import * as Button from '$lib/components/ui/button';
-	import { routeChangeTypes, type RouteChangeType } from '$lib/types/routeSubscriptions';
+	import {
+		defaultRouteSubscriptionAlertTypes,
+		routeChangeTypes,
+		type RouteChangeType
+	} from '$lib/types/routeSubscriptions';
 	import type { RouteSubscriptionDTO } from '$lib/validation/schemas';
 
 	interface Props {
@@ -19,8 +24,6 @@
 		alertTypes: RouteChangeType[];
 	};
 
-	const defaultAlertTypes = [...routeChangeTypes];
-
 	function toForm(subscription: RouteSubscriptionDTO | null | undefined): PreferenceForm {
 		return {
 			notifyInApp: subscription?.notify_in_app ?? true,
@@ -28,7 +31,7 @@
 			notifyEmail: subscription?.notify_email ?? false,
 			alertTypes: subscription?.alert_types?.length
 				? [...subscription.alert_types]
-				: [...defaultAlertTypes]
+				: [...defaultRouteSubscriptionAlertTypes]
 		};
 	}
 
@@ -36,6 +39,7 @@
 
 	let form = $state<PreferenceForm>(toForm(null));
 	let saving = $state(false);
+	let unsubscribing = $state(false);
 	let errorMessage = $state<string | null>(null);
 	let successMessage = $state<string | null>(null);
 
@@ -96,6 +100,32 @@
 			saving = false;
 		}
 	}
+
+	async function unsubscribe() {
+		if (!routeId || !subscription || unsubscribing) return;
+
+		errorMessage = null;
+		successMessage = null;
+		unsubscribing = true;
+
+		try {
+			const response = await fetch(`/api/route-subscriptions/${routeId}`, {
+				method: 'DELETE'
+			});
+
+			if (!response.ok) {
+				const body = (await response.json().catch(() => null)) as { message?: string } | null;
+				throw new Error(body?.message ?? 'Failed to unsubscribe');
+			}
+
+			onchange?.(null);
+			await invalidateAll();
+		} catch (err) {
+			errorMessage = err instanceof Error ? err.message : 'Something went wrong';
+		} finally {
+			unsubscribing = false;
+		}
+	}
 </script>
 
 <section class={className} aria-label="Route subscription preferences">
@@ -106,17 +136,24 @@
 			</a>
 			to manage route alerts.
 		</p>
-	{:else if !subscription}
-		<p class="text-sm text-muted-foreground">
-			Subscribe to this route first to choose which updates should reach you.
-		</p>
-	{:else}
+	{:else if subscription}
 		<div class="space-y-4 rounded-2xl border border-border/70 bg-background/70 p-4">
-			<div>
-				<h3 class="text-sm font-semibold text-foreground">Alert preferences</h3>
-				<p class="mt-1 text-xs text-muted-foreground">
-					Choose which route changes should trigger notifications for this subscription.
-				</p>
+			<div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+				<div class="min-w-0 flex-1">
+					<h3 class="text-sm font-semibold text-foreground">Alert preferences</h3>
+					<p class="mt-1 text-xs text-muted-foreground">
+						Choose which route changes should trigger notifications for this subscription.
+					</p>
+				</div>
+				<Button.Root
+					variant="outline"
+					size="sm"
+					class="w-full shrink-0 border-destructive/60 text-destructive hover:bg-destructive/10 hover:text-destructive sm:w-auto"
+					disabled={unsubscribing}
+					onclick={() => void unsubscribe()}
+				>
+					{unsubscribing ? 'Unsubscribing...' : 'Unsubscribe'}
+				</Button.Root>
 			</div>
 
 			<div class="grid gap-3 sm:grid-cols-3">
@@ -135,7 +172,9 @@
 			</div>
 
 			<div>
-				<p class="text-xs font-semibold tracking-wide text-muted-foreground uppercase">Route events</p>
+				<p class="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+					Route events
+				</p>
 				<div class="mt-2 flex flex-wrap gap-2">
 					{#each routeChangeTypes as type (type)}
 						<label
