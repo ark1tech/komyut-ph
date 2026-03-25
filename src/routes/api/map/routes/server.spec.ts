@@ -7,10 +7,10 @@ import { GET, POST } from './+server';
  * ════════════════════════════════════════════════════════════════
  *
  * Tests the GET handler for route lookup:
- *   - Returns 400 for missing/empty end param
+ *   - Returns 400 for missing/empty start/end params
  *   - Returns matching routes from supabase
  *   - Returns 500 on supabase error
- *   - Uses hardcoded start_loc "371357222"
+ *   - Uses provided start and end locations
  *
  * These run in Node.js (*.spec.ts, not *.svelte.spec.ts).
  *
@@ -60,32 +60,50 @@ describe('GET /api/map/routes', () => {
 	});
 
 	describe('input validation', () => {
+		it('should return 400 when start param is missing', async () => {
+			const event = mockEvent({ end: '123456' });
+
+			await expect(GET(event)).rejects.toThrow();
+		});
+
 		it('should return 400 when end param is missing', async () => {
-			const event = mockEvent();
+			const event = mockEvent({ start: '371357222' });
+
+			await expect(GET(event)).rejects.toThrow();
+		});
+
+		it('should return 400 when start param is empty string', async () => {
+			const event = mockEvent({ start: '', end: '123456' });
 
 			await expect(GET(event)).rejects.toThrow();
 		});
 
 		it('should return 400 when end param is empty string', async () => {
-			const event = mockEvent({ end: '' });
+			const event = mockEvent({ start: '371357222', end: '' });
+
+			await expect(GET(event)).rejects.toThrow();
+		});
+
+		it('should return 400 when start param is only whitespace', async () => {
+			const event = mockEvent({ start: '   ', end: '123456' });
 
 			await expect(GET(event)).rejects.toThrow();
 		});
 
 		it('should return 400 when end param is only whitespace', async () => {
-			const event = mockEvent({ end: '   ' });
+			const event = mockEvent({ start: '371357222', end: '   ' });
 
 			await expect(GET(event)).rejects.toThrow();
 		});
 	});
 
 	describe('successful route lookups', () => {
-		it('should return routes for a valid end location', async () => {
+		it('should return routes for valid start and end locations', async () => {
 			const mockResults = [
 				{ route_id: 1, geometry: '{"type":"LineString","coordinates":[[0,0],[1,1]]}' }
 			];
 
-			const event = mockEvent({ end: '123456' }, { data: mockResults });
+			const event = mockEvent({ start: '371357222', end: '123456' }, { data: mockResults });
 			const response = await GET(event);
 			const body = await response.json();
 
@@ -94,7 +112,7 @@ describe('GET /api/map/routes', () => {
 		});
 
 		it('should return empty results when no routes found', async () => {
-			const event = mockEvent({ end: '999999' }, { data: [] });
+			const event = mockEvent({ start: '371357222', end: '999999' }, { data: [] });
 			const response = await GET(event);
 			const body = await response.json();
 
@@ -102,8 +120,8 @@ describe('GET /api/map/routes', () => {
 			expect(body.results).toHaveLength(0);
 		});
 
-		it('should query supabase with hardcoded start_loc and provided end_loc', async () => {
-			const event = mockEvent({ end: '123456' }, { data: [] });
+		it('should query supabase with provided start_loc and end_loc', async () => {
+			const event = mockEvent({ start: '371357222', end: '123456' }, { data: [] });
 			await GET(event);
 
 			const fromCall = event.locals.supabase.from as ReturnType<typeof vi.fn>;
@@ -112,11 +130,11 @@ describe('GET /api/map/routes', () => {
 			const selectCall = fromCall.mock.results[0].value.select;
 			expect(selectCall).toHaveBeenCalledWith('route_id, geometry');
 
-			// First .eq() is start_loc_osmid (number, not string)
+			// First .eq() is start_loc_osmid (schema transforms string -> number)
 			const firstEq = selectCall.mock.results[0].value.eq;
 			expect(firstEq).toHaveBeenCalledWith('start_loc_osmid', 371357222);
 
-			// Second .eq() is end_loc_osmid (schema transforms string → number)
+			// Second .eq() is end_loc_osmid (schema transforms string -> number)
 			const secondEq = firstEq.mock.results[0].value.eq;
 			expect(secondEq).toHaveBeenCalledWith('end_loc_osmid', 123456);
 		});
@@ -128,7 +146,7 @@ describe('GET /api/map/routes', () => {
 				{ route_id: 3, geometry: '...' }
 			];
 
-			const event = mockEvent({ end: '123456' }, { data: mockResults });
+			const event = mockEvent({ start: '371357222', end: '123456' }, { data: mockResults });
 			const response = await GET(event);
 			const body = await response.json();
 
@@ -140,7 +158,7 @@ describe('GET /api/map/routes', () => {
 	describe('error handling', () => {
 		it('should return 500 when supabase throws an error', async () => {
 			const event = mockEvent(
-				{ end: '123456' },
+				{ start: '371357222', end: '123456' },
 				{ error: { message: 'Database error' }, data: null }
 			);
 			const response = await GET(event);
@@ -154,10 +172,7 @@ describe('GET /api/map/routes', () => {
 /**
  * Creates a mock RequestEvent for the POST handler
  */
-function mockPostEvent(
-	body: unknown,
-	supabaseOverrides: Record<string, unknown> = {}
-) {
+function mockPostEvent(body: unknown, supabaseOverrides: Record<string, unknown> = {}) {
 	const mockData = supabaseOverrides.data ?? { route_id: 1 };
 	const mockError = supabaseOverrides.error ?? null;
 
@@ -217,7 +232,13 @@ describe('POST /api/map/routes', () => {
 				{
 					start_loc_osmid: 100,
 					end_loc_osmid: 200,
-					geometry: { type: 'LineString', coordinates: [[0, 0], [1, 1]] }
+					geometry: {
+						type: 'LineString',
+						coordinates: [
+							[0, 0],
+							[1, 1]
+						]
+					}
 				},
 				{ data: { route_id: 42 } }
 			);
@@ -234,7 +255,13 @@ describe('POST /api/map/routes', () => {
 				{
 					start_loc_osmid: 100,
 					end_loc_osmid: 200,
-					geometry: { type: 'LineString', coordinates: [[0, 0], [1, 1]] }
+					geometry: {
+						type: 'LineString',
+						coordinates: [
+							[0, 0],
+							[1, 1]
+						]
+					}
 				},
 				{ data: { route_id: 1 } }
 			);
@@ -247,7 +274,13 @@ describe('POST /api/map/routes', () => {
 			expect(insertCall).toHaveBeenCalledWith({
 				start_loc_osmid: 100,
 				end_loc_osmid: 200,
-				geometry: { type: 'LineString', coordinates: [[0, 0], [1, 1]] }
+				geometry: {
+					type: 'LineString',
+					coordinates: [
+						[0, 0],
+						[1, 1]
+					]
+				}
 			});
 		});
 	});
@@ -258,7 +291,13 @@ describe('POST /api/map/routes', () => {
 				{
 					start_loc_osmid: 100,
 					end_loc_osmid: 200,
-					geometry: { type: 'LineString', coordinates: [[0, 0], [1, 1]] }
+					geometry: {
+						type: 'LineString',
+						coordinates: [
+							[0, 0],
+							[1, 1]
+						]
+					}
 				},
 				{ error: { message: 'Insert failed' }, data: null }
 			);

@@ -8,8 +8,8 @@ import Page from './+page.svelte';
  * ════════════════════════════════════════════════════════════════
  *
  * Tests the /map page which displays:
- *   - Map component (Leaflet map)
- *   - Search bar with input
+ *   - Map component
+ *   - Search controls with start/end OSM ID inputs
  *   - Drawer with trigger/content
  *
  * HOW TO RUN:
@@ -28,18 +28,24 @@ describe('Map Page', () => {
 			await expect.element(searchBar).toBeInTheDocument();
 		});
 
-		it('should render search input with placeholder', async () => {
+		it('should render start and end OSM ID input placeholders', async () => {
 			render(Page);
 
-			const input = page.getByPlaceholder('Where to komyut?');
-			await expect.element(input).toBeInTheDocument();
+			const startInput = page.getByPlaceholder('e.g. 371357222');
+			const endInput = page.getByPlaceholder('e.g. 28756784');
+
+			await expect.element(startInput).toBeInTheDocument();
+			await expect.element(endInput).toBeInTheDocument();
 		});
 
-		it('should render the search input as text type', async () => {
+		it('should render start and end inputs as text type', async () => {
 			render(Page);
 
-			const input = page.getByPlaceholder('Where to komyut?');
-			await expect.element(input).toHaveAttribute('type', 'text');
+			const startInput = page.getByPlaceholder('e.g. 371357222');
+			const endInput = page.getByPlaceholder('e.g. 28756784');
+
+			await expect.element(startInput).toHaveAttribute('type', 'text');
+			await expect.element(endInput).toHaveAttribute('type', 'text');
 		});
 	});
 
@@ -47,7 +53,7 @@ describe('Map Page', () => {
 		it('should render the drawer trigger button', async () => {
 			render(Page);
 
-			const trigger = page.getByText('Open');
+			const trigger = page.getByText('View Routes');
 			await expect.element(trigger).toBeInTheDocument();
 		});
 	});

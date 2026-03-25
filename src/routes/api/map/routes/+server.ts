@@ -11,11 +11,14 @@ export const GET: RequestHandler = async (event) => {
 		locals: { supabase }
 	} = event;
 
-	const start_loc = 371357222;
-	const parsed = mapRouteQuerySchema.safeParse({ end: url.searchParams.get('end') ?? '' });
+	const parsed = mapRouteQuerySchema.safeParse({
+		start: url.searchParams.get('start') ?? '',
+		end: url.searchParams.get('end') ?? ''
+	});
 	if (!parsed.success) {
 		return error(400, 'Invalid location');
 	}
+	const start_loc = parsed.data.start;
 	const end_loc = parsed.data.end;
 	const cacheKey = `map:routes:start=${start_loc}:end=${end_loc}`;
 

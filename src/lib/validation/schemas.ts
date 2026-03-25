@@ -23,14 +23,14 @@ export const forumPostParamsSchema = z.object({
 });
 
 export const mapLocationQuerySchema = z.object({
-	q: z
-		.string()
-		.trim()
-		.min(1, 'Search query is required')
-		.max(120, 'Search query is too long')
+	q: z.string().trim().min(1, 'Search query is required').max(120, 'Search query is too long')
 });
 
 export const mapRouteQuerySchema = z.object({
+	start: z
+		.string()
+		.regex(/^\d+$/, 'start must be a positive integer')
+		.transform((v: string) => Number(v)),
 	end: z
 		.string()
 		.regex(/^\d+$/, 'end must be a positive integer')
@@ -42,7 +42,9 @@ export const mapRouteCreateSchema = z.object({
 	end_loc_osmid: z.number().int(),
 	geometry: z.object({
 		type: z.literal('LineString'),
-		coordinates: z.array(z.tuple([z.number(), z.number()])).min(2, 'Route must have at least 2 points')
+		coordinates: z
+			.array(z.tuple([z.number(), z.number()]))
+			.min(2, 'Route must have at least 2 points')
 	})
 });
 
@@ -73,7 +75,12 @@ export const postSummarySchema = z.object({
 	downvotes: z.number().int(),
 	created_at: z.string(),
 	last_edited: z.string()
-}) satisfies z.ZodType<Pick<PostRow, 'post_id' | 'title' | 'body' | 'upvotes' | 'downvotes' | 'created_at' | 'last_edited'>>;
+}) satisfies z.ZodType<
+	Pick<
+		PostRow,
+		'post_id' | 'title' | 'body' | 'upvotes' | 'downvotes' | 'created_at' | 'last_edited'
+	>
+>;
 
 export const postAuthorSchema = z.object({
 	uid: z.string(),
@@ -129,13 +136,7 @@ export const notificationSchema = z.object({
 }) satisfies z.ZodType<
 	Pick<
 		NotificationRow,
-		| 'notification_id'
-		| 'kind'
-		| 'message'
-		| 'is_read'
-		| 'created_at'
-		| 'post_id'
-		| 'route_id'
+		'notification_id' | 'kind' | 'message' | 'is_read' | 'created_at' | 'post_id' | 'route_id'
 	>
 >;
 
@@ -180,4 +181,3 @@ export type CommentWithAuthorDTO = z.infer<typeof commentWithAuthorSchema>;
 export type NotificationDTO = z.infer<typeof notificationSchema>;
 export type SavedRouteDTO = z.infer<typeof savedRouteSchema>;
 export type UserProfileDTO = z.infer<typeof userProfileSchema>;
-
