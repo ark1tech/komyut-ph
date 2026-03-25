@@ -39,7 +39,7 @@ function buildMapPageData() {
  *
  * Tests the /map page which displays:
  *   - Map component
- *   - MapSearchBar (single route/place search field)
+ *   - MapSearchBar (search + preferences: start / end / route name)
  *
  * HOW TO RUN:
  *   pnpm test:unit                → Run all unit + component tests
@@ -60,15 +60,24 @@ describe('Map Page', () => {
 		it('should render the route search input placeholder', async () => {
 			render(Page, { props: { data: buildMapPageData() } });
 
-			const input = page.getByPlaceholder('Search by route name or start/end place…');
+			const input = page.getByPlaceholder('Search by route name or place…');
 			await expect.element(input).toBeInTheDocument();
 		});
 
 		it('should render the search input as text type', async () => {
 			render(Page, { props: { data: buildMapPageData() } });
 
-			const input = page.getByPlaceholder('Search by route name or start/end place…');
+			const input = page.getByPlaceholder('Search by route name or place…');
 			await expect.element(input).toHaveAttribute('type', 'text');
+		});
+
+		it('should render search preference controls', async () => {
+			render(Page, { props: { data: buildMapPageData() } });
+
+			const group = page.getByRole('radiogroup', {
+				name: 'Search match: route name, start location, or end location'
+			});
+			await expect.element(group).toBeInTheDocument();
 		});
 	});
 });

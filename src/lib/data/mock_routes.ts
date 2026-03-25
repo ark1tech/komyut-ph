@@ -137,8 +137,14 @@ export function searchMockSavedRoutes(query: string) {
 	);
 }
 
+/** Which field to match: start only, end only, or route name only (mutually exclusive). */
+export type MapSearchPreference = 'start' | 'end' | 'route_name';
+
 /** Map search against canonical route ids (matches `route.route_id` in the DB). */
-export function searchMockCanonicalRouteHits(query: string): MapRouteSearchHit[] {
+export function searchMockCanonicalRouteHits(
+	query: string,
+	preference: MapSearchPreference = 'start'
+): MapRouteSearchHit[] {
 	const normalized = query.trim().toLowerCase();
 	if (!normalized) return [];
 
@@ -149,11 +155,16 @@ export function searchMockCanonicalRouteHits(query: string): MapRouteSearchHit[]
 		const route_id = route.geo_route_id ?? route.saved_route_id;
 		if (seen.has(route_id)) continue;
 
+		const nameMatch = route.route_name.toLowerCase().includes(normalized);
+		const startMatch = route.start_loc.toLowerCase().includes(normalized);
+		const endMatch = route.end_loc.toLowerCase().includes(normalized);
+
 		const matches =
-			route.route_name.toLowerCase().includes(normalized) ||
-			route.start_loc.toLowerCase().includes(normalized) ||
-			route.end_loc.toLowerCase().includes(normalized) ||
-			route.vehicle_types.some((type) => type.toLowerCase().includes(normalized));
+			preference === 'start'
+				? startMatch
+				: preference === 'end'
+					? endMatch
+					: nameMatch;
 
 		if (!matches) continue;
 
