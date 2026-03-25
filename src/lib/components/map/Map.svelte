@@ -39,7 +39,6 @@
 	let ready = $state(false);
 	let mapStyleLoaded = $state(false);
 	let activeRouteId = $state<string | null>(null);
-	let userLocationMarker: maplibregl.Marker | null = null;
 
 	/** Only fit camera once per selected route id (avoids repeated jarring moves). Not UI state. */
 	let lastFittedRouteId: string | null = null;
@@ -56,7 +55,7 @@
 	const TRACE_END_LOC = 28756784;
 	const ROUTE_FIT_BASE_PADDING_PX = 96;
 	// Increase/decrease this value to account for overlays at the bottom of the map.
-	const ROUTE_FIT_BOTTOM_OFFSET_PX = 180;
+	const ROUTE_FIT_BOTTOM_OFFSET_PX = 200;
 
 	function parseGeometry(geometry: string | GeoJSON.LineString): GeoJSON.LineString | null {
 		if (typeof geometry !== 'string') return geometry;
@@ -149,6 +148,18 @@
 		});
 	}
 
+	/** Re-apply route + user framing after GeolocateControl moves the camera (see `geolocate` listener). */
+	function refitRouteWithUserPosition(position: GeolocationPosition) {
+		if (!map || !selectedRoute) return;
+		const geometry = parseGeometry(selectedRoute.geometry);
+		if (!geometry) return;
+		const userLngLat: [number, number] = [
+			position.coords.longitude,
+			position.coords.latitude
+		];
+		fitBoundsForRouteAndUser(geometry, userLngLat);
+	}
+
 	function fitBoundsForRouteAndUser(
 		geometry: GeoJSON.LineString,
 		userLngLat: [number, number] | null
@@ -175,25 +186,6 @@
 		});
 	}
 
-	function upsertUserLocationMarker(userLngLat: [number, number] | null) {
-		if (!map || !userLngLat) return;
-
-		if (userLocationMarker) {
-			userLocationMarker.setLngLat(userLngLat);
-			return;
-		}
-
-		const el = document.createElement('div');
-		el.style.width = '14px';
-		el.style.height = '14px';
-		el.style.borderRadius = '9999px';
-		el.style.backgroundColor = '#2563eb';
-		el.style.border = '2px solid white';
-		el.style.boxShadow = '0 0 0 4px rgba(37,99,235,0.28)';
-
-		userLocationMarker = new maplibregl.Marker({ element: el }).setLngLat(userLngLat).addTo(map);
-	}
-
 	async function fitRouteWhenNew(route: Route) {
 		const id = String(route.route_id);
 		if (lastFittedRouteId === id) return;
@@ -207,7 +199,6 @@
 		if (gen !== fitGeneration) return;
 		if (!map || !selectedRoute || String(selectedRoute.route_id) !== id) return;
 
-		upsertUserLocationMarker(userLngLat);
 		lastFittedRouteId = id;
 		fitBoundsForRouteAndUser(geometry, userLngLat);
 	}
@@ -375,6 +366,8 @@
 
 	onMount(() => {
 		let cancelled = false;
+		let geolocateControl: maplibregl.GeolocateControl | null = null;
+		let geolocateHandler: ((e: GeolocationPosition & { type?: string }) => void) | null = null;
 
 		getUserLocation().then((userCenter) => {
 			if (cancelled) return;
@@ -390,16 +383,24 @@
 			instance.addControl(new maplibregl.NavigationControl(), 'top-right');
 
 			const geolocate = new maplibregl.GeolocateControl({
-				positionOptions: { enableHighAccuracy: true },
+				positionOptions: { enableHighAccuracy: true, timeout: 10000 },
 				trackUserLocation: false,
-				showUserLocation: true
+				showUserLocation: true,
+				showAccuracyCircle: true
 			});
+			geolocateControl = geolocate;
 			instance.addControl(geolocate, 'top-right');
 
 			instance.on('load', () => {
 				if (cancelled) return;
 				mapStyleLoaded = true;
 				instance.on('click', onMapClickForTracing);
+				geolocateHandler = (e) => {
+					if (cancelled || !e.coords) return;
+					refitRouteWithUserPosition(e);
+				};
+				geolocate.on('geolocate', geolocateHandler);
+				geolocate.trigger();
 			});
 
 			map = instance;
@@ -408,14 +409,17 @@
 
 		return () => {
 			cancelled = true;
+			if (geolocateControl && geolocateHandler) {
+				geolocateControl.off('geolocate', geolocateHandler);
+			}
+			geolocateControl = null;
+			geolocateHandler = null;
 			mapStyleLoaded = false;
 			lastFittedRouteId = null;
 			fitGeneration++;
 			if (map) {
 				clearRoutes();
 				clearTraceMarkers();
-				userLocationMarker?.remove();
-				userLocationMarker = null;
 				map.remove();
 				map = null;
 			}

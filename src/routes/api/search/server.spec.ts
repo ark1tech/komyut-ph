@@ -1,11 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { GET } from './+server';
 
-const POST_10 = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
-const POST_11 = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
-const POST_12 = 'cccccccc-cccc-cccc-cccc-cccccccccccc';
-const POST_1 = 'dddddddd-dddd-dddd-dddd-dddddddddddd';
-const POST_13 = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee';
+/** RFC-compliant UUIDs (Zod `z.uuid()` rejects non-version/variant placeholders like `aaaa…`). */
+const POST_10 = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+const POST_11 = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+const POST_12 = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+const POST_1 = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+const POST_13 = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
 
 type RpcResponse = {
 	data: unknown;

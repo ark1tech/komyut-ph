@@ -37,17 +37,13 @@
 
 	let { routeId, subscription = null, class: className, onchange }: Props = $props();
 
-	let form = $state<PreferenceForm>(toForm(null));
+	let form = $derived(toForm(subscription));
 	let saving = $state(false);
 	let unsubscribing = $state(false);
 	let errorMessage = $state<string | null>(null);
 	let successMessage = $state<string | null>(null);
 
 	let session = $derived(page.data.session);
-
-	$effect(() => {
-		form = toForm(subscription);
-	});
 
 	function toggleAlertType(type: RouteChangeType) {
 		if (form.alertTypes.includes(type)) {

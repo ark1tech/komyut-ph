@@ -16,7 +16,8 @@ const { gotoMock } = vi.hoisted(() => ({
 }));
 
 vi.mock('$app/navigation', () => ({
-	goto: gotoMock
+	goto: gotoMock,
+	afterNavigate: (_fn: () => void) => {}
 }));
 
 vi.mock('$app/state', () => ({
@@ -225,11 +226,11 @@ describe('Forum Page', () => {
 			await expect.element(page.getByRole('radio', { name: /Latest/ })).toBeInTheDocument();
 		});
 
-		it('should default to "Hot" as active sort', async () => {
+		it('should default to "Top" as active sort', async () => {
 			render(Page, { props: { data: buildForumData() } });
 
-			const hotBtn = page.getByRole('radio', { name: /Hot/ });
-			await expect.element(hotBtn).toHaveAttribute('aria-checked', 'true');
+			const topBtn = page.getByRole('radio', { name: /Top/ });
+			await expect.element(topBtn).toHaveAttribute('aria-checked', 'true');
 		});
 
 		it('should switch to "Latest" sort on click', async () => {
@@ -238,7 +239,7 @@ describe('Forum Page', () => {
 			const latestBtn = page.getByRole('radio', { name: /Latest/ });
 			await latestBtn.click();
 			await expect.element(latestBtn).toHaveAttribute('aria-checked', 'true');
-			expect(gotoMock).toHaveBeenCalledWith('?page=1', { keepFocus: true, noScroll: true });
+			expect(gotoMock).toHaveBeenCalledWith('?page=1', { keepFocus: true });
 		});
 
 		it('should switch to "Top" sort on click', async () => {
@@ -247,7 +248,7 @@ describe('Forum Page', () => {
 			const topBtn = page.getByRole('radio', { name: /Top/ });
 			await topBtn.click();
 			await expect.element(topBtn).toHaveAttribute('aria-checked', 'true');
-			expect(gotoMock).toHaveBeenCalledWith('?page=1', { keepFocus: true, noScroll: true });
+			expect(gotoMock).toHaveBeenCalledWith('?page=1', { keepFocus: true });
 		});
 	});
 

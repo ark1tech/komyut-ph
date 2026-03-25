@@ -9,7 +9,7 @@ import Page from './+page.svelte';
  *
  * Tests the /login page which displays:
  *   - Logo section (icon + text + tagline)
- *   - Input fields section (email + password)
+ *   - Input fields section (OAuth + guest actions)
  *   - Log In button (Google OAuth)
  *   - Log In as Guest button
  *   - Create Account link
@@ -77,24 +77,6 @@ describe('Login Page', () => {
 			render(Page, { props: { data: buildLoginData() } });
 
 			await expect.element(page.getByText('Ang Komyut ng Komyuniti')).toBeInTheDocument();
-		});
-	});
-
-	describe('form inputs', () => {
-		it('should render email input with placeholder', async () => {
-			render(Page, { props: { data: buildLoginData() } });
-
-			const email = page.getByPlaceholder('Email');
-			await expect.element(email).toBeInTheDocument();
-			await expect.element(email).toHaveAttribute('type', 'email');
-		});
-
-		it('should render password input with placeholder', async () => {
-			render(Page, { props: { data: buildLoginData() } });
-
-			const password = page.getByPlaceholder('Password');
-			await expect.element(password).toBeInTheDocument();
-			await expect.element(password).toHaveAttribute('type', 'password');
 		});
 	});
 

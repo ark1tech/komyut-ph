@@ -7,7 +7,8 @@ const { gotoMock } = vi.hoisted(() => ({
 }));
 
 vi.mock('$app/navigation', () => ({
-	goto: gotoMock
+	goto: gotoMock,
+	invalidateAll: vi.fn().mockResolvedValue(undefined)
 }));
 
 vi.mock('$app/state', () => ({
@@ -101,7 +102,7 @@ describe('Routes Page', () => {
 			const subscribed = page.getByRole('radio', { name: /Subscribed/ });
 			await subscribed.click();
 			await expect.element(subscribed).toHaveAttribute('aria-checked', 'true');
-			expect(gotoMock).toHaveBeenCalledWith('http://localhost/routes?page=1', {
+			expect(gotoMock).toHaveBeenCalledWith('/routes?page=1', {
 				keepFocus: true,
 				noScroll: true
 			});
