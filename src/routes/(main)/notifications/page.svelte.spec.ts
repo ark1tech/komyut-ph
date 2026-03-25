@@ -3,6 +3,9 @@ import { describe, expect, it } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import Page from './+page.svelte';
 
+const POST_ID_10 = '11111111-1111-1111-1111-111111111111';
+const POST_ID_11 = '22222222-2222-2222-2222-222222222222';
+
 /* ════════════════════════════════════════════════════════════════
  * NOTIFICATIONS PAGE COMPONENT TESTS
  * ════════════════════════════════════════════════════════════════
@@ -30,7 +33,7 @@ function buildNotificationsData(
 		message: string;
 		is_read: boolean;
 		created_at: string;
-		post_id: number | null;
+		post_id: string | null;
 		route_id: number | null;
 	}> = []
 ) {
@@ -46,7 +49,7 @@ const forumNotifications = [
 		message: 'Sarah upvoted your post',
 		is_read: false,
 		created_at: new Date().toISOString(),
-		post_id: 10,
+		post_id: POST_ID_10,
 		route_id: null
 	},
 	{
@@ -55,7 +58,7 @@ const forumNotifications = [
 		message: 'James commented on your post',
 		is_read: true,
 		created_at: new Date(Date.now() - 3600_000).toISOString(),
-		post_id: 10,
+		post_id: POST_ID_10,
 		route_id: null
 	},
 	{
@@ -64,7 +67,7 @@ const forumNotifications = [
 		message: 'Someone downvoted your post',
 		is_read: false,
 		created_at: new Date(Date.now() - 7200_000).toISOString(),
-		post_id: 11,
+		post_id: POST_ID_11,
 		route_id: null
 	}
 ];

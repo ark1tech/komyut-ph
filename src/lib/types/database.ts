@@ -11,8 +11,8 @@ export type Database = {
 					created_at: string;
 					downvotes: number;
 					last_edited: string;
-					linked_post_id: number | null;
-					parent_id: number;
+					linked_post_id: string | null;
+					parent_id: string;
 					upvotes: number;
 				};
 				Insert: {
@@ -22,8 +22,8 @@ export type Database = {
 					created_at?: string;
 					downvotes?: number;
 					last_edited?: string;
-					linked_post_id?: number | null;
-					parent_id: number;
+					linked_post_id?: string | null;
+					parent_id: string;
 					upvotes?: number;
 				};
 				Update: {
@@ -33,8 +33,8 @@ export type Database = {
 					created_at?: string;
 					downvotes?: number;
 					last_edited?: string;
-					linked_post_id?: number | null;
-					parent_id?: number;
+					linked_post_id?: string | null;
+					parent_id?: string;
 					upvotes?: number;
 				};
 				Relationships: [
@@ -68,7 +68,7 @@ export type Database = {
 					kind: Database['public']['Enums']['notification_kind'];
 					message: string;
 					notification_id: number;
-					post_id: number | null;
+					post_id: string | null;
 					route_id: number | null;
 					user_id: string;
 				};
@@ -78,7 +78,7 @@ export type Database = {
 					kind: Database['public']['Enums']['notification_kind'];
 					message: string;
 					notification_id?: number;
-					post_id?: number | null;
+					post_id?: string | null;
 					route_id?: number | null;
 					user_id: string;
 				};
@@ -88,7 +88,7 @@ export type Database = {
 					kind?: Database['public']['Enums']['notification_kind'];
 					message?: string;
 					notification_id?: number;
-					post_id?: number | null;
+					post_id?: string | null;
 					route_id?: number | null;
 					user_id?: string;
 				};
@@ -123,7 +123,7 @@ export type Database = {
 					created_at: string;
 					downvotes: number;
 					last_edited: string;
-					post_id: number;
+					post_id: string;
 					title: string;
 					upvotes: number;
 				};
@@ -133,7 +133,7 @@ export type Database = {
 					created_at?: string;
 					downvotes?: number;
 					last_edited?: string;
-					post_id?: number;
+					post_id?: string;
 					title: string;
 					upvotes?: number;
 				};
@@ -143,7 +143,7 @@ export type Database = {
 					created_at?: string;
 					downvotes?: number;
 					last_edited?: string;
-					post_id?: number;
+					post_id?: string;
 					title?: string;
 					upvotes?: number;
 				};

@@ -151,6 +151,7 @@
 	let routes = $state<RouteResult[]>([]);
 	let selectedRoute = $state<RouteResult | null>(null);
 	let selectedRouteId = $state<string | null>(null);
+	let selectedRouteSource = $state<'drawer' | 'popup'>('drawer');
 	let loadingRoutes = $state(false);
 	let routeError = $state<string | null>(null);
 	let hasSearched = $state(false);
@@ -184,7 +185,30 @@
 	function selectRoute(route: RouteResult) {
 		selectedRoute = route;
 		selectedRouteId = String(route.route_id);
+		selectedRouteSource = 'drawer';
 	}
+
+	$effect(() => {
+		const selectedRouteGeometry = data.selectedRouteGeometry as RouteResult | null;
+
+		if (data.selectedRoute) {
+			if (selectedRouteGeometry) {
+				selectedRoute = selectedRouteGeometry;
+				selectedRouteId = String(selectedRouteGeometry.route_id);
+			} else {
+				selectedRoute = null;
+				selectedRouteId = null;
+			}
+			selectedRouteSource = 'popup';
+			return;
+		}
+
+		if (selectedRouteSource === 'popup') {
+			selectedRoute = null;
+			selectedRouteId = null;
+			selectedRouteSource = 'drawer';
+		}
+	});
 
 	async function closeSelectedRoutePopup() {
 		const nextUrl = new URL(page.url);

@@ -217,9 +217,10 @@ export async function subscribeToRoute(
 		alert_types: preferencePayload?.alertTypes ?? [...routeChangeTypes]
 	};
 
-	const existingSubscription = existing as
-		| { subscription_id: number; status: RouteSubscriptionDTO['status'] }
-		| null;
+	const existingSubscription = existing as {
+		subscription_id: number;
+		status: RouteSubscriptionDTO['status'];
+	} | null;
 
 	if (existingSubscription) {
 		const { error: updateError } = await routeSubscriptionTable(supabase)

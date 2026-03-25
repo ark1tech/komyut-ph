@@ -60,11 +60,14 @@ export const load: PageServerLoad = async ({ params, locals: { supabase } }) => 
 		new Set(
 			comments
 				.map((c) => c.linked_post_id)
-				.filter((id): id is number => typeof id === 'number')
+				.filter((id): id is string => id != null)
 		)
 	);
 
-	const linkedPosts: Record<number, { post_id: number; title: string; author?: { username: string } | null }> =
+	const linkedPosts: Record<
+		string,
+		{ post_id: string; title: string; author?: { username: string } | null }
+	> =
 		{};
 
 	if (linkedPostIds.length > 0) {

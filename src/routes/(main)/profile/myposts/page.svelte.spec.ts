@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import Page from './+page.svelte';
 
+const POST_ID = '11111111-1111-1111-1111-111111111111';
+
 /* ════════════════════════════════════════════════════════════════
  * MY POSTS PAGE COMPONENT TESTS
  * ════════════════════════════════════════════════════════════════
@@ -20,7 +22,7 @@ import Page from './+page.svelte';
  * ════════════════════════════════════════════════════════════════ */
 
 const mockPost = {
-	post_id: 1,
+	post_id: POST_ID,
 	title: 'How to get from Quezon City to Makati?',
 	body: 'Looking for the best route.',
 	upvotes: 10,
@@ -86,7 +88,7 @@ describe('My Posts Page', () => {
 	describe('posts list', () => {
 		it('should display post title', async () => {
 			render(Page, {
-				props: { data: buildMyPostsData({ posts: [mockPost], commentCounts: { 1: 3 } }) }
+				props: { data: buildMyPostsData({ posts: [mockPost], commentCounts: { [POST_ID]: 3 } }) }
 			});
 
 			await expect

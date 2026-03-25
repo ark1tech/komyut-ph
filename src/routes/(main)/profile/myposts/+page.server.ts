@@ -25,7 +25,7 @@ export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession 
 	}
 
 	const postIds = parsedPosts.data.map((p) => p.post_id);
-	const countMap: Record<number, number> = {};
+	const countMap: Record<string, number> = {};
 
 	if (postIds.length > 0) {
 		const { data: commentCounts, error: commentsError } = await supabase

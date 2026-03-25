@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import Page from './+page.svelte';
 
+const POST_ID = '11111111-1111-1111-1111-111111111111';
+
 /* ════════════════════════════════════════════════════════════════
  * FORUM POST DETAIL PAGE COMPONENT TESTS
  * ════════════════════════════════════════════════════════════════
@@ -22,7 +24,7 @@ import Page from './+page.svelte';
  * ════════════════════════════════════════════════════════════════ */
 
 const mockPost = {
-	post_id: 1,
+	post_id: POST_ID,
 	title: 'How to get from Quezon City to Makati?',
 	body: 'Looking for the best route from QC to Makati during rush hour.',
 	upvotes: 10,
@@ -35,7 +37,7 @@ const mockPost = {
 const mockComments = [
 	{
 		comment_id: 1,
-		parent_id: 1,
+		parent_id: POST_ID,
 		created_at: '2024-01-10T11:00:00Z',
 		last_edited: '2024-01-10T11:00:00Z',
 		body: 'MRT then jeepney is the fastest!',
@@ -46,7 +48,7 @@ const mockComments = [
 	},
 	{
 		comment_id: 2,
-		parent_id: 1,
+		parent_id: POST_ID,
 		created_at: '2024-01-10T12:00:00Z',
 		last_edited: '2024-01-10T12:00:00Z',
 		body: 'Bus is cheaper if you have time.',

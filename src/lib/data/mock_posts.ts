@@ -1,6 +1,6 @@
 // Legacy interface kept for reference. Data is now served from Supabase.
 export interface Post {
-	post_id: number;
+	post_id: string;
 	author_id: number;
 	author_name: string;
 	author_username: string;

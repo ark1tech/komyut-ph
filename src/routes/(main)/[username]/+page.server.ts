@@ -43,8 +43,8 @@ export const load: PageServerLoad = async ({ params, locals: { supabase } }) => 
 		throw error(500, 'Failed to load user posts');
 	}
 
-	const postIds = (posts ?? []).map((post) => post.post_id as number);
-	const countMap: Record<number, number> = {};
+	const postIds = (posts ?? []).map((post) => post.post_id);
+	const countMap: Record<string, number> = {};
 
 	if (postIds.length > 0) {
 		const { data: commentCounts, error: commentsError } = await supabase

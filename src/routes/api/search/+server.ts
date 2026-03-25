@@ -8,7 +8,7 @@ const MAX_QUERY_LENGTH = 120;
 const searchPathSchema = z.enum(['fts', 'trigram', 'ilike']);
 
 const postSearchResultSchema = z.object({
-	post_id: z.number().int(),
+	post_id: z.uuid(),
 	title: z.string(),
 	description: z.string().optional(),
 	author: z.object({
@@ -18,7 +18,7 @@ const postSearchResultSchema = z.object({
 
 const postSearchRpcRowSchema = z.object({
 	search_path: searchPathSchema,
-	post_id: z.coerce.number().int(),
+	post_id: z.uuid(),
 	title: z.string(),
 	author_username: z.string().nullable(),
 	body: z.string().nullish(),
@@ -109,7 +109,7 @@ async function searchPosts(supabase: App.Locals['supabase'], query: string) {
 	const postIdsNeedingBody = parsed.data
 		.filter((post) => !post.body && !post.description && !post.content)
 		.map((post) => post.post_id);
-	const bodyByPostId = new Map<number, string | undefined>();
+	const bodyByPostId = new Map<string, string | undefined>();
 
 	if (postIdsNeedingBody.length > 0) {
 		const supabaseWithFrom = supabase as App.Locals['supabase'] & {
@@ -117,8 +117,10 @@ async function searchPosts(supabase: App.Locals['supabase'], query: string) {
 				select: (columns: string) => {
 					in: (
 						column: string,
-						values: number[]
-					) => Promise<{ data: Array<{ post_id: number; body: string | null }> | null; error: unknown }>;
+						values: string[]
+					) => Promise<
+						{ data: Array<{ post_id: string; body: string | null }> | null; error: unknown }
+					>;
 				};
 			};
 		};

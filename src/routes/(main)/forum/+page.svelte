@@ -2,7 +2,7 @@
 	import ForumPost from '$lib/components/forum/ForumPost.svelte';
 	import ForumSortBar from '$lib/components/forum/ForumSortBar.svelte';
 	import * as Pagination from '$lib/components/ui/pagination';
-	import { goto } from '$app/navigation';
+	import { afterNavigate, goto } from '$app/navigation';
 	import { page } from '$app/state';
 
 	let { data } = $props();
@@ -15,7 +15,18 @@
 
 	let currentPage = $derived(Number(page.url.searchParams.get('page')) || 1);
 
-	function commentCountFor(postId: number) {
+	// Ensure pagination (query param) navigations always land at the top.
+	let shouldScrollToTop = false;
+	afterNavigate(() => {
+		if (!shouldScrollToTop) return;
+		shouldScrollToTop = false;
+
+		if (typeof window === 'undefined') return;
+		// Wait a frame so the new page content is in place.
+		requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0 }));
+	});
+
+	function commentCountFor(postId: string) {
 		return data.commentCounts[postId] ?? 0;
 	}
 
@@ -39,15 +50,17 @@
 		sortedPosts.slice((currentPage - 1) * PER_PAGE, currentPage * PER_PAGE)
 	);
 
-	function setPage(p: number) {
+	async function setPage(p: number) {
+		shouldScrollToTop = true;
 		// eslint-disable-next-line svelte/no-navigation-without-resolve
-		goto(`?page=${p}`, { keepFocus: true, noScroll: true });
+		await goto(`?page=${p}`, { keepFocus: true });
 	}
 
-	function handleSortChange(value: SortOption) {
+	async function handleSortChange(value: SortOption) {
 		activeSort = value;
+		shouldScrollToTop = true;
 		// eslint-disable-next-line svelte/no-navigation-without-resolve
-		goto('?page=1', { keepFocus: true, noScroll: true });
+		await goto('?page=1', { keepFocus: true });
 	}
 </script>
 

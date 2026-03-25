@@ -4,6 +4,13 @@ import { render } from 'vitest-browser-svelte';
 import type { Post } from '$lib/data/mock_posts';
 import type { Comment } from '$lib/data/mock_comments';
 
+const P1 = '11111111-1111-1111-1111-111111111111';
+const P2 = '22222222-2222-2222-2222-222222222222';
+const P3 = '33333333-3333-3333-3333-333333333333';
+const P4 = '44444444-4444-4444-4444-444444444444';
+const P5 = '55555555-5555-5555-5555-555555555555';
+const P6 = '66666666-6666-6666-6666-666666666666';
+
 const { gotoMock } = vi.hoisted(() => ({
 	gotoMock: vi.fn()
 }));
@@ -22,7 +29,7 @@ import Page from './+page.svelte';
 
 const mockPosts: Post[] = [
 	{
-		post_id: 1,
+		post_id: P1,
 		author_id: 1,
 		author_name: 'Sarah Martinez',
 		author_username: 'sarahm',
@@ -34,7 +41,7 @@ const mockPosts: Post[] = [
 		downvotes: 2
 	},
 	{
-		post_id: 2,
+		post_id: P2,
 		author_id: 2,
 		author_name: 'James Chen',
 		author_username: 'jchen',
@@ -46,7 +53,7 @@ const mockPosts: Post[] = [
 		downvotes: 1
 	},
 	{
-		post_id: 3,
+		post_id: P3,
 		author_id: 3,
 		author_name: 'Emily Johnson',
 		author_username: 'emilyjay',
@@ -58,7 +65,7 @@ const mockPosts: Post[] = [
 		downvotes: 0
 	},
 	{
-		post_id: 4,
+		post_id: P4,
 		author_id: 1,
 		author_name: 'Sarah Martinez',
 		author_username: 'sarahm',
@@ -70,7 +77,7 @@ const mockPosts: Post[] = [
 		downvotes: 1
 	},
 	{
-		post_id: 5,
+		post_id: P5,
 		author_id: 3,
 		author_name: 'Emily Johnson',
 		author_username: 'emilyjay',
@@ -82,7 +89,7 @@ const mockPosts: Post[] = [
 		downvotes: 0
 	},
 	{
-		post_id: 6,
+		post_id: P6,
 		author_id: 2,
 		author_name: 'James Chen',
 		author_username: 'jchen',
@@ -101,7 +108,7 @@ const mockComments: Comment[] = [
 		author_id: 2,
 		author_name: 'James Chen',
 		author_username: 'jchen',
-		parent_id: 1,
+		parent_id: P1,
 		created_at: '2024-01-10T11:00:00Z',
 		last_edited: '2024-01-10T11:00:00Z',
 		body: 'MRT then jeepney!',
@@ -113,7 +120,7 @@ const mockComments: Comment[] = [
 		author_id: 3,
 		author_name: 'Emily Johnson',
 		author_username: 'emilyjay',
-		parent_id: 1,
+		parent_id: P1,
 		created_at: '2024-01-10T12:00:00Z',
 		last_edited: '2024-01-10T12:00:00Z',
 		body: 'Bus is cheaper.',
@@ -125,7 +132,7 @@ const mockComments: Comment[] = [
 		author_id: 1,
 		author_name: 'Sarah Martinez',
 		author_username: 'sarahm',
-		parent_id: 2,
+		parent_id: P2,
 		created_at: '2024-01-09T11:00:00Z',
 		last_edited: '2024-01-09T11:00:00Z',
 		body: 'Thanks!',
@@ -158,7 +165,7 @@ function buildForumData() {
 		mockComments.reduce((entries, comment) => {
 			entries.set(comment.parent_id, (entries.get(comment.parent_id) ?? 0) + 1);
 			return entries;
-		}, new Map<number, number>())
+		}, new Map<string, number>())
 	);
 
 	return {

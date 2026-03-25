@@ -10,19 +10,19 @@
 		upvotes: number;
 		downvotes: number;
 		created_at: string;
-		linked_post_id?: number | null;
+		linked_post_id?: string | null;
 		author?: { username: string; full_name: string } | null;
 	}
 
 	interface LinkedPost {
-		post_id: number;
+		post_id: string;
 		title: string;
 		author?: { username: string } | null;
 	}
 
 	interface Props {
 		comment: CommentLike;
-		linkedPosts?: Record<number, LinkedPost>;
+		linkedPosts?: Record<string, LinkedPost>;
 		class?: string;
 	}
 

@@ -1,6 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { GET } from './+server';
 
+const POST_10 = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+const POST_11 = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
+const POST_12 = 'cccccccc-cccc-cccc-cccc-cccccccccccc';
+const POST_1 = 'dddddddd-dddd-dddd-dddd-dddddddddddd';
+const POST_13 = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee';
+
 type RpcResponse = {
 	data: unknown;
 	error: unknown;
@@ -15,7 +21,7 @@ function mockEvent({
 	q?: string;
 	sessionUserId?: string | null;
 	rpcResults?: Record<string, RpcResponse>;
-	postBodiesById?: Record<number, string>;
+	postBodiesById?: Record<string, string>;
 } = {}) {
 	const url = new URL('http://localhost/api/search');
 	url.searchParams.set('q', q);
@@ -29,7 +35,7 @@ function mockEvent({
 		);
 	});
 
-	const inFn = vi.fn().mockImplementation((_column: string, values: number[]) => {
+	const inFn = vi.fn().mockImplementation((_column: string, values: string[]) => {
 		const rows = values
 			.map((id) =>
 				id in postBodiesById
@@ -39,7 +45,7 @@ function mockEvent({
 						}
 					: null
 			)
-			.filter((row): row is { post_id: number; body: string } => row !== null);
+			.filter((row): row is { post_id: string; body: string } => row !== null);
 
 		return Promise.resolve({
 			data: rows,
@@ -100,7 +106,7 @@ describe('GET /api/search', () => {
 					data: [
 						{
 							search_path: 'fts',
-							post_id: 10,
+							post_id: POST_10,
 							title: 'PWD access on EDSA Carousel',
 							author_username: 'ray'
 						}
@@ -133,7 +139,7 @@ describe('GET /api/search', () => {
 		expect(body.suggestions).toEqual(['PWD']);
 		expect(body.posts).toEqual([
 			{
-				post_id: 10,
+				post_id: POST_10,
 				title: 'PWD access on EDSA Carousel',
 				author: { username: 'ray' }
 			}
@@ -154,7 +160,7 @@ describe('GET /api/search', () => {
 					data: [
 						{
 							search_path: 'trigram',
-							post_id: 11,
+							post_id: POST_11,
 							title: 'PWD-friendly bus stops',
 							author_username: 'alice'
 						}
@@ -171,7 +177,7 @@ describe('GET /api/search', () => {
 		expect(body.suggestions).toEqual(['PWDD']);
 		expect(body.posts).toEqual([
 			{
-				post_id: 11,
+				post_id: POST_11,
 				title: 'PWD-friendly bus stops',
 				author: { username: 'alice' }
 			}
@@ -187,7 +193,7 @@ describe('GET /api/search', () => {
 					data: [
 						{
 							search_path: 'fts',
-							post_id: 12,
+							post_id: POST_12,
 							title: 'PWD guide',
 							author_username: 'bob'
 						}
@@ -214,7 +220,7 @@ describe('GET /api/search', () => {
 					data: [
 						{
 							search_path: 'fts',
-							post_id: 1,
+							post_id: POST_1,
 							title: 'A post',
 							author_username: 'alice',
 							body: '<p>First line of content.</p><p>Second paragraph with more text.</p>'
@@ -241,7 +247,7 @@ describe('GET /api/search', () => {
 					data: [
 						{
 							search_path: 'fts',
-							post_id: 13,
+							post_id: POST_13,
 							title: 'Bus commute tips',
 							author_username: 'carlo',
 							description: 'Ride MRT first, then transfer to EDSA Carousel.'
@@ -258,7 +264,7 @@ describe('GET /api/search', () => {
 
 		expect(body.posts).toHaveLength(1);
 		expect(body.posts[0]).toMatchObject({
-			post_id: 13,
+			post_id: POST_13,
 			title: 'Bus commute tips',
 			description: 'Ride MRT first, then transfer to EDSA Carousel.',
 			author: { username: 'carlo' }
@@ -273,7 +279,7 @@ describe('GET /api/search', () => {
 					data: [
 						{
 							search_path: 'fts',
-							post_id: 10,
+							post_id: POST_10,
 							title: 'PWD-friendly route to Manila Ocean Park',
 							author_username: 'ryant'
 						}
@@ -283,7 +289,7 @@ describe('GET /api/search', () => {
 				search_routes: { data: [], error: null }
 			},
 			postBodiesById: {
-				10: 'Looking for wheelchair-accessible transportation from Quezon Avenue to Manila Ocean Park.'
+				[POST_10]: 'Looking for wheelchair-accessible transportation from Quezon Avenue to Manila Ocean Park.'
 			}
 		});
 
@@ -292,7 +298,7 @@ describe('GET /api/search', () => {
 
 		expect(body.posts).toHaveLength(1);
 		expect(body.posts[0]).toMatchObject({
-			post_id: 10,
+			post_id: POST_10,
 			title: 'PWD-friendly route to Manila Ocean Park',
 			description: 'Looking for wheelchair-accessible transportation from Quezon Avenue to Manila Ocean Park.',
 			author: { username: 'ryant' }

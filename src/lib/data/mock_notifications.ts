@@ -6,7 +6,7 @@ export interface NotificationItem {
 	kind: NotificationKind;
 	created_at: string;
 	is_read: boolean;
-	post_id?: number;
+	post_id?: string;
 	route_id?: number;
 	message: string;
 }

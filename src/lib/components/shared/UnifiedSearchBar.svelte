@@ -11,14 +11,14 @@
 	type RecentSearchItem = {
 		query: string;
 		type: SearchType;
-		id?: number;
+		id?: string | number;
 		label?: string;
 		username?: string;
 		description?: string;
 	};
 
 	type PostSearchItem = {
-		post_id: number;
+		post_id: string;
 		title: string;
 		description?: string;
 		author: {

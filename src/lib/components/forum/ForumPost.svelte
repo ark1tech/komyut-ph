@@ -6,7 +6,7 @@
 	import ForumHeader from './ForumHeader.svelte';
 
 	interface PostLike {
-		post_id: number;
+		post_id: string;
 		title: string;
 		body: string;
 		upvotes: number;

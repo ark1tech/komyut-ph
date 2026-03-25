@@ -23,7 +23,7 @@
 		message: string;
 		is_read: boolean;
 		created_at: string;
-		post_id: number | null;
+		post_id: string | null;
 		route_id: number | null;
 	};
 
@@ -44,7 +44,10 @@
 
 	function hrefFor(n: NotificationRow) {
 		if (n.kind === 'route_alert') return `/map?route=${n.route_id ?? ''}`;
-		return `/forum/${n.post_id ?? ''}`;
+		if (!n.post_id) return '/forum';
+		// `forum` route expects /forum/[username]/[id], but notifications only store the post id.
+		// Username is not used by the forum post detail loader, so we can pass a safe placeholder.
+		return `/forum/unknown/${n.post_id}`;
 	}
 
 	function iconFor(n: NotificationRow) {

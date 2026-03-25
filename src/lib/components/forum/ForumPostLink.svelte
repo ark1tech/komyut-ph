@@ -5,7 +5,7 @@
 	import { cn } from '$lib/utils';
 
 	interface LinkedPost {
-		post_id: number;
+		post_id: string;
 		title: string;
 		author?: { username: string } | null;
 	}

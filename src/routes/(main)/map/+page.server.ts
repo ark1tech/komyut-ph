@@ -4,13 +4,39 @@ import { getRouteSubscription } from '$lib/server/routeSubscriptions';
 import { routeIdParamSchema, savedRouteSchema } from '$lib/validation/schemas';
 import { findMockSavedRouteById, toSubscribableSavedRoute } from '$lib/data/mock_routes';
 
+interface RouteGeometryResult {
+	route_id: number;
+	geometry: string | GeoJSON.LineString;
+}
+
+async function loadRouteGeometryById(
+	supabase: Parameters<PageServerLoad>[0]['locals']['supabase'],
+	routeId: number | null
+): Promise<RouteGeometryResult | null> {
+	if (!routeId) return null;
+
+	const { data, error: geometryError } = await supabase
+		.from('route')
+		.select('route_id, geometry')
+		.eq('route_id', routeId)
+		.maybeSingle();
+
+	if (geometryError) {
+		console.error('Failed to load selected route geometry', geometryError);
+		return null;
+	}
+
+	return data ?? null;
+}
+
 export const load: PageServerLoad = async ({ url, locals: { supabase, safeGetSession } }) => {
 	const rawRouteId = url.searchParams.get('route');
 	if (!rawRouteId) {
 		return {
 			routeSelectionInvalid: false,
 			selectedRoute: null,
-			selectedSubscription: null
+			selectedSubscription: null,
+			selectedRouteGeometry: null
 		};
 	}
 
@@ -19,17 +45,23 @@ export const load: PageServerLoad = async ({ url, locals: { supabase, safeGetSes
 		return {
 			routeSelectionInvalid: true,
 			selectedRoute: null,
-			selectedSubscription: null
+			selectedSubscription: null,
+			selectedRouteGeometry: null
 		};
 	}
 
 	const { session } = await safeGetSession();
 	if (!session) {
 		const fallbackRoute = findMockSavedRouteById(parsedRouteId.data.routeId);
+		const fallbackRouteGeometry = await loadRouteGeometryById(
+			supabase,
+			fallbackRoute?.geo_route_id ?? null
+		);
 		return {
 			routeSelectionInvalid: fallbackRoute == null,
 			selectedRoute: fallbackRoute,
-			selectedSubscription: null
+			selectedSubscription: null,
+			selectedRouteGeometry: fallbackRouteGeometry
 		};
 	}
 
@@ -60,7 +92,8 @@ export const load: PageServerLoad = async ({ url, locals: { supabase, safeGetSes
 		return {
 			routeSelectionInvalid: true,
 			selectedRoute: null,
-			selectedSubscription: null
+			selectedSubscription: null,
+			selectedRouteGeometry: null
 		};
 	}
 
@@ -73,10 +106,15 @@ export const load: PageServerLoad = async ({ url, locals: { supabase, safeGetSes
 	const selectedSubscription = parsedSelectedRoute.data.geo_route_id
 		? await getRouteSubscription(supabase, session.user.id, parsedSelectedRoute.data.geo_route_id)
 		: null;
+	const selectedRouteGeometry = await loadRouteGeometryById(
+		supabase,
+		parsedSelectedRoute.data.geo_route_id
+	);
 
 	return {
 		routeSelectionInvalid: false,
 		selectedRoute: parsedSelectedRoute.data,
-		selectedSubscription
+		selectedSubscription,
+		selectedRouteGeometry
 	};
 };

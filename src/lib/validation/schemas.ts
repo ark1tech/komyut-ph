@@ -20,12 +20,13 @@ export const loginEmailSchema = z.string().email().max(255);
 
 export const passwordSchema = z.string().min(8).max(128);
 
+// All forum/thread identifiers are UUIDs now.
+// Zod 4 deprecates `z.string().uuid()`; use `z.uuid()` instead.
+const postIdSchema = z.uuid();
+
 export const forumPostParamsSchema = z.object({
 	username: z.string().min(1).max(255),
-	id: z
-		.string()
-		.regex(/^\d+$/)
-		.transform((v: string) => Number(v))
+	id: postIdSchema
 });
 
 export const mapLocationQuerySchema = z.object({
@@ -125,7 +126,7 @@ export const routeChangeEventCreateSchema = z.object({
 // ---------- Supabase output DTO schemas ----------
 
 export const postSummarySchema = z.object({
-	post_id: z.number().int(),
+	post_id: postIdSchema,
 	title: z.string(),
 	body: z.string(),
 	upvotes: z.number().int(),
@@ -157,13 +158,13 @@ export const commentAuthorSchema = z.object({
 
 export const commentSchema = z.object({
 	comment_id: z.number().int(),
-	parent_id: z.number().int(),
+	parent_id: postIdSchema,
 	created_at: z.string(),
 	last_edited: z.string(),
 	body: z.string(),
 	upvotes: z.number().int(),
 	downvotes: z.number().int(),
-	linked_post_id: z.number().int().nullable()
+	linked_post_id: postIdSchema.nullable()
 }) satisfies z.ZodType<
 	Pick<
 		CommentRow,
@@ -188,7 +189,7 @@ export const notificationSchema = z.object({
 	message: z.string(),
 	is_read: z.boolean(),
 	created_at: z.string(),
-	post_id: z.number().int().nullable(),
+	post_id: postIdSchema.nullable(),
 	route_id: z.number().int().nullable()
 }) satisfies z.ZodType<
 	Pick<

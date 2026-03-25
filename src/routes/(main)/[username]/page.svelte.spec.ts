@@ -16,7 +16,7 @@ interface MockUser {
 }
 
 interface MockPost {
-	post_id: number;
+	post_id: string;
 	title: string;
 	body: string;
 	upvotes: number;
@@ -25,6 +25,12 @@ interface MockPost {
 	last_edited: string;
 	author: { uid: string; username: string; full_name: string } | null;
 }
+
+const POST_1 = '11111111-1111-1111-1111-111111111111';
+const POST_2 = '22222222-2222-2222-2222-222222222222';
+const POST_3 = '33333333-3333-3333-3333-333333333333';
+const POST_4 = '44444444-4444-4444-4444-444444444444';
+const POST_5 = '55555555-5555-5555-5555-555555555555';
 
 const mockUsers: MockUser[] = [
 	{
@@ -61,7 +67,7 @@ const mockUsers: MockUser[] = [
 
 const mockPosts: MockPost[] = [
 	{
-		post_id: 1,
+		post_id: POST_1,
 		title: 'How to get from Quezon City to Makati?',
 		body: 'Looking for the best route.',
 		upvotes: 10,
@@ -71,7 +77,7 @@ const mockPosts: MockPost[] = [
 		author: { uid: 'u1', username: 'sarahm', full_name: 'Sarah Martinez' }
 	},
 	{
-		post_id: 2,
+		post_id: POST_2,
 		title: 'Best way to Mall of Asia from Cubao?',
 		body: 'Any tips?',
 		upvotes: 5,
@@ -81,7 +87,7 @@ const mockPosts: MockPost[] = [
 		author: { uid: 'u2', username: 'jchen', full_name: 'James Chen' }
 	},
 	{
-		post_id: 3,
+		post_id: POST_3,
 		title: 'Commuting tips for beginners',
 		body: 'New to commuting here.',
 		upvotes: 8,
@@ -91,7 +97,7 @@ const mockPosts: MockPost[] = [
 		author: { uid: 'u3', username: 'emilyjay', full_name: 'Emily Johnson' }
 	},
 	{
-		post_id: 4,
+		post_id: POST_4,
 		title: 'Late night commute from BGC to Fairview',
 		body: 'Is it safe?',
 		upvotes: 3,
@@ -101,7 +107,7 @@ const mockPosts: MockPost[] = [
 		author: { uid: 'u1', username: 'sarahm', full_name: 'Sarah Martinez' }
 	},
 	{
-		post_id: 5,
+		post_id: POST_5,
 		title: 'Jeepney routes in Mandaluyong',
 		body: 'Which ones go to Ortigas?',
 		upvotes: 6,
@@ -112,7 +118,7 @@ const mockPosts: MockPost[] = [
 	}
 ];
 
-const mockCommentCounts: Record<number, number> = { 1: 3 };
+const mockCommentCounts: Record<string, number> = { [POST_1]: 3 };
 
 /* ════════════════════════════════════════════════════════════════
  * [USERNAME] PAGE COMPONENT TESTS
@@ -192,7 +198,7 @@ describe('[username]/+page.svelte', () => {
 
 		it('should have correct comment counts for sarahm posts', async () => {
 			// post 1 has 3 comments, post 11 (sarahm's 2nd) has 0 in commentCounts
-			expect(data.commentCounts[1]).toBe(3);
+			expect(data.commentCounts[POST_1]).toBe(3);
 		});
 	});
 
