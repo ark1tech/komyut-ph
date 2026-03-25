@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import maplibregl, { type GeoJSONSource } from 'maplibre-gl';
 	import 'maplibre-gl/dist/maplibre-gl.css';
 
@@ -28,7 +29,13 @@
 	let container: HTMLDivElement;
 	let map = $state<maplibregl.Map | null>(null);
 	let ready = $state(false);
+	let mapStyleLoaded = $state(false);
 	let activeRouteId = $state<string | null>(null);
+	let userLocationMarker: maplibregl.Marker | null = null;
+
+	/** Only fit camera once per selected route id (avoids repeated jarring moves). Not UI state. */
+	let lastFittedRouteId: string | null = null;
+	let fitGeneration = 0;
 
 	// Route tracing state
 	let tracingMode = $state(false);
@@ -39,6 +46,9 @@
 	// Hardcoded start/end location OSM IDs for traced route saving
 	const TRACE_START_LOC = 371357222;
 	const TRACE_END_LOC = 28756784;
+	const ROUTE_FIT_BASE_PADDING_PX = 96;
+	// Increase/decrease this value to account for overlays at the bottom of the map.
+	const ROUTE_FIT_BOTTOM_OFFSET_PX = 180;
 
 	function parseGeometry(geometry: string | GeoJSON.LineString): GeoJSON.LineString | null {
 		if (typeof geometry !== 'string') return geometry;
@@ -114,6 +124,84 @@
 		});
 
 		activeRouteId = String(route.route_id);
+	}
+
+	/** Real GPS only; `null` when permission denied / unavailable (fit route only). */
+	function getUserLocationForBounds(): Promise<[number, number] | null> {
+		return new Promise((resolve) => {
+			if (!navigator.geolocation) {
+				resolve(null);
+				return;
+			}
+			navigator.geolocation.getCurrentPosition(
+				(pos) => resolve([pos.coords.longitude, pos.coords.latitude]),
+				() => resolve(null),
+				{ enableHighAccuracy: true, timeout: 5000 }
+			);
+		});
+	}
+
+	function fitBoundsForRouteAndUser(
+		geometry: GeoJSON.LineString,
+		userLngLat: [number, number] | null
+	) {
+		if (!map) return;
+
+		const bounds = new maplibregl.LngLatBounds();
+		for (const c of geometry.coordinates) {
+			bounds.extend(c as [number, number]);
+		}
+		if (userLngLat) {
+			bounds.extend(userLngLat);
+		}
+
+		map.fitBounds(bounds, {
+			padding: {
+				top: ROUTE_FIT_BASE_PADDING_PX,
+				right: ROUTE_FIT_BASE_PADDING_PX,
+				bottom: ROUTE_FIT_BASE_PADDING_PX + ROUTE_FIT_BOTTOM_OFFSET_PX,
+				left: ROUTE_FIT_BASE_PADDING_PX
+			},
+			maxZoom: 16,
+			duration: 600
+		});
+	}
+
+	function upsertUserLocationMarker(userLngLat: [number, number] | null) {
+		if (!map || !userLngLat) return;
+
+		if (userLocationMarker) {
+			userLocationMarker.setLngLat(userLngLat);
+			return;
+		}
+
+		const el = document.createElement('div');
+		el.style.width = '14px';
+		el.style.height = '14px';
+		el.style.borderRadius = '9999px';
+		el.style.backgroundColor = '#2563eb';
+		el.style.border = '2px solid white';
+		el.style.boxShadow = '0 0 0 4px rgba(37,99,235,0.28)';
+
+		userLocationMarker = new maplibregl.Marker({ element: el }).setLngLat(userLngLat).addTo(map);
+	}
+
+	async function fitRouteWhenNew(route: Route) {
+		const id = String(route.route_id);
+		if (lastFittedRouteId === id) return;
+
+		const geometry = parseGeometry(route.geometry);
+		if (!geometry) return;
+
+		const gen = ++fitGeneration;
+		const userLngLat = await getUserLocationForBounds();
+
+		if (gen !== fitGeneration) return;
+		if (!map || !selectedRoute || String(selectedRoute.route_id) !== id) return;
+
+		upsertUserLocationMarker(userLngLat);
+		lastFittedRouteId = id;
+		fitBoundsForRouteAndUser(geometry, userLngLat);
 	}
 
 	function startTracing() {
@@ -271,7 +359,7 @@
 		});
 	}
 
-	$effect(() => {
+	onMount(() => {
 		let cancelled = false;
 
 		getUserLocation().then((userCenter) => {
@@ -289,18 +377,15 @@
 
 			const geolocate = new maplibregl.GeolocateControl({
 				positionOptions: { enableHighAccuracy: true },
-				trackUserLocation: true,
+				trackUserLocation: false,
 				showUserLocation: true
 			});
 			instance.addControl(geolocate, 'top-right');
 
 			instance.on('load', () => {
-				geolocate.trigger();
+				if (cancelled) return;
+				mapStyleLoaded = true;
 				instance.on('click', onMapClickForTracing);
-
-				if (selectedRoute) {
-					displayRoute(selectedRoute);
-				}
 			});
 
 			map = instance;
@@ -309,9 +394,14 @@
 
 		return () => {
 			cancelled = true;
+			mapStyleLoaded = false;
+			lastFittedRouteId = null;
+			fitGeneration++;
 			if (map) {
 				clearRoutes();
 				clearTraceMarkers();
+				userLocationMarker?.remove();
+				userLocationMarker = null;
 				map.remove();
 				map = null;
 			}
@@ -319,16 +409,18 @@
 	});
 
 	$effect(() => {
-		if (!map) return;
+		if (!map || !mapStyleLoaded) return;
 
 		if (!selectedRoute) {
 			clearRoutes();
+			lastFittedRouteId = null;
 			return;
 		}
 
 		if (!map.isStyleLoaded()) return;
 
 		displayRoute(selectedRoute);
+		void fitRouteWhenNew(selectedRoute);
 	});
 </script>
 

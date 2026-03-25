@@ -9,6 +9,22 @@ interface RouteGeometryResult {
 	geometry: string | GeoJSON.LineString;
 }
 
+function isLineStringGeometry(value: unknown): value is GeoJSON.LineString {
+	if (typeof value !== 'object' || value === null) return false;
+	const candidate = value as { type?: unknown; coordinates?: unknown };
+	return (
+		candidate.type === 'LineString' &&
+		Array.isArray(candidate.coordinates) &&
+		candidate.coordinates.every(
+			(point) =>
+				Array.isArray(point) &&
+				point.length >= 2 &&
+				typeof point[0] === 'number' &&
+				typeof point[1] === 'number'
+		)
+	);
+}
+
 async function loadRouteGeometryById(
 	supabase: Parameters<PageServerLoad>[0]['locals']['supabase'],
 	routeId: number | null
@@ -26,7 +42,14 @@ async function loadRouteGeometryById(
 		return null;
 	}
 
-	return data ?? null;
+	if (!data) return null;
+	if (typeof data.geometry === 'string' || isLineStringGeometry(data.geometry)) {
+		return {
+			route_id: data.route_id,
+			geometry: data.geometry
+		};
+	}
+	return null;
 }
 
 export const load: PageServerLoad = async ({ url, locals: { supabase, safeGetSession } }) => {
