@@ -8,7 +8,7 @@
 
 	let { data } = $props();
 
-	type ViewOption = 'recent' | 'saved';
+	type ViewOption = 'recent' | 'subscribed';
 
 	const PER_PAGE = 5;
 
@@ -17,7 +17,7 @@
 	let currentPage = $derived(Number(page.url.searchParams.get('page')) || 1);
 
 	const activeList = $derived(
-		activeView === 'recent' ? data.recentRoutes : data.savedRoutes
+		activeView === 'recent' ? data.recentRoutes : data.subscribedRoutes
 	);
 
 	let filteredRoutes = $derived.by(() => {
@@ -49,7 +49,7 @@
 
 <svelte:head>
 	<title>Routes | Komyut PH</title>
-	<meta name="description" content="Recently used and saved routes" />
+	<meta name="description" content="Recently used and subscribed routes" />
 </svelte:head>
 
 <RoutesSortBar active={activeView} onchange={handleViewChange} class="px-fluid-sm pt-fluid-sm" />

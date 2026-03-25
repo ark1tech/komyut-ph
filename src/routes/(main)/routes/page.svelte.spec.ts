@@ -23,7 +23,7 @@ import Page from './+page.svelte';
  * ════════════════════════════════════════════════════════════════
  *
  * Tests the /routes page which displays:
- *   - Recents / Saved toggle (radiogroup)
+ *   - Recents / Subscribed toggle (radiogroup)
  *   - Route cards with name, locations, attributes
 	*   - Empty route list behavior
 	*   - Pagination state updates when switching views
@@ -50,7 +50,7 @@ const mockRoute = {
 function buildRoutesData(overrides: Record<string, unknown> = {}) {
 	return {
 		recentRoutes: [],
-		savedRoutes: [],
+		subscribedRoutes: [],
 		unreadRouteAlerts: 0,
 		...overrides
 	} as unknown as import('./$types').PageData;
@@ -78,11 +78,11 @@ describe('Routes Page', () => {
 			await expect.element(recents).toBeInTheDocument();
 		});
 
-		it('should render Saved toggle button', async () => {
+		it('should render Subscribed toggle button', async () => {
 			render(Page, { props: { data: buildRoutesData() } });
 
-			const saved = page.getByRole('radio', { name: /Saved/ });
-			await expect.element(saved).toBeInTheDocument();
+			const subscribed = page.getByRole('radio', { name: /Subscribed/ });
+			await expect.element(subscribed).toBeInTheDocument();
 		});
 
 		it('should default to Recents view', async () => {
@@ -92,12 +92,12 @@ describe('Routes Page', () => {
 			await expect.element(recents).toHaveAttribute('aria-checked', 'true');
 		});
 
-		it('should switch to Saved view on click', async () => {
+		it('should switch to Subscribed view on click', async () => {
 			render(Page, { props: { data: buildRoutesData() } });
 
-			const saved = page.getByRole('radio', { name: /Saved/ });
-			await saved.click();
-			await expect.element(saved).toHaveAttribute('aria-checked', 'true');
+			const subscribed = page.getByRole('radio', { name: /Subscribed/ });
+			await subscribed.click();
+			await expect.element(subscribed).toHaveAttribute('aria-checked', 'true');
 			expect(gotoMock).toHaveBeenCalledWith('?page=1', { keepFocus: true, noScroll: true });
 		});
 
@@ -117,25 +117,27 @@ describe('Routes Page', () => {
 			await expect.element(page.getByRole('article').first()).not.toBeInTheDocument();
 		});
 
-		it('should render no route cards when savedRoutes is empty', async () => {
+		it('should render no route cards when subscribedRoutes is empty', async () => {
 			render(Page, { props: { data: buildRoutesData() } });
 
-			const saved = page.getByRole('radio', { name: /Saved/ });
-			await saved.click();
+			const subscribed = page.getByRole('radio', { name: /Subscribed/ });
+			await subscribed.click();
 
 			await expect.element(page.getByRole('article').first()).not.toBeInTheDocument();
 		});
 
-		it('should clear recent route cards after switching to an empty saved list', async () => {
+		it('should clear recent route cards after switching to an empty subscribed list', async () => {
 			render(
 				Page,
-				{ props: { data: buildRoutesData({ recentRoutes: [mockRoute], savedRoutes: [] }) } }
+				{
+					props: { data: buildRoutesData({ recentRoutes: [mockRoute], subscribedRoutes: [] }) }
+				}
 			);
 
 			await expect.element(page.getByText('Morning Commute')).toBeInTheDocument();
 
-			const saved = page.getByRole('radio', { name: /Saved/ });
-			await saved.click();
+			const subscribed = page.getByRole('radio', { name: /Subscribed/ });
+			await subscribed.click();
 
 			await expect.element(page.getByText('Morning Commute')).not.toBeInTheDocument();
 		});
