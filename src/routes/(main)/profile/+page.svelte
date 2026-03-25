@@ -1,7 +1,7 @@
 <script lang="ts">
 	/* eslint-disable svelte/no-navigation-without-resolve */
 
-	import { goto } from '$app/navigation';
+	import { goto, invalidateAll } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import {
@@ -81,6 +81,7 @@
 			console.error('signout error');
 		} else {
 			goto('/login');
+			invalidateAll();
 		}
 	}
 </script>
