@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { invalidateAll } from '$app/navigation';
+	import { goto, invalidateAll } from '$app/navigation';
+	import { page } from '$app/state';
 	import Map from '$lib/components/map/Map.svelte';
 	import MapSearchBar from '$lib/components/map/MapSearchBar.svelte';
 	import RouteSubscribeButton from '$lib/components/routes/RouteSubscribeButton.svelte';
@@ -153,6 +154,7 @@
 	let loadingRoutes = $state(false);
 	let routeError = $state<string | null>(null);
 	let hasSearched = $state(false);
+	let hasSelectedRoutePopup = $derived(Boolean(data.selectedRoute));
 
 	async function handleSearch(payload: { start: string; end: string }) {
 		loadingRoutes = true;
@@ -183,6 +185,15 @@
 		selectedRoute = route;
 		selectedRouteId = String(route.route_id);
 	}
+
+	async function closeSelectedRoutePopup() {
+		const nextUrl = new URL(page.url);
+		nextUrl.searchParams.delete('route');
+
+		const target = `${nextUrl.pathname}${nextUrl.search}`;
+		// eslint-disable-next-line svelte/no-navigation-without-resolve
+		await goto(target, { keepFocus: true, noScroll: true, replaceState: true });
+	}
 </script>
 
 <svelte:head>
@@ -191,8 +202,7 @@
 </svelte:head>
 
 <div class="relative flex-1">
-	<Map />
-	<MapSearchBar />
+	<Map {selectedRoute} controlsHidden={hasSelectedRoutePopup} />
 
 	{#if data.routeSelectionInvalid}
 		<div class="pointer-events-none absolute inset-x-0 top-4 z-20 px-4">
@@ -204,7 +214,17 @@
 
 	{#if data.selectedRoute}
 		<div class="pointer-events-none absolute inset-x-0 bottom-20 z-20 px-4">
-			<section class="pointer-events-auto rounded-[1.75rem] border border-border/70 bg-card/95 p-4 shadow-xl backdrop-blur">
+			<section class="pointer-events-auto relative rounded-[1.75rem] border border-border/70 bg-card/95 p-4 shadow-xl backdrop-blur">
+				<Button.Root
+					variant="ghost"
+					size="icon-sm"
+					class="absolute top-3 right-3 z-10 shrink-0 text-muted-foreground transition-colors hover:text-foreground"
+					onclick={() => void closeSelectedRoutePopup()}
+				>
+					<X class="size-4" />
+					<span class="sr-only">Close route details</span>
+				</Button.Root>
+
 				<div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
 					<div class="min-w-0 flex-1">
 						<p class="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
@@ -345,68 +365,69 @@
 			</section>
 		</div>
 	{/if}
-	<Map {selectedRoute} />
-	<MapSearchBar onSearch={handleSearch} loading={loadingRoutes} errorMessage={routeError} />
-	<Drawer.Root>
-		<Drawer.Trigger
-			class="absolute top-4 left-4 z-20 w-32 rounded-lg bg-white px-4 py-2 text-sm font-medium text-black shadow-md hover:bg-gray-50"
-		>
-			View Routes
-		</Drawer.Trigger>
-		<Drawer.Content>
-			<Drawer.Header>
-				<Drawer.Title>Available Routes</Drawer.Title>
-				<Drawer.Description>Select a route to draw it on the map.</Drawer.Description>
-			</Drawer.Header>
+	{#if !hasSelectedRoutePopup}
+		<MapSearchBar onSearch={handleSearch} loading={loadingRoutes} errorMessage={routeError} />
+		<Drawer.Root>
+			<Drawer.Trigger
+				class="absolute top-4 left-4 z-20 w-32 rounded-lg bg-white px-4 py-2 text-sm font-medium text-black shadow-md hover:bg-gray-50"
+			>
+				View Routes
+			</Drawer.Trigger>
+			<Drawer.Content>
+				<Drawer.Header>
+					<Drawer.Title>Available Routes</Drawer.Title>
+					<Drawer.Description>Select a route to draw it on the map.</Drawer.Description>
+				</Drawer.Header>
 
-			<div class="max-h-[60vh] space-y-2 overflow-y-auto px-4 pb-4">
-				{#if loadingRoutes}
-					<p
-						class="rounded-lg border border-border bg-muted px-3 py-2 text-sm text-muted-foreground"
-					>
-						Loading routes...
-					</p>
-				{:else if routeError}
-					<p class="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">
-						{routeError}
-					</p>
-				{:else if !hasSearched}
-					<p
-						class="rounded-lg border border-border bg-muted px-3 py-2 text-sm text-muted-foreground"
-					>
-						Enter start and end OSM IDs, then search to load routes.
-					</p>
-				{:else if routes.length === 0}
-					<p
-						class="rounded-lg border border-border bg-muted px-3 py-2 text-sm text-muted-foreground"
-					>
-						No routes are available for the selected start and end locations.
-					</p>
-				{:else}
-					{#each routes as route}
-						<button
-							type="button"
-							onclick={() => selectRoute(route)}
-							class={`w-full rounded-lg border px-3 py-2 text-left text-sm shadow-sm transition ${
-								selectedRouteId === String(route.route_id)
-									? 'border-blue-500 bg-blue-50 text-blue-900'
-									: 'border-border bg-white hover:bg-muted'
-							}`}
+				<div class="max-h-[60vh] space-y-2 overflow-y-auto px-4 pb-4">
+					{#if loadingRoutes}
+						<p
+							class="rounded-lg border border-border bg-muted px-3 py-2 text-sm text-muted-foreground"
 						>
-							<p class="font-medium">Route #{route.route_id}</p>
-							<p class="text-xs text-muted-foreground">Click to preview this route on the map</p>
-						</button>
-					{/each}
-				{/if}
-			</div>
+							Loading routes...
+						</p>
+					{:else if routeError}
+						<p class="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">
+							{routeError}
+						</p>
+					{:else if !hasSearched}
+						<p
+							class="rounded-lg border border-border bg-muted px-3 py-2 text-sm text-muted-foreground"
+						>
+							Enter start and end OSM IDs, then search to load routes.
+						</p>
+					{:else if routes.length === 0}
+						<p
+							class="rounded-lg border border-border bg-muted px-3 py-2 text-sm text-muted-foreground"
+						>
+							No routes are available for the selected start and end locations.
+						</p>
+					{:else}
+						{#each routes as route (route.route_id)}
+							<button
+								type="button"
+								onclick={() => selectRoute(route)}
+								class={`w-full rounded-lg border px-3 py-2 text-left text-sm shadow-sm transition ${
+									selectedRouteId === String(route.route_id)
+										? 'border-blue-500 bg-blue-50 text-blue-900'
+										: 'border-border bg-white hover:bg-muted'
+								}`}
+							>
+								<p class="font-medium">Route #{route.route_id}</p>
+								<p class="text-xs text-muted-foreground">Click to preview this route on the map</p>
+							</button>
+						{/each}
+					{/if}
+				</div>
 
-			<Drawer.Footer>
-				<Drawer.Close
-					class="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-black hover:bg-gray-200"
-				>
-					Close
-				</Drawer.Close>
-			</Drawer.Footer>
-		</Drawer.Content>
-	</Drawer.Root>
+				<Drawer.Footer>
+					<Drawer.Close
+						class="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-black hover:bg-gray-200"
+					>
+						Close
+					</Drawer.Close>
+				</Drawer.Footer>
+			</Drawer.Content>
+		</Drawer.Root>
+	{/if}
 </div>

@@ -12,13 +12,15 @@
 		zoom?: number;
 		style?: string;
 		selectedRoute?: Route | null;
+		controlsHidden?: boolean;
 	}
 
 	let {
 		center = [120.9842, 14.5995],
 		zoom = 12,
 		style = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
-		selectedRoute = null
+		selectedRoute = null,
+		controlsHidden = false
 	}: Props = $props();
 
 	const FALLBACK_CENTER: [number, number] = [120.9842, 14.5995];
@@ -335,7 +337,7 @@
 		<p class="text-sm text-muted-foreground">Loading map...</p>
 	</div>
 {/if}
-{#if activeRouteId && !tracingMode}
+{#if activeRouteId && !tracingMode && !controlsHidden}
 	<button
 		onclick={() => clearRoutes()}
 		class="absolute top-16 left-4 z-20 w-32 rounded-lg bg-white px-4 py-2 text-sm font-medium text-black shadow-md hover:bg-gray-50"
@@ -344,7 +346,7 @@
 	</button>
 {/if}
 
-{#if ready && !tracingMode}
+{#if ready && !tracingMode && !controlsHidden}
 	<button
 		onclick={startTracing}
 		class="absolute bottom-52 left-4 z-20 rounded-lg bg-blue-500 px-4 py-2 text-white shadow-md hover:bg-red-600"
@@ -353,7 +355,7 @@
 	</button>
 {/if}
 
-{#if tracingMode}
+{#if tracingMode && !controlsHidden}
 	<div class="absolute bottom-52 left-4 z-20 flex items-center gap-2">
 		<button
 			onclick={undoLastPoint}
