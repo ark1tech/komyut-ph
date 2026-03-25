@@ -5,6 +5,11 @@ import {
 	forumPostParamsSchema,
 	postDetailSchema
 } from '$lib/validation/schemas';
+import {
+	COMMENT_WITH_AUTHOR_SELECT,
+	LINKED_POST_SELECT,
+	POST_WITH_AUTHOR_SELECT
+} from '$lib/server/supabaseSelects';
 
 export const load: PageServerLoad = async ({ params, locals: { supabase } }) => {
 	const parsedParams = forumPostParamsSchema.safeParse(params);
@@ -15,22 +20,7 @@ export const load: PageServerLoad = async ({ params, locals: { supabase } }) => 
 
 	const { data: post, error: postError } = await supabase
 		.from('post')
-		.select(
-			`
-			post_id,
-			title,
-			body,
-			upvotes,
-			downvotes,
-			created_at,
-			last_edited,
-			author:user!post_author_id_fkey (
-				uid,
-				username,
-				full_name
-			)
-		`
-		)
+		.select(POST_WITH_AUTHOR_SELECT)
 		.eq('post_id', postId)
 		.maybeSingle();
 
@@ -50,23 +40,7 @@ export const load: PageServerLoad = async ({ params, locals: { supabase } }) => 
 
 	const { data: rawComments, error: commentsError } = await supabase
 		.from('comment')
-		.select(
-			`
-			comment_id,
-			parent_id,
-			created_at,
-			last_edited,
-			body,
-			upvotes,
-			downvotes,
-			linked_post_id,
-			author:user!comment_author_id_fkey (
-				uid,
-				username,
-				full_name
-			)
-		`
-		)
+		.select(COMMENT_WITH_AUTHOR_SELECT)
 		.eq('parent_id', postId)
 		.order('created_at', { ascending: true });
 
@@ -96,15 +70,7 @@ export const load: PageServerLoad = async ({ params, locals: { supabase } }) => 
 	if (linkedPostIds.length > 0) {
 		const { data: linkedRows, error: linkedError } = await supabase
 			.from('post')
-			.select(
-				`
-				post_id,
-				title,
-				author:user!post_author_id_fkey (
-					username
-				)
-			`
-			)
+			.select(LINKED_POST_SELECT)
 			.in('post_id', linkedPostIds);
 
 		if (linkedError) {

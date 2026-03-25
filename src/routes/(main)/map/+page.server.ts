@@ -2,10 +2,7 @@ import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { getRouteSubscription } from '$lib/server/routeSubscriptions';
 import { routeIdParamSchema, savedRouteSchema } from '$lib/validation/schemas';
-import {
-	findMockSavedRouteById,
-	toSubscribableSavedRoute
-} from '$lib/data/mock_routes';
+import { findMockSavedRouteById, toSubscribableSavedRoute } from '$lib/data/mock_routes';
 
 export const load: PageServerLoad = async ({ url, locals: { supabase, safeGetSession } }) => {
 	const rawRouteId = url.searchParams.get('route');
@@ -55,12 +52,9 @@ export const load: PageServerLoad = async ({ url, locals: { supabase, safeGetSes
 	const routeSource = selectedRoute
 		? toSubscribableSavedRoute({
 				...selectedRoute,
-				geo_route_id:
-					selectedRoute.geo_route_id ??
-					findMockSavedRouteById(parsedRouteId.data.routeId)?.geo_route_id ??
-					selectedRoute.saved_route_id
+				geo_route_id: selectedRoute.geo_route_id ?? selectedRoute.saved_route_id
 			})
-		: findMockSavedRouteById(parsedRouteId.data.routeId);
+		: null;
 
 	if (!routeSource) {
 		return {

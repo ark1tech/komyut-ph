@@ -1,6 +1,6 @@
 <script lang="ts">
+	/* eslint-disable svelte/no-navigation-without-resolve */
 	import { Accessibility, Bell, Clock, Coins } from '@lucide/svelte';
-	import { resolve } from '$app/paths';
 	import { cn } from '$lib/utils';
 	import type { SavedRouteDTO } from '$lib/validation/schemas';
 
@@ -12,7 +12,7 @@
 
 	let { route, view, class: className }: Props = $props();
 
-	const mapHref = $derived(resolve(`/map?route=${route.saved_route_id}`));
+	const mapHref = $derived(`/map?route=${route.geo_route_id ?? route.saved_route_id}`);
 </script>
 
 <article

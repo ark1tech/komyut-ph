@@ -11,7 +11,7 @@
 
 	const PER_PAGE = 5;
 
-	let activeSort = $state<SortOption>('hot');
+	let activeSort = $state<SortOption>('top');
 
 	let currentPage = $derived(Number(page.url.searchParams.get('page')) || 1);
 

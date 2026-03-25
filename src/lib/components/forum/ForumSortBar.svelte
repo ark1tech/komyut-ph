@@ -10,7 +10,7 @@
 		class?: string;
 	}
 
-	let { active = 'hot', onchange, class: className }: Props = $props();
+	let { active = 'top', onchange, class: className }: Props = $props();
 
 	const sortOptions: { value: SortOption; label: string; icon: typeof ArrowBigUp }[] = [
 		{ value: 'top', label: 'Top', icon: ArrowBigUp },

@@ -2,12 +2,9 @@ import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { savedRouteSchema } from '$lib/validation/schemas';
 import { getOrSetCached } from '$lib/server/cache';
+import { SAVED_ROUTE_SELECT } from '$lib/server/supabaseSelects';
 import { listRouteSubscriptions } from '$lib/server/routeSubscriptions';
-import {
-	findMockSavedRouteById,
-	getMockSavedRoutes,
-	toSubscribableSavedRoute
-} from '$lib/data/mock_routes';
+import { getMockSavedRoutes, toSubscribableSavedRoute } from '$lib/data/mock_routes';
 
 const ROUTES_TTL_MS = 55_000;
 
@@ -30,9 +27,7 @@ export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession 
 		async () => {
 			const { data: allRoutes, error: routesError } = await supabase
 				.from('saved_route')
-				.select(
-					'saved_route_id, route_name, start_loc, end_loc, vehicle_types, pwd_friendly, est_time_of_arrival, fare, created_at'
-				)
+				.select(SAVED_ROUTE_SELECT)
 				.eq('user_id', session.user.id)
 				.order('created_at', { ascending: false });
 
@@ -51,16 +46,14 @@ export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession 
 				parsedRoutes.data.length > 0
 					? parsedRoutes.data.map(toSubscribableSavedRoute)
 					: getMockSavedRoutes();
+			const userSavedRouteIds = new Set(parsedRoutes.data.map((r) => r.saved_route_id));
 			const subscriptions = await listRouteSubscriptions(supabase, session.user.id);
 			const subscribedRoutes = subscriptions
-				.map((subscription) => {
-					if (subscription.saved_route) {
-						return toSubscribableSavedRoute(subscription.saved_route);
-					}
-
-					return findMockSavedRouteById(subscription.saved_route_id ?? subscription.route_id);
-				})
-				.filter((route): route is NonNullable<typeof route> => route != null);
+				.flatMap((subscription) => {
+					const saved = subscription.saved_route;
+					if (!saved || !userSavedRouteIds.has(saved.saved_route_id)) return [];
+					return [toSubscribableSavedRoute(saved)];
+				});
 
 			// Most recent 6 as "recent"
 			const recentRoutes = routes.slice(0, 6);

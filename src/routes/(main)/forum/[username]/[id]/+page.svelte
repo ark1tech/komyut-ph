@@ -12,7 +12,7 @@
 	let commentText = $state('');
 
 	type SortOption = 'top' | 'hot' | 'latest';
-	let commentSort = $state<SortOption>('hot');
+	let commentSort = $state<SortOption>('top');
 
 	let sortedComments = $derived.by(() => {
 		const list = [...comments];

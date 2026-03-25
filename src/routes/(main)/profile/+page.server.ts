@@ -1,6 +1,7 @@
 import { error, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { userProfileSchema } from '$lib/validation/schemas';
+import { USER_PROFILE_SELECT } from '$lib/server/supabaseSelects';
 
 export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession } }) => {
 	const { session } = await safeGetSession();
@@ -13,7 +14,7 @@ export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession 
 	try {
 		const { data, error: userError } = await supabase
 			.from('user')
-			.select(`full_name, username, email, avatar_url`)
+			.select(USER_PROFILE_SELECT)
 			.eq('uid', session.user.id)
 			.single();
 

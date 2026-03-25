@@ -11,7 +11,7 @@
 
 	let { data } = $props();
 
-	let subscription = $state<typeof data.selectedSubscription>(null);
+	let subscription = $derived(data.selectedSubscription);
 	let routeNameDraft = $state('');
 	let routeNameInput = $state<HTMLInputElement | null>(null);
 	let isEditingRouteName = $state(false);
@@ -34,10 +34,6 @@
 				!savingRouteName
 		)
 	);
-
-	$effect(() => {
-		subscription = data.selectedSubscription;
-	});
 
 	$effect(() => {
 		if (currentRouteKey !== previousRouteKey) {
