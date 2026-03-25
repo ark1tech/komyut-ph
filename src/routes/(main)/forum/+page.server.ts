@@ -1,6 +1,7 @@
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { getOrSetCached } from '$lib/server/cache';
+import { POST_WITH_AUTHOR_SELECT } from '$lib/server/supabaseSelects';
 
 const FORUM_TTL_MS = 55_000;
 
@@ -13,22 +14,7 @@ export const load: PageServerLoad = async ({ locals: { supabase } }) => {
 		async () => {
 			const { data: posts, error: postsError } = await supabase
 				.from('post')
-				.select(
-					`
-					post_id,
-					title,
-					body,
-					upvotes,
-					downvotes,
-					created_at,
-					last_edited,
-					author:user!post_author_id_fkey (
-						uid,
-						username,
-						full_name
-					)
-				`
-				)
+				.select(POST_WITH_AUTHOR_SELECT)
 				.order('created_at', { ascending: false });
 
 			if (postsError) {

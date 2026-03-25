@@ -235,6 +235,70 @@ export type Database = {
 				};
 				Relationships: [];
 			};
+			route_subscription: {
+				Row: {
+					alert_types: string[];
+					created_at: string;
+					notify_email: boolean;
+					notify_in_app: boolean;
+					notify_push: boolean;
+					route_id: number;
+					saved_route_id: number | null;
+					status: Database['public']['Enums']['route_subscription_status'];
+					subscription_id: number;
+					updated_at: string;
+					user_id: string;
+				};
+				Insert: {
+					alert_types?: string[];
+					created_at?: string;
+					notify_email?: boolean;
+					notify_in_app?: boolean;
+					notify_push?: boolean;
+					route_id: number;
+					saved_route_id?: number | null;
+					status?: Database['public']['Enums']['route_subscription_status'];
+					subscription_id?: number;
+					updated_at?: string;
+					user_id: string;
+				};
+				Update: {
+					alert_types?: string[];
+					created_at?: string;
+					notify_email?: boolean;
+					notify_in_app?: boolean;
+					notify_push?: boolean;
+					route_id?: number;
+					saved_route_id?: number | null;
+					status?: Database['public']['Enums']['route_subscription_status'];
+					subscription_id?: number;
+					updated_at?: string;
+					user_id?: string;
+				};
+				Relationships: [
+					{
+						foreignKeyName: 'route_subscription_user_id_fkey';
+						columns: ['user_id'];
+						isOneToOne: false;
+						referencedRelation: 'user';
+						referencedColumns: ['uid'];
+					},
+					{
+						foreignKeyName: 'route_subscription_route_id_fkey';
+						columns: ['route_id'];
+						isOneToOne: false;
+						referencedRelation: 'route';
+						referencedColumns: ['route_id'];
+					},
+					{
+						foreignKeyName: 'route_subscription_saved_route_id_fkey';
+						columns: ['saved_route_id'];
+						isOneToOne: false;
+						referencedRelation: 'saved_route';
+						referencedColumns: ['saved_route_id'];
+					}
+				];
+			};
 			saved_route: {
 				Row: {
 					created_at: string;
@@ -356,6 +420,7 @@ export type Database = {
 		Functions: Record<string, never>;
 		Enums: {
 			notification_kind: 'upvote' | 'downvote' | 'comment' | 'route_alert';
+			route_subscription_status: 'active' | 'muted' | 'unsubscribed';
 		};
 		CompositeTypes: Record<string, never>;
 	};
@@ -367,4 +432,5 @@ export type PostRow = Database['public']['Tables']['post']['Row'];
 export type CommentRow = Database['public']['Tables']['comment']['Row'];
 export type NotificationRow = Database['public']['Tables']['notification']['Row'];
 export type SavedRouteRow = Database['public']['Tables']['saved_route']['Row'];
+export type RouteSubscriptionRow = Database['public']['Tables']['route_subscription']['Row'];
 export type NotificationKind = Database['public']['Enums']['notification_kind'];

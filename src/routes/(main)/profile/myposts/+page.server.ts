@@ -1,6 +1,7 @@
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { postDetailSchema } from '$lib/validation/schemas';
+import { POST_WITH_AUTHOR_SELECT } from '$lib/server/supabaseSelects';
 
 export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession } }) => {
 	const { session } = await safeGetSession();
@@ -8,22 +9,7 @@ export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession 
 
 	const { data: posts, error: postsError } = await supabase
 		.from('post')
-		.select(
-			`
-			post_id,
-			title,
-			body,
-			upvotes,
-			downvotes,
-			created_at,
-			last_edited,
-			author:user!post_author_id_fkey (
-				uid,
-				username,
-				full_name
-			)
-		`
-		)
+		.select(POST_WITH_AUTHOR_SELECT)
 		.eq('author_id', session.user.id)
 		.order('created_at', { ascending: false });
 

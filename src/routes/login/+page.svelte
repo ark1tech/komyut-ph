@@ -49,21 +49,6 @@
 			class="flex w-full max-w-sm flex-col items-center gap-fluid-md px-fluid-sm"
 			aria-label="Input fields"
 		>
-			<form class="flex w-full flex-col gap-fluid-md">
-				<input
-					name="email"
-					type="email"
-					placeholder="Email"
-					class="rounded-xl border border-input bg-background/95 px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground"
-				/>
-				<input
-					name="password"
-					type="password"
-					placeholder="Password"
-					class="rounded-xl border border-input bg-background/95 px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground"
-				/>
-			</form>
-
 			<!-- TODO: yung brand color sa styles is different from the logo so hardcoded lang muna bg color here -->
 			<!-- also, since wala pa input validation I put the button outside the form element para instant redirect na muna to map page for testing -->
 			{#if session}

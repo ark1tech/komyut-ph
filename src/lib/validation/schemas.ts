@@ -7,6 +7,12 @@ import type {
 	SavedRouteRow,
 	UserRow
 } from '$lib/types/database';
+import {
+	routeChangeSeverities,
+	routeChangeTypes,
+	routeNotificationChannels,
+	routeSubscriptionStatuses
+} from '$lib/types/routeSubscriptions';
 
 // ---------- Input / params schemas ----------
 
@@ -63,6 +69,57 @@ export const savedRouteCreateSchema = z.object({
 	pwd_friendly: z.boolean().default(false),
 	est_time_of_arrival: z.number().int().positive(),
 	fare: z.number().nonnegative()
+});
+
+export const routeIdParamSchema = z.object({
+	routeId: z.coerce.number().int().positive()
+});
+
+export const routeChangeTypeSchema = z.enum(routeChangeTypes);
+export const routeChangeSeveritySchema = z.enum(routeChangeSeverities);
+export const routeNotificationChannelSchema = z.enum(routeNotificationChannels);
+export const routeSubscriptionStatusSchema = z.enum(routeSubscriptionStatuses);
+
+export const routeSubscriptionPreferenceSchema = z.object({
+	notifyInApp: z.boolean().optional(),
+	notifyPush: z.boolean().optional(),
+	notifyEmail: z.boolean().optional(),
+	alertTypes: z.array(routeChangeTypeSchema).min(1).optional(),
+	routeName: z.string().trim().min(1).max(255).optional()
+});
+
+export const routeSubscriptionCreateSchema = z.object({
+	routeId: z.coerce.number().int().positive(),
+	savedRouteId: z.coerce.number().int().positive().nullable().optional(),
+	routeName: z.string().trim().min(1).max(255).optional(),
+	savedRoute: z.lazy(() => savedRouteSchema).optional(),
+	preferences: routeSubscriptionPreferenceSchema.optional()
+});
+
+export const routeNotificationReadSchema = z
+	.object({
+		notificationIds: z.array(z.coerce.number().int().positive()).min(1).optional(),
+		markAll: z.boolean().optional()
+	})
+	.refine((value) => value.markAll || (value.notificationIds?.length ?? 0) > 0, {
+		message: 'notificationIds or markAll is required'
+	});
+
+export const routeChangeEventCreateSchema = z.object({
+	routeId: z.coerce.number().int().positive(),
+	changeType: routeChangeTypeSchema,
+	severity: routeChangeSeveritySchema.default('medium'),
+	title: z.string().trim().min(1).max(160),
+	summary: z.string().trim().min(1).max(500),
+	dedupeKey: z.string().trim().min(1).max(200),
+	changedFields: z.array(z.string().trim().min(1).max(80)).default([]),
+	previousSnapshot: z.record(z.string(), z.unknown()).nullable().optional(),
+	currentSnapshot: z.record(z.string(), z.unknown()).nullable().optional(),
+	metadata: z.record(z.string(), z.unknown()).default({}),
+	occurredAt: z.string().datetime().optional(),
+	expiresAt: z.string().datetime().nullable().optional(),
+	batchWindowStart: z.string().datetime().nullable().optional(),
+	batchWindowEnd: z.string().datetime().nullable().optional()
 });
 
 // ---------- Supabase output DTO schemas ----------
@@ -142,6 +199,12 @@ export const notificationSchema = z.object({
 
 export const savedRouteSchema = z.object({
 	saved_route_id: z.number().int(),
+	geo_route_id: z
+		.number()
+		.int()
+		.nullable()
+		.optional()
+		.transform((value) => value ?? null),
 	route_name: z.string(),
 	start_loc: z.string(),
 	end_loc: z.string(),
@@ -154,6 +217,7 @@ export const savedRouteSchema = z.object({
 	Pick<
 		SavedRouteRow,
 		| 'saved_route_id'
+		| 'geo_route_id'
 		| 'route_name'
 		| 'start_loc'
 		| 'end_loc'
@@ -172,6 +236,54 @@ export const userProfileSchema = z.object({
 	avatar_url: z.string().url().nullable()
 }) satisfies z.ZodType<Pick<UserRow, 'full_name' | 'username' | 'email' | 'avatar_url'>>;
 
+export const routeSubscriptionSchema = z.object({
+	subscription_id: z.number().int(),
+	route_id: z.number().int(),
+	saved_route_id: z.number().int().nullable(),
+	status: routeSubscriptionStatusSchema,
+	notify_in_app: z.boolean(),
+	notify_push: z.boolean(),
+	notify_email: z.boolean(),
+	alert_types: z.array(routeChangeTypeSchema),
+	created_at: z.string(),
+	updated_at: z.string(),
+	saved_route: savedRouteSchema.nullable().optional()
+});
+
+export const routeNotificationSchema = z.object({
+	notification_id: z.number().int(),
+	kind: z.literal('route_alert'),
+	title: z.string().nullable().optional(),
+	message: z.string(),
+	is_read: z.boolean(),
+	created_at: z.string(),
+	read_at: z.string().nullable().optional(),
+	route_id: z.number().int().nullable(),
+	route_subscription_id: z.number().int().nullable().optional(),
+	route_change_event_id: z.number().int().nullable().optional(),
+	batch_key: z.string().nullable().optional(),
+	metadata: z.record(z.string(), z.unknown()).default({})
+});
+
+export const routeChangeEventSchema = z.object({
+	route_change_event_id: z.number().int(),
+	route_id: z.number().int(),
+	change_type: routeChangeTypeSchema,
+	severity: routeChangeSeveritySchema,
+	title: z.string(),
+	summary: z.string(),
+	dedupe_key: z.string(),
+	changed_fields: z.array(z.string()),
+	previous_snapshot: z.record(z.string(), z.unknown()).nullable(),
+	current_snapshot: z.record(z.string(), z.unknown()).nullable(),
+	metadata: z.record(z.string(), z.unknown()).default({}),
+	occurred_at: z.string(),
+	expires_at: z.string().nullable(),
+	batch_window_start: z.string().nullable(),
+	batch_window_end: z.string().nullable(),
+	created_at: z.string()
+});
+
 // ---------- Inferred types ----------
 
 export type PostSummary = z.infer<typeof postSummarySchema>;
@@ -181,3 +293,8 @@ export type CommentWithAuthorDTO = z.infer<typeof commentWithAuthorSchema>;
 export type NotificationDTO = z.infer<typeof notificationSchema>;
 export type SavedRouteDTO = z.infer<typeof savedRouteSchema>;
 export type UserProfileDTO = z.infer<typeof userProfileSchema>;
+export type RouteSubscriptionDTO = z.infer<typeof routeSubscriptionSchema>;
+export type RouteSubscriptionPreferenceInput = z.infer<typeof routeSubscriptionPreferenceSchema>;
+export type RouteSubscriptionCreateInput = z.infer<typeof routeSubscriptionCreateSchema>;
+export type RouteNotificationDTO = z.infer<typeof routeNotificationSchema>;
+export type RouteChangeEventDTO = z.infer<typeof routeChangeEventSchema>;
