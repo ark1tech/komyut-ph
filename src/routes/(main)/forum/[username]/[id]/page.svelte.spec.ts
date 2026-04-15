@@ -123,10 +123,10 @@ describe('Forum Post Detail Page', () => {
 			await expect.element(send).toBeDisabled();
 		});
 
-		it('should render link-a-post button', async () => {
+		it('should render link-a-route button', async () => {
 			render(Page, { props: { data: buildPostDetailData() } });
 
-			const link = page.getByRole('button', { name: 'Link a post' });
+			const link = page.getByRole('button', { name: 'Link a route' });
 			await expect.element(link).toBeInTheDocument();
 		});
 	});
@@ -142,12 +142,8 @@ describe('Forum Post Detail Page', () => {
 		it('should display comment text', async () => {
 			render(Page, { props: { data: buildPostDetailData() } });
 
-			await expect
-				.element(page.getByText('MRT then jeepney is the fastest!'))
-				.toBeInTheDocument();
-			await expect
-				.element(page.getByText('Bus is cheaper if you have time.'))
-				.toBeInTheDocument();
+			await expect.element(page.getByText('MRT then jeepney is the fastest!')).toBeInTheDocument();
+			await expect.element(page.getByText('Bus is cheaper if you have time.')).toBeInTheDocument();
 		});
 
 		it('should render upvote buttons for comments', async () => {

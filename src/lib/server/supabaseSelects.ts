@@ -26,6 +26,7 @@ export const COMMENT_WITH_AUTHOR_SELECT = `
 	upvotes,
 	downvotes,
 	linked_post_id,
+	linked_route_id,
 	author:user!comment_author_id_fkey (
 		uid,
 		username,

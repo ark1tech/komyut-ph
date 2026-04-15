@@ -57,18 +57,21 @@ export const load: PageServerLoad = async ({ params, locals: { supabase } }) => 
 	const comments = parsedComments.data;
 
 	const linkedPostIds = Array.from(
+		new Set(comments.map((c) => c.linked_post_id).filter((id): id is string => id != null))
+	);
+	const linkedRouteIds = Array.from(
 		new Set(
 			comments
-				.map((c) => c.linked_post_id)
-				.filter((id): id is string => id != null)
+				.map((c) => c.linked_route_id)
+				.filter((id): id is number => typeof id === 'number' && Number.isFinite(id))
 		)
 	);
 
 	const linkedPosts: Record<
 		string,
 		{ post_id: string; title: string; author?: { username: string } | null }
-	> =
-		{};
+	> = {};
+	const linkedRoutes: Record<string, { route_id: number; route_name: string }> = {};
 
 	if (linkedPostIds.length > 0) {
 		const { data: linkedRows, error: linkedError } = await supabase
@@ -89,9 +92,33 @@ export const load: PageServerLoad = async ({ params, locals: { supabase } }) => 
 		}
 	}
 
+	if (linkedRouteIds.length > 0) {
+		const { data: linkedRouteRows, error: linkedRouteError } = await supabase
+			.from('route')
+			.select('route_id, route_name')
+			.in('route_id', linkedRouteIds);
+
+		if (linkedRouteError) {
+			throw error(500, 'Failed to load linked routes');
+		}
+
+		for (const row of linkedRouteRows ?? []) {
+			linkedRoutes[String(row.route_id)] = {
+				route_id: row.route_id,
+				route_name: row.route_name
+			};
+		}
+	}
+
 	return {
 		post,
-		comments,
+		comments: comments.map((comment) => ({
+			...comment,
+			linked_route:
+				comment.linked_route_id != null
+					? (linkedRoutes[String(comment.linked_route_id)] ?? null)
+					: null
+		})),
 		linkedPosts
 	};
 };
@@ -99,33 +126,58 @@ export const load: PageServerLoad = async ({ params, locals: { supabase } }) => 
 export const actions = {
 	createComment: async ({ request, locals }) => {
 		const { session, user } = await locals.safeGetSession();
-		
+
 		if (!session || !user) {
 			return { error: 'Not logged in' };
 		}
 
 		const formData = await request.formData();
 
-		const body = formData.get('body') as string;
-		const parent_id = formData.get('parent_id') as string;
+		const body = String(formData.get('body') ?? '').trim();
+		const parent_id = String(formData.get('parent_id') ?? '');
+		const linkedRouteIdRaw = String(formData.get('linked_route_id') ?? '').trim();
 
+		let linkedRouteId: number | null = null;
+		if (linkedRouteIdRaw !== '') {
+			if (!/^\d+$/.test(linkedRouteIdRaw)) {
+				return { error: 'Invalid linked route' };
+			}
 
+			linkedRouteId = Number(linkedRouteIdRaw);
+			const { data: linkedRoute, error: linkedRouteError } = await locals.supabase
+				.from('route')
+				.select('route_id')
+				.eq('route_id', linkedRouteId)
+				.maybeSingle();
 
-		const { error: insertError } = await locals.supabase
-			.from('comment')
-			.insert([
-				{
-					author_id: user.id,
-					body,
-					parent_id
-				}
-			]);
-		
+			if (linkedRouteError) {
+				console.error(linkedRouteError);
+				return { error: 'Failed to link route' };
+			}
+
+			if (!linkedRoute) {
+				return { error: 'Linked route not found' };
+			}
+		}
+
+		if (!body && linkedRouteId == null) {
+			return { error: 'Comment cannot be empty' };
+		}
+
+		const { error: insertError } = await locals.supabase.from('comment').insert([
+			{
+				author_id: user.id,
+				body,
+				linked_route_id: linkedRouteId,
+				parent_id
+			}
+		]);
+
 		if (insertError) {
 			console.error(insertError);
 			return { error: 'Insert failed' };
 		}
 
 		return { success: true };
-	},
+	}
 };
