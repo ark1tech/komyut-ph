@@ -92,38 +92,59 @@
 
 <!-- Overlay prompt -->
 <div
-	class="arrived-overlay"
+	class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/45 backdrop-blur-[4px] animate-in fade-in duration-200"
 	role="dialog"
 	aria-modal="true"
 	aria-label="You've arrived"
 >
-	<div class="arrived-card">
+	<div
+		class="w-full max-w-[22rem] rounded-[1.5rem] bg-card border border-border p-7 px-6 shadow-[0_20px_60px_rgba(0,0,0,0.3)] flex flex-col items-center gap-3 animate-in fade-in slide-in-from-bottom-6 duration-300 ease-out"
+	>
 		<!-- Arrived badge -->
-		<div class="arrived-badge" aria-hidden="true">
+		<div
+			class="grid place-items-center w-14 h-14 rounded-full bg-success/15 text-success border-2 border-success/30 mb-1"
+			aria-hidden="true"
+		>
 			<Flag class="size-5" />
 		</div>
 
-		<h2 class="arrived-title">You've arrived!</h2>
+		<h2 class="text-[1.1rem] font-bold text-foreground text-center tracking-tight m-0">
+			You've arrived!
+		</h2>
 
 		{#if showSavePrompt}
-			<p class="arrived-body">
-				Your route combined <strong>{rideLegs.length}</strong> recorded routes.
-				Want to save this as a new route so others can use it?
+			<p class="text-[0.85rem] text-muted-foreground text-center leading-relaxed m-0">
+				Your route combined <strong>{rideLegs.length}</strong> recorded routes. Want to save this as
+				a new route so others can use it?
 			</p>
 
-			<div class="arrived-actions">
-				<button type="button" class="arrived-btn arrived-btn--save" onclick={openSaveDrawer}>
+			<div class="flex flex-col gap-2 w-full mt-1">
+				<button
+					type="button"
+					class="flex items-center justify-center gap-2 w-full py-[0.7rem] px-4 rounded-[0.875rem] text-[0.8125rem] font-semibold border-none cursor-pointer transition-all bg-success text-white hover:opacity-90 hover:-translate-y-0.5 active:translate-y-0"
+					onclick={openSaveDrawer}
+				>
 					<Save class="size-4" />
 					Save combined route
 				</button>
-				<button type="button" class="arrived-btn arrived-btn--skip" onclick={ondismiss}>
+				<button
+					type="button"
+					class="flex items-center justify-center gap-2 w-full py-[0.7rem] px-4 rounded-[0.875rem] text-[0.8125rem] font-semibold border-none cursor-pointer transition-all bg-muted text-muted-foreground hover:opacity-90 hover:-translate-y-0.5 active:translate-y-0"
+					onclick={ondismiss}
+				>
 					<X class="size-4" />
 					Skip
 				</button>
 			</div>
 		{:else}
-			<p class="arrived-body">Great commute! Navigation has ended.</p>
-			<button type="button" class="arrived-btn arrived-btn--save" onclick={ondismiss}>
+			<p class="text-[0.85rem] text-muted-foreground text-center leading-relaxed m-0">
+				Great commute! Navigation has ended.
+			</p>
+			<button
+				type="button"
+				class="flex items-center justify-center gap-2 w-full py-[0.7rem] px-4 rounded-[0.875rem] text-[0.8125rem] font-semibold border-none cursor-pointer transition-all bg-success text-white hover:opacity-90 hover:-translate-y-0.5 active:translate-y-0"
+				onclick={ondismiss}
+			>
 				Done
 			</button>
 		{/if}
@@ -138,114 +159,3 @@
 	onsave={handleSave}
 />
 
-<style>
-	.arrived-overlay {
-		position: fixed;
-		inset: 0;
-		z-index: 60;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		padding: 1rem;
-		background: rgba(0, 0, 0, 0.45);
-		backdrop-filter: blur(4px);
-		-webkit-backdrop-filter: blur(4px);
-		animation: fadeIn 200ms ease-out;
-	}
-
-	@keyframes fadeIn {
-		from { opacity: 0; }
-		to { opacity: 1; }
-	}
-
-	.arrived-card {
-		width: 100%;
-		max-width: 22rem;
-		border-radius: 1.5rem;
-		background: var(--card);
-		border: 1px solid var(--border);
-		padding: 1.75rem 1.5rem;
-		box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		gap: 0.75rem;
-		animation: slideUp 250ms cubic-bezier(0.34, 1.56, 0.64, 1);
-	}
-
-	@keyframes slideUp {
-		from { transform: translateY(1.5rem) scale(0.96); opacity: 0; }
-		to { transform: translateY(0) scale(1); opacity: 1; }
-	}
-
-	.arrived-badge {
-		display: grid;
-		place-items: center;
-		width: 3.5rem;
-		height: 3.5rem;
-		border-radius: 50%;
-		background: color-mix(in srgb, #16a34a 15%, transparent);
-		color: #16a34a;
-		border: 2px solid color-mix(in srgb, #16a34a 30%, transparent);
-		margin-bottom: 0.25rem;
-	}
-
-	.arrived-title {
-		font-size: 1.1rem;
-		font-weight: 700;
-		color: var(--foreground);
-		text-align: center;
-		letter-spacing: -0.02em;
-		margin: 0;
-	}
-
-	.arrived-body {
-		font-size: 0.85rem;
-		color: var(--muted-foreground);
-		text-align: center;
-		line-height: 1.5;
-		margin: 0;
-	}
-
-	.arrived-actions {
-		display: flex;
-		flex-direction: column;
-		gap: 0.5rem;
-		width: 100%;
-		margin-top: 0.25rem;
-	}
-
-	.arrived-btn {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		gap: 0.5rem;
-		width: 100%;
-		padding: 0.7rem 1rem;
-		border-radius: 0.875rem;
-		font-size: 0.8125rem;
-		font-weight: 600;
-		border: none;
-		cursor: pointer;
-		transition: opacity 150ms, transform 120ms;
-	}
-
-	.arrived-btn:hover {
-		opacity: 0.9;
-		transform: translateY(-1px);
-	}
-
-	.arrived-btn:active {
-		transform: translateY(0);
-	}
-
-	.arrived-btn--save {
-		background: #16a34a;
-		color: white;
-	}
-
-	.arrived-btn--skip {
-		background: var(--muted);
-		color: var(--muted-foreground);
-	}
-</style>

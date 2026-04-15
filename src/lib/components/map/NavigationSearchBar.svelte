@@ -70,7 +70,7 @@
 				to: toQuery.trim()
 			});
 			const res = await fetch(`/api/navigate?${params.toString()}`);
-			const data = await res.json() as {
+			const data = (await res.json()) as {
 				itinerary: ItineraryLeg[] | null;
 				summary?: { transfers: number; walk_distance_m: number };
 				message?: string;
@@ -105,19 +105,26 @@
 
 <section
 	aria-label="Plan your navigation route"
-	class="nav-search-bar absolute bottom-5 left-0 right-0 z-10 px-4 md:px-6"
+	class="absolute bottom-5 left-0 right-0 z-10 px-4 md:px-6"
 >
-	<div class="nav-card">
+	<div
+		class="w-full rounded-[1.25rem] border border-border/70 bg-card/97 p-4 shadow-[0_8px_32px_rgba(0,0,0,0.18),0_1px_3px_rgba(0,0,0,0.08)] backdrop-blur-xl"
+	>
 		<!-- Header row -->
-		<div class="nav-card__header">
-			<div class="nav-card__icon-wrap" aria-hidden="true">
+		<div class="mb-3.5 flex items-center gap-2">
+			<div
+				class="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-brand/12 text-brand"
+				aria-hidden="true"
+			>
 				<Navigation2 class="size-4" />
 			</div>
-			<span class="nav-card__label">Plan your commute</span>
+			<span class="flex-1 text-[0.8125rem] font-semibold tracking-tight text-foreground">
+				Plan your commute
+			</span>
 			{#if onclose}
 				<button
 					type="button"
-					class="nav-card__close"
+					class="grid h-7 w-7 cursor-pointer place-items-center rounded-lg border-none bg-transparent text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
 					onclick={onclose}
 					aria-label="Close navigation search"
 				>
@@ -127,18 +134,21 @@
 		</div>
 
 		<!-- Inputs -->
-		<form onsubmit={handleSubmit} class="nav-card__form">
-			<div class="nav-inputs">
+		<form onsubmit={handleSubmit} class="flex flex-col gap-3">
+			<div class="flex flex-col overflow-hidden rounded-[0.875rem] border border-border bg-muted">
 				<!-- From -->
-				<div class="nav-input-row">
-					<div class="nav-input-dot nav-input-dot--from" aria-hidden="true"></div>
+				<div class="relative flex items-center gap-2 bg-background px-3 first:rounded-t-[0.875rem]">
+					<div
+						class="h-2.5 w-2.5 shrink-0 rounded-full bg-brand border-2 border-brand/30 ring-[3px] ring-brand/15"
+						aria-hidden="true"
+					></div>
 					<input
 						bind:this={fromInputEl}
 						bind:value={fromQuery}
 						type="text"
 						id="nav-from"
 						placeholder="From: e.g. Cubao"
-						class="nav-input"
+						class="min-w-0 flex-1 border-none bg-transparent py-[0.7rem] text-[0.8125rem] text-foreground outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-60"
 						autocomplete="off"
 						spellcheck="false"
 						disabled={isLoading}
@@ -146,8 +156,11 @@
 					{#if fromQuery}
 						<button
 							type="button"
-							class="nav-input-clear"
-							onclick={() => { fromQuery = ''; fromInputEl?.focus(); }}
+							class="grid h-5 w-5 shrink-0 cursor-pointer place-items-center rounded-full border-none bg-muted text-muted-foreground transition-colors hover:bg-muted-foreground/20 hover:text-foreground"
+							onclick={() => {
+								fromQuery = '';
+								fromInputEl?.focus();
+							}}
 							aria-label="Clear from field"
 						>
 							<X class="size-3" />
@@ -156,11 +169,14 @@
 				</div>
 
 				<!-- Connector + swap -->
-				<div class="nav-inputs__connector" aria-hidden="true">
-					<div class="nav-inputs__line"></div>
+				<div
+					class="relative z-[1] flex h-0 items-center overflow-visible bg-background px-3.5"
+					aria-hidden="true"
+				>
+					<div class="absolute left-5 -top-2 h-4 w-px bg-border"></div>
 					<button
 						type="button"
-						class="nav-swap-btn"
+						class="absolute right-2.5 -top-3.5 grid h-[1.625rem] w-[1.625rem] cursor-pointer place-items-center rounded-full border border-border bg-card text-muted-foreground shadow-[0_1px_4px_rgba(0,0,0,0.12)] transition-all hover:rotate-180 hover:bg-muted hover:text-foreground"
 						onclick={swapInputs}
 						aria-label="Swap from and to"
 						title="Swap"
@@ -170,8 +186,11 @@
 				</div>
 
 				<!-- To -->
-				<div class="nav-input-row">
-					<div class="nav-input-dot nav-input-dot--to" aria-hidden="true">
+				<div class="relative flex items-center gap-2 bg-background px-3">
+					<div
+						class="grid h-4 w-4 shrink-0 place-items-center rounded-full bg-red-500 text-[0.5rem] text-white"
+						aria-hidden="true"
+					>
 						<MapPin class="size-2.5" />
 					</div>
 					<input
@@ -179,7 +198,7 @@
 						type="text"
 						id="nav-to"
 						placeholder="To: e.g. Taft Avenue"
-						class="nav-input"
+						class="min-w-0 flex-1 border-none bg-transparent py-[0.7rem] text-[0.8125rem] text-foreground outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-60"
 						autocomplete="off"
 						spellcheck="false"
 						disabled={isLoading}
@@ -187,8 +206,10 @@
 					{#if toQuery}
 						<button
 							type="button"
-							class="nav-input-clear"
-							onclick={() => { toQuery = ''; }}
+							class="grid h-5 w-5 shrink-0 cursor-pointer place-items-center rounded-full border-none bg-muted text-muted-foreground transition-colors hover:bg-muted-foreground/20 hover:text-foreground"
+							onclick={() => {
+								toQuery = '';
+							}}
 							aria-label="Clear to field"
 						>
 							<X class="size-3" />
@@ -199,7 +220,10 @@
 
 			<!-- Error message -->
 			{#if errorMessage}
-				<div class="nav-error" role="alert">
+				<div
+					class="flex items-start gap-1.5 rounded-[0.625rem] border border-red-500/25 bg-red-500/10 p-2 text-xs leading-[1.4] text-red-500"
+					role="alert"
+				>
 					<AlertCircle class="size-3.5 shrink-0" />
 					<span>{errorMessage}</span>
 				</div>
@@ -208,7 +232,7 @@
 			<!-- Submit -->
 			<button
 				type="submit"
-				class="nav-submit"
+				class="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-none bg-brand px-4 py-[0.65rem] text-[0.8125rem] font-semibold tracking-wide text-brand-foreground transition-all hover:enabled:-translate-y-px hover:enabled:opacity-90 active:enabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-45"
 				disabled={!canSubmit}
 				aria-busy={isLoading}
 			>
@@ -223,249 +247,3 @@
 		</form>
 	</div>
 </section>
-
-<style>
-	/* NavigationSearchBar is positioned by the Map.svelte absolute container */
-
-	.nav-card {
-		width: 100%;
-		border-radius: 1.25rem;
-		border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
-		background: color-mix(in srgb, var(--card) 97%, transparent);
-		padding: 1rem;
-		box-shadow:
-			0 8px 32px rgba(0, 0, 0, 0.18),
-			0 1px 3px rgba(0, 0, 0, 0.08);
-		backdrop-filter: blur(12px);
-		-webkit-backdrop-filter: blur(12px);
-	}
-
-	/* ── Header ─────────────────────────────────────────────────────────────── */
-	.nav-card__header {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		margin-bottom: 0.875rem;
-	}
-
-	.nav-card__icon-wrap {
-		display: grid;
-		place-items: center;
-		width: 1.75rem;
-		height: 1.75rem;
-		border-radius: 50%;
-		background: color-mix(in srgb, var(--brand) 12%, transparent);
-		color: var(--brand);
-		flex-shrink: 0;
-	}
-
-	.nav-card__label {
-		font-size: 0.8125rem;
-		font-weight: 600;
-		color: var(--foreground);
-		flex: 1;
-		letter-spacing: -0.01em;
-	}
-
-	.nav-card__close {
-		display: grid;
-		place-items: center;
-		width: 1.75rem;
-		height: 1.75rem;
-		border-radius: 0.5rem;
-		color: var(--muted-foreground);
-		transition: background 150ms, color 150ms;
-		background: transparent;
-		border: none;
-		cursor: pointer;
-	}
-
-	.nav-card__close:hover {
-		background: var(--muted);
-		color: var(--foreground);
-	}
-
-	/* ── Form ─────────────────────────────────────────────────────────────────── */
-	.nav-card__form {
-		display: flex;
-		flex-direction: column;
-		gap: 0.75rem;
-	}
-
-	/* ── Input group ─────────────────────────────────────────────────────────── */
-	.nav-inputs {
-		display: flex;
-		flex-direction: column;
-		gap: 0;
-		background: var(--muted);
-		border-radius: 0.875rem;
-		overflow: hidden;
-		border: 1px solid var(--border);
-	}
-
-	.nav-input-row {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		padding: 0 0.75rem;
-		position: relative;
-		background: var(--background);
-	}
-
-	.nav-input-row:first-child {
-		border-radius: 0.875rem 0.875rem 0 0;
-	}
-
-	.nav-input-dot {
-		width: 0.625rem;
-		height: 0.625rem;
-		border-radius: 50%;
-		flex-shrink: 0;
-		display: grid;
-		place-items: center;
-	}
-
-	.nav-input-dot--from {
-		background: var(--brand);
-		border: 2px solid color-mix(in srgb, var(--brand) 30%, transparent);
-		box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 15%, transparent);
-	}
-
-	.nav-input-dot--to {
-		background: #ef4444;
-		color: white;
-		width: 1rem;
-		height: 1rem;
-		border-radius: 50%;
-		font-size: 0.5rem;
-	}
-
-	.nav-input {
-		flex: 1;
-		padding: 0.7rem 0;
-		font-size: 0.8125rem;
-		background: transparent;
-		border: none;
-		outline: none;
-		color: var(--foreground);
-		min-width: 0;
-	}
-
-	.nav-input::placeholder {
-		color: var(--muted-foreground);
-	}
-
-	.nav-input:disabled {
-		opacity: 0.6;
-		cursor: not-allowed;
-	}
-
-	.nav-input-clear {
-		display: grid;
-		place-items: center;
-		width: 1.25rem;
-		height: 1.25rem;
-		border-radius: 50%;
-		background: var(--muted);
-		color: var(--muted-foreground);
-		border: none;
-		cursor: pointer;
-		flex-shrink: 0;
-		transition: background 120ms, color 120ms;
-	}
-
-	.nav-input-clear:hover {
-		background: color-mix(in srgb, var(--muted-foreground) 20%, transparent);
-		color: var(--foreground);
-	}
-
-	.nav-inputs__connector {
-		display: flex;
-		align-items: center;
-		padding: 0 0.875rem;
-		background: var(--background);
-		position: relative;
-		height: 0;
-		overflow: visible;
-		z-index: 1;
-	}
-
-	.nav-inputs__line {
-		width: 1px;
-		height: 1rem;
-		background: var(--border);
-		position: absolute;
-		left: 1.25rem;
-		top: -0.5rem;
-	}
-
-	.nav-swap-btn {
-		position: absolute;
-		right: 0.625rem;
-		top: -0.875rem;
-		display: grid;
-		place-items: center;
-		width: 1.625rem;
-		height: 1.625rem;
-		border-radius: 50%;
-		background: var(--card);
-		border: 1px solid var(--border);
-		color: var(--muted-foreground);
-		cursor: pointer;
-		transition: background 120ms, color 120ms, transform 200ms;
-		box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
-	}
-
-	.nav-swap-btn:hover {
-		background: var(--muted);
-		color: var(--foreground);
-		transform: rotate(180deg);
-	}
-
-	/* ── Error ──────────────────────────────────────────────────────────────────── */
-	.nav-error {
-		display: flex;
-		align-items: flex-start;
-		gap: 0.4rem;
-		padding: 0.5rem 0.625rem;
-		border-radius: 0.625rem;
-		background: color-mix(in srgb, #ef4444 10%, transparent);
-		border: 1px solid color-mix(in srgb, #ef4444 25%, transparent);
-		color: #ef4444;
-		font-size: 0.75rem;
-		line-height: 1.4;
-	}
-
-	/* ── Submit button ─────────────────────────────────────────────────────────── */
-	.nav-submit {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		gap: 0.5rem;
-		width: 100%;
-		padding: 0.65rem 1rem;
-		border-radius: 0.75rem;
-		background: var(--brand);
-		color: var(--brand-foreground);
-		font-size: 0.8125rem;
-		font-weight: 600;
-		border: none;
-		cursor: pointer;
-		transition: opacity 150ms, transform 120ms;
-		letter-spacing: 0.01em;
-	}
-
-	.nav-submit:hover:not(:disabled) {
-		opacity: 0.92;
-		transform: translateY(-1px);
-	}
-
-	.nav-submit:active:not(:disabled) {
-		transform: translateY(0);
-	}
-
-	.nav-submit:disabled {
-		opacity: 0.45;
-		cursor: not-allowed;
-	}
-</style>
