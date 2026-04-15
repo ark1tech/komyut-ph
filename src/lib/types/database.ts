@@ -456,6 +456,7 @@ export type Database = {
 					geometry_json: Json;
 					board_point: Json;
 					is_direct: boolean;
+					dest_snap_point: Json | null;
 				}>;
 			};
 			get_routes_near_geom: {
@@ -476,6 +477,7 @@ export type Database = {
 					alight_point: Json;
 					is_direction_valid: boolean;
 					is_destination_hit: boolean;
+					dest_snap_point: Json | null;
 				}>;
 			};
 			clip_route_geometry: {

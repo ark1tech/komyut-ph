@@ -37,6 +37,9 @@ const MAX_WALK_M = 800;
 /** Spec §2b / GPS: treat origin and destination as the same trip when this close (meters). */
 const TRIVIAL_OD_THRESHOLD_M = 100;
 
+/** Below this length (meters), skip OSRM and use `get_walk_distance_m` only for walk legs. */
+const WALK_STRAIGHTLINE_THRESHOLD_M = 50;
+
 function isGeoJsonPoint(val: unknown): val is GeoJsonPoint {
 	return (
 		typeof val === 'object' &&
@@ -135,6 +138,29 @@ function rpc(supabase: SupabaseClient) {
 	return (supabase as unknown as { rpc: RpcFn }).rpc.bind(supabase);
 }
 
+/** Memoized `get_walk_distance_m` per request (dedupes repeated segment pairs in BFS). */
+function createGetWalkDistanceM(supabase: SupabaseClient) {
+	const cache = new Map<string, Promise<number>>();
+	const call = rpc(supabase);
+	return async function getWalkDistanceM(from: Json, to: Json): Promise<number> {
+		if (isGeoJsonPoint(from as unknown) && isGeoJsonPoint(to as unknown)) {
+			const a = from as unknown as GeoJsonPoint;
+			const b = to as unknown as GeoJsonPoint;
+			const key = `${a.coordinates[0]},${a.coordinates[1]}|${b.coordinates[0]},${b.coordinates[1]}`;
+			let pending = cache.get(key);
+			if (pending) return pending;
+			pending = (async () => {
+				const r = await call('get_walk_distance_m', { from_geojson: from, to_geojson: to });
+				return typeof r.data === 'number' ? r.data : 0;
+			})();
+			cache.set(key, pending);
+			return pending;
+		}
+		const r = await call('get_walk_distance_m', { from_geojson: from, to_geojson: to });
+		return typeof r.data === 'number' ? r.data : 0;
+	};
+}
+
 // ── Primary mode from vehicle_types / mode_segments ──────────────────────────
 
 /** Normalize legacy DB labels to RouteVehicleType / map keys (spec §2d examples use MRT-3). */
@@ -143,14 +169,59 @@ function normalizeTransitModeLabel(mode: string): string {
 	return mode;
 }
 
-// Full spec §2c Step 6 (slice mode_segments along board→alight sub-segments) is not implemented yet.
-
-function primaryMode(vehicleTypes: string[], modeSegments: Json | null): string {
-	// If mode_segments present, return the first transit mode found (skipping Walk)
-	if (Array.isArray(modeSegments) && modeSegments.length > 0) {
-		for (const seg of modeSegments as Array<{ mode: string }>) {
-			if (seg.mode && seg.mode !== 'Walk') return normalizeTransitModeLabel(seg.mode);
+function nearestCoordIdx(routeCoords: [number, number][], point: [number, number]): number {
+	let best = 0;
+	let bestD = Infinity;
+	const [px, py] = point;
+	for (let i = 0; i < routeCoords.length; i++) {
+		const c = routeCoords[i];
+		if (!c) continue;
+		const [x, y] = c;
+		const d = (x - px) * (x - px) + (y - py) * (y - py);
+		if (d < bestD) {
+			bestD = d;
+			best = i;
 		}
+	}
+	return best;
+}
+
+/** Mode for the boarded sub-segment (respects Walk portions in `mode_segments`). */
+function primaryModeForSegment(
+	vehicleTypes: string[],
+	modeSegments: Json | null,
+	routeCoords: [number, number][],
+	boardCoord: [number, number],
+	alightCoord: [number, number]
+): string {
+	if (Array.isArray(modeSegments) && modeSegments.length > 0 && routeCoords.length >= 2) {
+		const boardIdx = nearestCoordIdx(routeCoords, boardCoord);
+		const alightIdx = nearestCoordIdx(routeCoords, alightCoord);
+		const lo = Math.min(boardIdx, alightIdx);
+		const hi = Math.max(boardIdx, alightIdx);
+		let bestMode = '';
+		let bestOverlap = -1;
+		for (const seg of modeSegments as Array<{
+			mode: string;
+			start_index?: number;
+			end_index?: number;
+			from: [number, number];
+			to: [number, number];
+		}>) {
+			if (!seg.mode) continue;
+			const s =
+				typeof seg.start_index === 'number'
+					? seg.start_index
+					: nearestCoordIdx(routeCoords, seg.from);
+			const e =
+				typeof seg.end_index === 'number' ? seg.end_index : nearestCoordIdx(routeCoords, seg.to);
+			const overlap = Math.max(0, Math.min(hi, e) - Math.max(lo, s));
+			if (overlap > bestOverlap) {
+				bestOverlap = overlap;
+				bestMode = seg.mode;
+			}
+		}
+		if (bestMode) return normalizeTransitModeLabel(bestMode);
 	}
 	const first = vehicleTypes.find((v) => v !== 'Walk');
 	return normalizeTransitModeLabel(first ?? vehicleTypes[0] ?? 'Transit');
@@ -202,53 +273,46 @@ function getWalkSegmentEndpoints(
 
 /**
  * Fast total walk estimate via PostGIS only (no OSRM). Used for BFS / tie-break; actual
- * walk distance and geometry come from OSRM in `buildResponse`.
+ * walk distance and geometry come from OSRM in `buildResponse` (except short legs).
  */
 async function estimateTotalWalkDbOnly(
-	supabase: SupabaseClient,
 	path: BfsNode[],
 	originGeoJson: Json,
-	destGeoJson: Json
+	destGeoJson: Json,
+	getWalkDistanceM: (from: Json, to: Json) => Promise<number>
 ): Promise<number> {
-	const call = rpc(supabase);
 	const segments = getWalkSegmentEndpoints(path, originGeoJson, destGeoJson);
 	if (segments.length === 0) return 0;
-	const parts = await Promise.all(
-		segments.map(async ({ from, to }) => {
-			const r = await call('get_walk_distance_m', { from_geojson: from, to_geojson: to });
-			return typeof r.data === 'number' ? r.data : 0;
-		})
-	);
+	const parts = await Promise.all(segments.map(({ from, to }) => getWalkDistanceM(from, to)));
 	return parts.reduce((a, b) => a + b, 0);
 }
 
 async function pickBestNodeByWalk(
-	supabase: SupabaseClient,
 	candidates: BfsNode[],
 	originGeoJson: Json,
-	destGeoJson: Json
+	destGeoJson: Json,
+	getWalkDistanceM: (from: Json, to: Json) => Promise<number>
 ): Promise<BfsNode> {
 	if (candidates.length === 1) return candidates[0];
-	let best = candidates[0];
-	let bestPath = collectPath(best);
-	let bestWalk = await estimateTotalWalkDbOnly(supabase, bestPath, originGeoJson, destGeoJson);
+	const paths = candidates.map((c) => collectPath(c));
+	const walks = await Promise.all(
+		paths.map((p) => estimateTotalWalkDbOnly(p, originGeoJson, destGeoJson, getWalkDistanceM))
+	);
+	let bestIdx = 0;
 	for (let i = 1; i < candidates.length; i++) {
-		const c = candidates[i];
-		const cPath = collectPath(c);
-		const w = await estimateTotalWalkDbOnly(supabase, cPath, originGeoJson, destGeoJson);
-		const lenB = bestPath.length;
-		const lenC = cPath.length;
+		const w = walks[i];
+		const bestWalk = walks[bestIdx];
+		const lenB = paths[bestIdx].length;
+		const lenC = paths[i].length;
 		if (
 			w < bestWalk ||
 			(w === bestWalk && lenC < lenB) ||
-			(w === bestWalk && lenC === lenB && c.route_id < best.route_id)
+			(w === bestWalk && lenC === lenB && candidates[i].route_id < candidates[bestIdx].route_id)
 		) {
-			best = c;
-			bestPath = cPath;
-			bestWalk = w;
+			bestIdx = i;
 		}
 	}
-	return best;
+	return candidates[bestIdx];
 }
 
 /** O≈D: single walk leg, no graph search (spec §2b). */
@@ -299,6 +363,7 @@ export const GET: RequestHandler = async ({ url, locals: { supabase } }) => {
 	}
 
 	const call = rpc(supabase);
+	const getWalkDistanceM = createGetWalkDistanceM(supabase);
 
 	// ── Step 1: Resolve named locations to coordinates ────────────────────────
 	const [originRes, destRes] = await Promise.all([
@@ -362,6 +427,7 @@ export const GET: RequestHandler = async ({ url, locals: { supabase } }) => {
 		geometry_json: Json;
 		board_point: Json;
 		is_direct: boolean;
+		dest_snap_point: Json | null;
 	};
 
 	const seedRows = (seedRes.data as NearPointRow[] | null) ?? [];
@@ -384,7 +450,10 @@ export const GET: RequestHandler = async ({ url, locals: { supabase } }) => {
 			mode_segments: row.mode_segments,
 			geometry_json: row.geometry_json,
 			board_point: row.board_point,
-			alight_point: null,
+			alight_point:
+				row.is_direct && row.dest_snap_point != null && isGeoJsonPoint(row.dest_snap_point as unknown)
+					? row.dest_snap_point
+					: null,
 			parent: null,
 			parent_alight: null
 		};
@@ -398,20 +467,20 @@ export const GET: RequestHandler = async ({ url, locals: { supabase } }) => {
 
 	// Zero-transfer direct route (spec §2c Step 2): only if total walk ≤ MAX_WALK_M, then lowest walk among ties
 	if (directCandidates.length > 0) {
-		const withinBudget: BfsNode[] = [];
-		for (const node of directCandidates) {
-			const path = collectPath(node);
-			const w = await estimateTotalWalkDbOnly(supabase, path, originGeoJson, destGeoJson);
-			if (w <= MAX_WALK_M) withinBudget.push(node);
-		}
+		const directWalks = await Promise.all(
+			directCandidates.map((node) =>
+				estimateTotalWalkDbOnly(collectPath(node), originGeoJson, destGeoJson, getWalkDistanceM)
+			)
+		);
+		const withinBudget = directCandidates.filter((_, i) => directWalks[i] <= MAX_WALK_M);
 		if (withinBudget.length > 0) {
 			const bestDirect = await pickBestNodeByWalk(
-				supabase,
 				withinBudget,
 				originGeoJson,
-				destGeoJson
+				destGeoJson,
+				getWalkDistanceM
 			);
-			return buildResponse(supabase, [bestDirect], originGeoJson, destGeoJson);
+			return buildResponse(supabase, collectPath(bestDirect), originGeoJson, destGeoJson, getWalkDistanceM);
 		}
 	}
 
@@ -449,6 +518,7 @@ export const GET: RequestHandler = async ({ url, locals: { supabase } }) => {
 					alight_point: Json;
 					is_direction_valid: boolean;
 					is_destination_hit: boolean;
+					dest_snap_point: Json | null;
 				};
 
 				return {
@@ -476,7 +546,12 @@ export const GET: RequestHandler = async ({ url, locals: { supabase } }) => {
 					mode_segments: row.mode_segments,
 					geometry_json: row.geometry_json,
 					board_point: row.board_point,
-					alight_point: row.alight_point,
+					alight_point:
+						row.is_destination_hit &&
+						row.dest_snap_point != null &&
+						isGeoJsonPoint(row.dest_snap_point as unknown)
+							? row.dest_snap_point
+							: null,
 					parent: parentNode,
 					parent_alight: row.alight_point
 				};
@@ -491,18 +566,18 @@ export const GET: RequestHandler = async ({ url, locals: { supabase } }) => {
 		}
 
 		if (destinationHitsThisDepth.length > 0) {
-			const withinBudget: BfsNode[] = [];
-			for (const node of destinationHitsThisDepth) {
-				const path = collectPath(node);
-				const w = await estimateTotalWalkDbOnly(supabase, path, originGeoJson, destGeoJson);
-				if (w <= MAX_WALK_M) withinBudget.push(node);
-			}
+			const hitWalks = await Promise.all(
+				destinationHitsThisDepth.map((node) =>
+					estimateTotalWalkDbOnly(collectPath(node), originGeoJson, destGeoJson, getWalkDistanceM)
+				)
+			);
+			const withinBudget = destinationHitsThisDepth.filter((_, i) => hitWalks[i] <= MAX_WALK_M);
 			if (withinBudget.length > 0) {
 				foundNode = await pickBestNodeByWalk(
-					supabase,
 					withinBudget,
 					originGeoJson,
-					destGeoJson
+					destGeoJson,
+					getWalkDistanceM
 				);
 				break;
 			}
@@ -517,29 +592,41 @@ export const GET: RequestHandler = async ({ url, locals: { supabase } }) => {
 
 	// ── Step 6: Path reconstruction ───────────────────────────────────────────
 
-	return buildResponse(supabase, collectPath(foundNode), originGeoJson, destGeoJson);
+	return buildResponse(supabase, collectPath(foundNode), originGeoJson, destGeoJson, getWalkDistanceM);
 };
 
 // ── Build the final itinerary response ───────────────────────────────────────
 
 function alightPointForRideLeg(path: BfsNode[], i: number, destGeoJson: Json): Json {
-	const node = path[i];
 	if (i === path.length - 1) {
-		return node.alight_point != null && isGeoJsonPoint(node.alight_point as unknown)
-			? node.alight_point
-			: destGeoJson;
+		// `clip_route_geometry` projects destination onto the route via ST_LineLocatePoint
+		return destGeoJson;
 	}
 	return path[i + 1].parent_alight ?? destGeoJson;
 }
 
 async function buildWalkLegFromEndpoints(
-	supabase: SupabaseClient,
 	from: Json,
 	to: Json,
 	fromPt: [number, number],
-	toPt: [number, number]
+	toPt: [number, number],
+	getWalkDistanceM: (from: Json, to: Json) => Promise<number>
 ): Promise<{ leg: WalkLeg; distance_m: number } | null> {
-	const call = rpc(supabase);
+	const distM = await getWalkDistanceM(from, to);
+	if (distM <= 1) return null;
+
+	if (distM < WALK_STRAIGHTLINE_THRESHOLD_M) {
+		return {
+			leg: {
+				type: 'walk',
+				distance_m: Math.round(distM),
+				from: fromPt,
+				to: toPt
+			},
+			distance_m: distM
+		};
+	}
+
 	const osrm = await osrmFootRoute(fromPt, toPt);
 	if (osrm != null && osrm.distance_m > 1) {
 		return {
@@ -553,12 +640,7 @@ async function buildWalkLegFromEndpoints(
 			distance_m: osrm.distance_m
 		};
 	}
-	const walkDistRes = await call('get_walk_distance_m', {
-		from_geojson: from,
-		to_geojson: to
-	});
-	const distM = typeof walkDistRes.data === 'number' ? walkDistRes.data : 0;
-	if (distM <= 1) return null;
+
 	return {
 		leg: {
 			type: 'walk',
@@ -574,7 +656,8 @@ async function buildResponse(
 	supabase: SupabaseClient,
 	path: BfsNode[],
 	originGeoJson: Json,
-	destGeoJson: Json
+	destGeoJson: Json,
+	getWalkDistanceM: (from: Json, to: Json) => Promise<number>
 ): Promise<Response> {
 	const call = rpc(supabase);
 	const clipResults = await Promise.all(
@@ -659,7 +742,7 @@ async function buildResponse(
 
 	const walkParts = await Promise.all(
 		walkSpecs.map((spec) =>
-			buildWalkLegFromEndpoints(supabase, spec.from, spec.to, spec.fromPt, spec.toPt)
+			buildWalkLegFromEndpoints(spec.from, spec.to, spec.fromPt, spec.toPt, getWalkDistanceM)
 		)
 	);
 
@@ -696,11 +779,18 @@ async function buildResponse(
 					? toCoord(alightPoint as unknown as GeoJsonPoint)
 					: ([0, 0] as [number, number]);
 
+		const routeCoords = lineString.coordinates as [number, number][];
 		itinerary.push({
 			type: 'ride',
 			route_id: node.route_id,
 			route_name: node.route_name,
-			mode: primaryMode(node.vehicle_types, node.mode_segments),
+			mode: primaryModeForSegment(
+				node.vehicle_types,
+				node.mode_segments,
+				routeCoords.length >= 2 ? routeCoords : [boardCoord, alightCoord],
+				boardCoord,
+				alightCoord
+			),
 			board: boardCoord,
 			alight: alightCoord,
 			geometry: lineString
