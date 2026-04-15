@@ -198,7 +198,8 @@ export const commentSchema = z.object({
 	body: z.string(),
 	upvotes: z.number().int(),
 	downvotes: z.number().int(),
-	linked_post_id: postIdSchema.nullable()
+	linked_post_id: postIdSchema.nullable(),
+	linked_route_id: z.number().int().nullable().optional().default(null)
 }) satisfies z.ZodType<
 	Pick<
 		CommentRow,
@@ -210,6 +211,7 @@ export const commentSchema = z.object({
 		| 'upvotes'
 		| 'downvotes'
 		| 'linked_post_id'
+		| 'linked_route_id'
 	>
 >;
 

@@ -4,6 +4,7 @@
 	import ForumHeader from './ForumHeader.svelte';
 	import ForumCommentReply from './ForumCommentReply.svelte';
 	import ForumPostLink from './ForumPostLink.svelte';
+	import ForumRouteLink from './ForumRouteLink.svelte';
 
 	interface CommentLike {
 		body: string;
@@ -11,6 +12,8 @@
 		downvotes: number;
 		created_at: string;
 		linked_post_id?: string | null;
+		linked_route_id?: number | null;
+		linked_route?: { route_id: number; route_name: string } | null;
 		author?: { username: string; full_name: string } | null;
 	}
 
@@ -38,6 +41,7 @@
 	let linkedPost = $derived(
 		comment.linked_post_id ? (linkedPosts[comment.linked_post_id] ?? null) : null
 	);
+	let linkedRoute = $derived(comment.linked_route ?? null);
 
 	let authorUsername = $derived(comment.author?.username ?? '');
 
@@ -74,6 +78,10 @@
 	<div class="min-w-0 flex-1">
 		<ForumHeader {authorUsername} createdAt={comment.created_at} showAvatar showMenu />
 		<p class="mt-1 text-sm leading-relaxed text-muted-foreground">{comment.body}</p>
+
+		{#if linkedRoute}
+			<ForumRouteLink routeId={linkedRoute.route_id} routeName={linkedRoute.route_name} />
+		{/if}
 
 		{#if linkedPost}
 			<ForumPostLink post={linkedPost} />

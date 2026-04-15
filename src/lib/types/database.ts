@@ -12,6 +12,7 @@ export type Database = {
 					downvotes: number;
 					last_edited: string;
 					linked_post_id: string | null;
+					linked_route_id: number | null;
 					parent_id: string;
 					upvotes: number;
 				};
@@ -23,6 +24,7 @@ export type Database = {
 					downvotes?: number;
 					last_edited?: string;
 					linked_post_id?: string | null;
+					linked_route_id?: number | null;
 					parent_id: string;
 					upvotes?: number;
 				};
@@ -34,6 +36,7 @@ export type Database = {
 					downvotes?: number;
 					last_edited?: string;
 					linked_post_id?: string | null;
+					linked_route_id?: number | null;
 					parent_id?: string;
 					upvotes?: number;
 				};
@@ -51,6 +54,13 @@ export type Database = {
 						isOneToOne: false;
 						referencedRelation: 'post';
 						referencedColumns: ['post_id'];
+					},
+					{
+						foreignKeyName: 'comment_linked_route_id_fkey';
+						columns: ['linked_route_id'];
+						isOneToOne: false;
+						referencedRelation: 'route';
+						referencedColumns: ['route_id'];
 					},
 					{
 						foreignKeyName: 'comment_parent_id_fkey';
