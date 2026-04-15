@@ -4,7 +4,9 @@ import type { Json } from '$lib/types/database';
 import { osrmFootRoute } from '$lib/server/osrm-foot';
 import {
 	distanceAlongPolylineToPoint,
-	modeSegmentDistanceIntervalOnPolyline
+	modeSegmentDistanceIntervalOnPolyline,
+	slicePolylineByDistanceInterval,
+	totalPolylineLengthM
 } from '$lib/utils/modeSegmentPolyline';
 import { z } from 'zod';
 
@@ -43,6 +45,9 @@ const TRIVIAL_OD_THRESHOLD_M = 100;
 
 /** Below this length (meters), skip OSRM and use `get_walk_distance_m` only for walk legs. */
 const WALK_STRAIGHTLINE_THRESHOLD_M = 50;
+
+/** Minimum length (m) for a slice of `mode_segments` along the leg interval. */
+const MIN_MODE_SLICE_M = 2;
 
 function isGeoJsonPoint(val: unknown): val is GeoJsonPoint {
 	return (
@@ -225,6 +230,87 @@ function primaryModeForSegment(
 	}
 	const first = vehicleTypes.find((v) => v !== 'Walk');
 	return normalizeTransitModeLabel(first ?? vehicleTypes[0] ?? 'Transit');
+}
+
+function parseGeometryLineString(json: Json | null): GeoJsonLineString | null {
+	if (!json || typeof json !== 'object') return null;
+	const r = json as Record<string, unknown>;
+	if (r.type !== 'LineString' || !Array.isArray(r.coordinates)) return null;
+	const coords = r.coordinates as [number, number][];
+	return coords.length >= 2 ? { type: 'LineString', coordinates: coords } : null;
+}
+
+/**
+ * Split one graph "ride" along the corridor into walk vs vehicle legs using `route.mode_segments`
+ * on the **full** route polyline (clipped geometry is a substring; segment bounds are authored on
+ * the full trace — see route_id 70 style Walk / Jeepney / Walk).
+ */
+function expandRideLegByModeSegments(
+	node: BfsNode,
+	boardCoord: [number, number],
+	alightCoord: [number, number]
+): { legs: ItineraryLeg[]; corridorWalkM: number } | null {
+	const full = parseGeometryLineString(node.geometry_json);
+	if (!full) return null;
+	const fullCoords = full.coordinates as [number, number][];
+	const rows = node.mode_segments;
+	if (!Array.isArray(rows) || rows.length === 0) return null;
+
+	const dBoard = distanceAlongPolylineToPoint(fullCoords, boardCoord);
+	const dAlight = distanceAlongPolylineToPoint(fullCoords, alightCoord);
+	const legLo = Math.min(dBoard, dAlight);
+	const legHi = Math.max(dBoard, dAlight);
+	if (legHi - legLo < MIN_MODE_SLICE_M) return null;
+
+	type SegRow = { mode?: string; from?: [number, number]; to?: [number, number] };
+	type Plan = { lo: number; hi: number; mode: string };
+	const plans: Plan[] = [];
+
+	for (const raw of rows as SegRow[]) {
+		if (!raw.mode || !raw.from || !raw.to) continue;
+		const { lo: sLo, hi: sHi } = modeSegmentDistanceIntervalOnPolyline(fullCoords, raw.from, raw.to);
+		const iLo = Math.max(legLo, sLo);
+		const iHi = Math.min(legHi, sHi);
+		if (iHi - iLo < MIN_MODE_SLICE_M) continue;
+		plans.push({ lo: iLo, hi: iHi, mode: raw.mode });
+	}
+
+	if (plans.length === 0) return null;
+	plans.sort((a, b) => a.lo - b.lo);
+
+	const legs: ItineraryLeg[] = [];
+	let corridorWalkM = 0;
+
+	for (const p of plans) {
+		const sliced = slicePolylineByDistanceInterval(fullCoords, p.lo, p.hi);
+		if (!sliced || sliced.length < 2) continue;
+		const dist = totalPolylineLengthM(sliced);
+		if (dist < MIN_MODE_SLICE_M) continue;
+
+		if (p.mode === 'Walk') {
+			corridorWalkM += dist;
+			legs.push({
+				type: 'walk',
+				distance_m: Math.round(dist),
+				from: sliced[0]!,
+				to: sliced[sliced.length - 1]!,
+				geometry: { type: 'LineString', coordinates: sliced }
+			});
+		} else {
+			legs.push({
+				type: 'ride',
+				route_id: node.route_id,
+				route_name: node.route_name,
+				mode: normalizeTransitModeLabel(p.mode),
+				board: sliced[0]!,
+				alight: sliced[sliced.length - 1]!,
+				geometry: { type: 'LineString', coordinates: sliced }
+			});
+		}
+	}
+
+	if (legs.length === 0) return null;
+	return { legs, corridorWalkM };
 }
 
 function collectPath(node: BfsNode): BfsNode[] {
@@ -747,17 +833,18 @@ async function buildResponse(
 	);
 
 	const walkLegBySpec: (WalkLeg | null)[] = walkParts.map((p) => p?.leg ?? null);
-	let totalWalkDistance = 0;
+	let connectorWalkM = 0;
 	for (const part of walkParts) {
-		if (part != null) totalWalkDistance += part.distance_m;
+		if (part != null) connectorWalkM += part.distance_m;
 	}
 
-	if (totalWalkDistance > MAX_WALK_M) {
+	if (connectorWalkM > MAX_WALK_M) {
 		return json({ itinerary: null, message: 'no_route_found' });
 	}
 
 	const itinerary: ItineraryLeg[] = [];
 	let wi = 0;
+	let corridorWalkM = 0;
 
 	if (hasIngress) {
 		const leg = walkLegBySpec[wi];
@@ -784,21 +871,29 @@ async function buildResponse(
 		}
 
 		const routeCoords = lineString.coordinates as [number, number][];
-		itinerary.push({
-			type: 'ride',
-			route_id: node.route_id,
-			route_name: node.route_name,
-			mode: primaryModeForSegment(
-				node.vehicle_types,
-				node.mode_segments,
-				routeCoords.length >= 2 ? routeCoords : [boardCoord, alightCoord],
-				boardCoord,
-				alightCoord
-			),
-			board: boardCoord,
-			alight: alightCoord,
-			geometry: lineString
-		});
+		const expanded = expandRideLegByModeSegments(node, boardCoord, alightCoord);
+		if (expanded) {
+			corridorWalkM += expanded.corridorWalkM;
+			for (const leg of expanded.legs) {
+				itinerary.push(leg);
+			}
+		} else {
+			itinerary.push({
+				type: 'ride',
+				route_id: node.route_id,
+				route_name: node.route_name,
+				mode: primaryModeForSegment(
+					node.vehicle_types,
+					node.mode_segments,
+					routeCoords.length >= 2 ? routeCoords : [boardCoord, alightCoord],
+					boardCoord,
+					alightCoord
+				),
+				board: boardCoord,
+				alight: alightCoord,
+				geometry: lineString
+			});
+		}
 
 		if (i < path.length - 1) {
 			const leg = walkLegBySpec[wi];
@@ -823,7 +918,7 @@ async function buildResponse(
 		itinerary,
 		summary: {
 			transfers,
-			walk_distance_m: Math.round(totalWalkDistance)
+			walk_distance_m: Math.round(connectorWalkM + corridorWalkM)
 		},
 		origin: originCoord,
 		destination: destinationCoord
