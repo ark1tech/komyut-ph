@@ -2,6 +2,10 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import type { Json } from '$lib/types/database';
 import { osrmFootRoute } from '$lib/server/osrm-foot';
+import {
+	distanceAlongPolylineToPoint,
+	modeSegmentDistanceIntervalOnPolyline
+} from '$lib/utils/modeSegmentPolyline';
 import { z } from 'zod';
 
 // ── Query param schema ────────────────────────────────────────────────────────
@@ -169,24 +173,10 @@ function normalizeTransitModeLabel(mode: string): string {
 	return mode;
 }
 
-function nearestCoordIdx(routeCoords: [number, number][], point: [number, number]): number {
-	let best = 0;
-	let bestD = Infinity;
-	const [px, py] = point;
-	for (let i = 0; i < routeCoords.length; i++) {
-		const c = routeCoords[i];
-		if (!c) continue;
-		const [x, y] = c;
-		const d = (x - px) * (x - px) + (y - py) * (y - py);
-		if (d < bestD) {
-			bestD = d;
-			best = i;
-		}
-	}
-	return best;
-}
-
-/** Mode for the boarded sub-segment (respects Walk portions in `mode_segments`). */
+/**
+ * Mode for this ride leg on the clipped route line. Uses **distance along the polyline** so
+ * segment bounds match traced from/to and do not bleed into adjacent modes (unlike nearest-vertex).
+ */
 function primaryModeForSegment(
 	vehicleTypes: string[],
 	modeSegments: Json | null,
@@ -195,27 +185,37 @@ function primaryModeForSegment(
 	alightCoord: [number, number]
 ): string {
 	if (Array.isArray(modeSegments) && modeSegments.length > 0 && routeCoords.length >= 2) {
-		const boardIdx = nearestCoordIdx(routeCoords, boardCoord);
-		const alightIdx = nearestCoordIdx(routeCoords, alightCoord);
-		const lo = Math.min(boardIdx, alightIdx);
-		const hi = Math.max(boardIdx, alightIdx);
-		let bestMode = '';
-		let bestOverlap = -1;
-		for (const seg of modeSegments as Array<{
+		const dBoard = distanceAlongPolylineToPoint(routeCoords, boardCoord);
+		const dAlight = distanceAlongPolylineToPoint(routeCoords, alightCoord);
+		const legLo = Math.min(dBoard, dAlight);
+		const legHi = Math.max(dBoard, dAlight);
+		const midDist = (legLo + legHi) / 2;
+		/** Projection / float noise along path (meters). */
+		const EPS = 0.35;
+
+		type SegRow = {
 			mode: string;
 			start_index?: number;
 			end_index?: number;
 			from: [number, number];
 			to: [number, number];
-		}>) {
+		};
+		const rows = modeSegments as SegRow[];
+
+		for (const seg of rows) {
 			if (!seg.mode) continue;
-			const s =
-				typeof seg.start_index === 'number'
-					? seg.start_index
-					: nearestCoordIdx(routeCoords, seg.from);
-			const e =
-				typeof seg.end_index === 'number' ? seg.end_index : nearestCoordIdx(routeCoords, seg.to);
-			const overlap = Math.max(0, Math.min(hi, e) - Math.max(lo, s));
+			const { lo, hi } = modeSegmentDistanceIntervalOnPolyline(routeCoords, seg.from, seg.to);
+			if (midDist >= lo - EPS && midDist <= hi + EPS) {
+				return normalizeTransitModeLabel(seg.mode);
+			}
+		}
+
+		let bestOverlap = -1;
+		let bestMode = '';
+		for (const seg of rows) {
+			if (!seg.mode) continue;
+			const { lo, hi } = modeSegmentDistanceIntervalOnPolyline(routeCoords, seg.from, seg.to);
+			const overlap = Math.max(0, Math.min(legHi, hi) - Math.max(legLo, lo));
 			if (overlap > bestOverlap) {
 				bestOverlap = overlap;
 				bestMode = seg.mode;
@@ -767,7 +767,7 @@ async function buildResponse(
 
 	for (let i = 0; i < path.length; i++) {
 		const node = path[i];
-		const lineString = lineStrings[i];
+		let lineString = lineStrings[i];
 		const alightPoint = alightPointForRideLeg(path, i, destGeoJson);
 		const boardCoord = isGeoJsonPoint(node.board_point as unknown)
 			? toCoord(node.board_point as unknown as GeoJsonPoint)
@@ -778,6 +778,10 @@ async function buildResponse(
 				: isGeoJsonPoint(alightPoint as unknown)
 					? toCoord(alightPoint as unknown as GeoJsonPoint)
 					: ([0, 0] as [number, number]);
+
+		if (lineString.coordinates.length < 2 && (boardCoord[0] !== alightCoord[0] || boardCoord[1] !== alightCoord[1])) {
+			lineString = { type: 'LineString', coordinates: [boardCoord, alightCoord] };
+		}
 
 		const routeCoords = lineString.coordinates as [number, number][];
 		itinerary.push({

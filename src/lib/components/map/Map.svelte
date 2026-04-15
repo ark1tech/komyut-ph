@@ -10,6 +10,10 @@
 	import type { ModeSegment, RouteMetadataInput, RouteVehicleType } from '$lib/validation/schemas';
 	import { buildModeSegments, vehicleTypesFromTrace, type ModeMarker } from '$lib/utils/buildModeSegments';
 	import {
+		modeSegmentDistanceIntervalOnPolyline,
+		slicePolylineByDistanceInterval
+	} from '$lib/utils/modeSegmentPolyline';
+	import {
 		PenLine,
 		Radio,
 		Footprints,
@@ -226,52 +230,14 @@
 		return value.filter(isRouteDisplayModeSegment);
 	}
 
-	function findNearestCoordinateIndex(
-		coordinates: [number, number][],
-		target: [number, number],
-		minIndex = 0
-	): number {
-		let nearestIndex = minIndex;
-		let minDistance = Infinity;
-
-		for (let i = Math.max(0, minIndex); i < coordinates.length; i++) {
-			const d = haversineM(coordinates[i], target);
-			if (d < minDistance) {
-				minDistance = d;
-				nearestIndex = i;
-			}
-		}
-
-		return nearestIndex;
-	}
-
+	/** Sub-line for one mode: strictly between segment.from / segment.to along path order (meters). */
 	function toSegmentCoordinates(
 		coordinates: [number, number][],
 		segment: RouteDisplayModeSegment
 	): [number, number][] | null {
 		if (coordinates.length < 2) return null;
-
-		const hasIndexBounds =
-			typeof segment.start_index === 'number' && typeof segment.end_index === 'number';
-
-		let startIndex =
-			hasIndexBounds && segment.start_index! >= 0 && segment.start_index! < coordinates.length
-				? segment.start_index!
-				: findNearestCoordinateIndex(coordinates, segment.from);
-
-		let endIndex =
-			hasIndexBounds && segment.end_index! >= 0 && segment.end_index! < coordinates.length
-				? segment.end_index!
-				: findNearestCoordinateIndex(coordinates, segment.to, startIndex + 1);
-
-		if (endIndex <= startIndex) {
-			startIndex = findNearestCoordinateIndex(coordinates, segment.from);
-			endIndex = findNearestCoordinateIndex(coordinates, segment.to, startIndex + 1);
-		}
-
-		if (endIndex <= startIndex || startIndex < 0 || endIndex >= coordinates.length) return null;
-
-		return coordinates.slice(startIndex, endIndex + 1);
+		const { lo, hi } = modeSegmentDistanceIntervalOnPolyline(coordinates, segment.from, segment.to);
+		return slicePolylineByDistanceInterval(coordinates, lo, hi);
 	}
 
 	// ── Selected-route display ────────────────────────────────────────────────────
