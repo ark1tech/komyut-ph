@@ -44,9 +44,10 @@
 	/>
 
 	<!-- comment input -->
-	<div
+	<form
+		method="POST"
+		action="?/createComment"
 		class="m-fluid-sm flex flex-row items-center justify-center gap-3 rounded-2xl border border-border bg-card p-3"
-		role="textbox"
 		aria-label="Forum Comment Input"
 	>
 		<div
@@ -56,11 +57,15 @@
 		</div>
 		<div class="flex min-w-0 flex-1 items-center gap-2">
 			<textarea
+				name="body"
 				bind:value={commentText}
 				placeholder="Add a comment..."
 				rows="1"
 				class="flex-1 resize-none bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
 			></textarea>
+
+			<input type="hidden" name="parent_id" value={post.post_id}/>
+
 			<button
 				type="button"
 				class="shrink-0 rounded-full p-1.5 text-muted-foreground transition-colors hover:text-brand"
@@ -69,7 +74,7 @@
 				<Link2 class="size-4" />
 			</button>
 			<button
-				type="button"
+				type="submit"
 				class="shrink-0 rounded-full p-1.5 text-brand transition-opacity disabled:opacity-30"
 				disabled={!commentText.trim()}
 				aria-label="Send comment"
@@ -77,7 +82,7 @@
 				<SendHorizontal class="size-4" />
 			</button>
 		</div>
-	</div>
+	</form>
 
 	{#if comments.length > 0}
 		<ForumSortBar active={commentSort} onchange={(v) => (commentSort = v)} class="px-fluid-sm" />
