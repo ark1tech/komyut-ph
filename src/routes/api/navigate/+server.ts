@@ -22,6 +22,14 @@ interface GeoJsonLineString {
 	coordinates: [number, number][];
 }
 
+const GEO_TOKEN_PREFIX = 'geo:';
+
+/** Spec §2c Step 5 — max 3 transfers (4 ride legs). BFS expansion iterations: 0..MAX_TRANSFERS-1 from seeded frontier. */
+const MAX_TRANSFERS = 3;
+
+/** Spec §2b / GPS: treat origin and destination as the same trip when this close (meters). */
+const TRIVIAL_OD_THRESHOLD_M = 100;
+
 function isGeoJsonPoint(val: unknown): val is GeoJsonPoint {
 	return (
 		typeof val === 'object' &&
@@ -33,6 +41,39 @@ function isGeoJsonPoint(val: unknown): val is GeoJsonPoint {
 
 function toCoord(geoJsonPoint: GeoJsonPoint): [number, number] {
 	return [geoJsonPoint.coordinates[0], geoJsonPoint.coordinates[1]];
+}
+
+type ParsedLocationInput =
+	| { kind: 'text'; value: string }
+	| { kind: 'coord_token'; point: GeoJsonPoint }
+	| { kind: 'invalid_token' };
+
+function parseLocationInput(input: string): ParsedLocationInput {
+	const value = input.trim();
+	if (!value.startsWith(GEO_TOKEN_PREFIX)) {
+		return { kind: 'text', value };
+	}
+
+	const payload = value.slice(GEO_TOKEN_PREFIX.length);
+	const [latRaw, lngRaw, ...extra] = payload.split(',');
+	if (!latRaw || !lngRaw || extra.length > 0) {
+		return { kind: 'invalid_token' };
+	}
+
+	const lat = Number(latRaw);
+	const lng = Number(lngRaw);
+	const hasInvalidRange = !Number.isFinite(lat) || !Number.isFinite(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180;
+	if (hasInvalidRange) {
+		return { kind: 'invalid_token' };
+	}
+
+	return {
+		kind: 'coord_token',
+		point: {
+			type: 'Point',
+			coordinates: [lng, lat]
+		}
+	};
 }
 
 // ── Itinerary leg types ───────────────────────────────────────────────────────
@@ -87,15 +128,119 @@ function rpc(supabase: SupabaseClient) {
 
 // ── Primary mode from vehicle_types / mode_segments ──────────────────────────
 
+/** Normalize legacy DB labels to RouteVehicleType / map keys (spec §2d examples use MRT-3). */
+function normalizeTransitModeLabel(mode: string): string {
+	if (mode === 'MRT') return 'MRT-3';
+	return mode;
+}
+
 function primaryMode(vehicleTypes: string[], modeSegments: Json | null): string {
 	// If mode_segments present, return the first transit mode found (skipping Walk)
 	if (Array.isArray(modeSegments) && modeSegments.length > 0) {
 		for (const seg of modeSegments as Array<{ mode: string }>) {
-			if (seg.mode && seg.mode !== 'Walk') return seg.mode;
+			if (seg.mode && seg.mode !== 'Walk') return normalizeTransitModeLabel(seg.mode);
 		}
 	}
 	const first = vehicleTypes.find((v) => v !== 'Walk');
-	return first ?? vehicleTypes[0] ?? 'Transit';
+	return normalizeTransitModeLabel(first ?? vehicleTypes[0] ?? 'Transit');
+}
+
+/**
+ * Sum walking meters for a candidate path (spec §2b walk edges, §2c Step 6 ST_Distance).
+ * Used to pick the lowest-walk itinerary among same–transfer-count options.
+ */
+async function estimateTotalWalkDistanceM(
+	supabase: SupabaseClient,
+	path: BfsNode[],
+	originGeoJson: Json,
+	destGeoJson: Json
+): Promise<number> {
+	const call = rpc(supabase);
+	if (path.length === 0) return 0;
+	let total = 0;
+
+	const firstBoard = path[0].board_point;
+	if (isGeoJsonPoint(originGeoJson as unknown) && isGeoJsonPoint(firstBoard as unknown)) {
+		const r = await call('get_walk_distance_m', {
+			from_geojson: originGeoJson,
+			to_geojson: firstBoard
+		});
+		total += typeof r.data === 'number' ? r.data : 0;
+	}
+
+	for (let i = 0; i < path.length - 1; i++) {
+		const alight = path[i + 1].parent_alight;
+		const nextBoard = path[i + 1].board_point;
+		if (isGeoJsonPoint(alight as unknown) && isGeoJsonPoint(nextBoard as unknown)) {
+			const r = await call('get_walk_distance_m', {
+				from_geojson: alight,
+				to_geojson: nextBoard
+			});
+			total += typeof r.data === 'number' ? r.data : 0;
+		}
+	}
+
+	const last = path[path.length - 1];
+	const lastSnap =
+		last.alight_point != null && isGeoJsonPoint(last.alight_point as unknown)
+			? last.alight_point
+			: destGeoJson;
+	if (isGeoJsonPoint(lastSnap as unknown) && isGeoJsonPoint(destGeoJson as unknown)) {
+		const r = await call('get_walk_distance_m', {
+			from_geojson: lastSnap,
+			to_geojson: destGeoJson
+		});
+		total += typeof r.data === 'number' ? r.data : 0;
+	}
+
+	return total;
+}
+
+async function pickBestNodeByWalk(
+	supabase: SupabaseClient,
+	candidates: BfsNode[],
+	originGeoJson: Json,
+	destGeoJson: Json
+): Promise<BfsNode> {
+	if (candidates.length === 1) return candidates[0];
+	let best = candidates[0];
+	let bestWalk = await estimateTotalWalkDistanceM(supabase, collectPath(best), originGeoJson, destGeoJson);
+	for (let i = 1; i < candidates.length; i++) {
+		const c = candidates[i];
+		const w = await estimateTotalWalkDistanceM(supabase, collectPath(c), originGeoJson, destGeoJson);
+		const lenB = collectPath(best).length;
+		const lenC = collectPath(c).length;
+		if (
+			w < bestWalk ||
+			(w === bestWalk && lenC < lenB) ||
+			(w === bestWalk && lenC === lenB && c.route_id < best.route_id)
+		) {
+			best = c;
+			bestWalk = w;
+		}
+	}
+	return best;
+}
+
+/** O≈D: single walk leg, no graph search (spec §2b). */
+function trivialOdResponse(originGeoJson: Json, destGeoJson: Json, distance_m: number): Response {
+	const from = toCoord(originGeoJson as unknown as GeoJsonPoint);
+	const to = toCoord(destGeoJson as unknown as GeoJsonPoint);
+	const rounded = Math.round(distance_m);
+	return json({
+		itinerary: [
+			{
+				type: 'walk',
+				distance_m: rounded,
+				from,
+				to
+			}
+		],
+		summary: {
+			transfers: 0,
+			walk_distance_m: rounded
+		}
+	});
 }
 
 // ── Main handler ──────────────────────────────────────────────────────────────
@@ -110,14 +255,22 @@ export const GET: RequestHandler = async ({ url, locals: { supabase } }) => {
 		return json({ itinerary: null, message: 'invalid_params' }, { status: 400 });
 	}
 	const { from: fromName, to: toName } = parsed.data;
+	const parsedOrigin = parseLocationInput(fromName);
+	const parsedDestination = parseLocationInput(toName);
+	if (parsedOrigin.kind === 'invalid_token' || parsedDestination.kind === 'invalid_token') {
+		return json({ itinerary: null, message: 'invalid_params' }, { status: 400 });
+	}
 
 	const call = rpc(supabase);
 
 	// ── Step 1: Resolve named locations to coordinates ────────────────────────
-
 	const [originRes, destRes] = await Promise.all([
-		call('resolve_location_to_point', { search_term: fromName }),
-		call('resolve_location_to_point', { search_term: toName })
+		parsedOrigin.kind === 'text'
+			? call('resolve_location_to_point', { search_term: parsedOrigin.value })
+			: Promise.resolve({ data: parsedOrigin.point as unknown, error: null }),
+		parsedDestination.kind === 'text'
+			? call('resolve_location_to_point', { search_term: parsedDestination.value })
+			: Promise.resolve({ data: parsedDestination.point as unknown, error: null })
 	]);
 
 	if (originRes.error || destRes.error) {
@@ -139,6 +292,16 @@ export const GET: RequestHandler = async ({ url, locals: { supabase } }) => {
 			{ itinerary: null, message: 'destination_not_found', hint: toName },
 			{ status: 404 }
 		);
+	}
+
+	// Trivial origin ≈ destination (spec §2b): walk-only, no BFS
+	const odWalkRes = await call('get_walk_distance_m', {
+		from_geojson: originGeoJson,
+		to_geojson: destGeoJson
+	});
+	const odWalkM = typeof odWalkRes.data === 'number' ? odWalkRes.data : 0;
+	if (odWalkM <= TRIVIAL_OD_THRESHOLD_M) {
+		return trivialOdResponse(originGeoJson, destGeoJson, odWalkM);
 	}
 
 	// ── Step 2: Seed the BFS frontier ─────────────────────────────────────────
@@ -174,7 +337,7 @@ export const GET: RequestHandler = async ({ url, locals: { supabase } }) => {
 	const visitedIds = new Set<number>();
 	let frontier: BfsNode[] = [];
 
-	let directNode: BfsNode | null = null;
+	const directCandidates: BfsNode[] = [];
 
 	for (const row of seedRows) {
 		const node: BfsNode = {
@@ -191,19 +354,25 @@ export const GET: RequestHandler = async ({ url, locals: { supabase } }) => {
 		visitedIds.add(row.route_id);
 		frontier.push(node);
 
-		// Zero-transfer direct hit
-		if (row.is_direct && directNode === null) {
-			directNode = node;
+		if (row.is_direct) {
+			directCandidates.push(node);
 		}
 	}
 
-	if (directNode) {
-		return buildResponse(supabase, [directNode], originGeoJson, destGeoJson);
+	// Zero-transfer direct route (spec §2c Step 2): pick lowest total walk among ties
+	if (directCandidates.length > 0) {
+		const bestDirect = await pickBestNodeByWalk(
+			supabase,
+			directCandidates,
+			originGeoJson,
+			destGeoJson
+		);
+		return buildResponse(supabase, [bestDirect], originGeoJson, destGeoJson);
 	}
 
 	// ── Step 3–5: BFS expansion with direction constraint and depth cap ────────
+	// RPC contract (spec §2): 800 m ST_DWithin, direction via ST_LineLocatePoint — see Supabase functions.
 
-	const MAX_TRANSFERS = 5;
 	let foundNode: BfsNode | null = null;
 
 	for (let depth = 0; depth < MAX_TRANSFERS && !foundNode; depth++) {

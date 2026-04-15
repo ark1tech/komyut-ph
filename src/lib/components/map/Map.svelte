@@ -56,6 +56,8 @@
 	const FALLBACK_CENTER: [number, number] = [120.9842, 14.5995];
 	const ROUTE_FIT_BASE_PADDING_PX = 96;
 	const ROUTE_FIT_BOTTOM_OFFSET_PX = 200;
+	const NAV_CAMERA_ZOOM = 16.8;
+	const NAV_CAMERA_PITCH = 32;
 	/** 10 m minimum movement before a new GPS point is recorded (Mode B). */
 	const GPS_MIN_DISTANCE_M = 10;
 	/** Walk colour on the trace (dashed gray). */
@@ -139,6 +141,9 @@
 	let navLastCoord: [number, number] | null = null;
 	/** Whether the user has panned away — shows re-center button. */
 	let navOffCenter = $state(false);
+	/** Start and end pins for navigation route context. */
+	let navStartMarker: maplibregl.Marker | null = null;
+	let navEndMarker: maplibregl.Marker | null = null;
 
 	// ── Geometry helpers ──────────────────────────────────────────────────────────
 
@@ -764,6 +769,56 @@
 		});
 	}
 
+	function getNavEndpoints(result: NavigationResult): { start: [number, number]; end: [number, number] } | null {
+		const firstLeg = result.itinerary[0];
+		const lastLeg = result.itinerary[result.itinerary.length - 1];
+		if (!firstLeg || !lastLeg) return null;
+		const start = firstLeg.type === 'walk' ? firstLeg.from : firstLeg.board;
+		const end = lastLeg.type === 'walk' ? lastLeg.to : lastLeg.alight;
+		return { start, end };
+	}
+
+	function removeNavMarkers() {
+		navStartMarker?.remove();
+		navEndMarker?.remove();
+		navStartMarker = null;
+		navEndMarker = null;
+	}
+
+	function createNavPinElement(kind: 'start' | 'end'): HTMLDivElement {
+		const el = document.createElement('div');
+		el.className = `nav-pin nav-pin--${kind}`;
+		el.setAttribute('aria-hidden', 'true');
+		el.innerHTML = `<span class="nav-pin__dot"></span>`;
+		return el;
+	}
+
+	function drawNavMarkers(result: NavigationResult) {
+		if (!map) return;
+		const endpoints = getNavEndpoints(result);
+		if (!endpoints) return;
+		removeNavMarkers();
+		navStartMarker = new maplibregl.Marker({ element: createNavPinElement('start'), anchor: 'bottom' })
+			.setLngLat(endpoints.start)
+			.addTo(map);
+		navEndMarker = new maplibregl.Marker({ element: createNavPinElement('end'), anchor: 'bottom' })
+			.setLngLat(endpoints.end)
+			.addTo(map);
+	}
+
+	function getNavCameraOffsetY(): number {
+		const mapHeight = container?.clientHeight ?? 0;
+		if (mapHeight <= 0) return 110;
+		const overlayMaxHeight = mapHeight * 0.5;
+		return Math.min(190, Math.max(90, overlayMaxHeight * 0.35));
+	}
+
+	function getNavBottomPadding(): number {
+		const mapHeight = container?.clientHeight ?? 0;
+		if (mapHeight <= 0) return 280;
+		return Math.round(Math.min(360, Math.max(220, mapHeight * 0.52)));
+	}
+
 	// ── Handle navigation result from NavigationSearchBar ─────────────────────────
 
 	function handleNavResult(result: NavigationResult) {
@@ -773,6 +828,7 @@
 		navActiveLegIndex = 0;
 		if (map && mapStyleLoaded) {
 			drawNavLegs(result, 0);
+			drawNavMarkers(result);
 			// Fit bounds around all leg coordinates
 			const bounds = new maplibregl.LngLatBounds();
 			for (const leg of result.itinerary) {
@@ -784,7 +840,7 @@
 				}
 			}
 			map.fitBounds(bounds, {
-				padding: { top: 80, right: 80, bottom: 280, left: 80 },
+				padding: { top: 80, right: 80, bottom: getNavBottomPadding(), left: 80 },
 				maxZoom: 16,
 				duration: 700
 			});
@@ -797,6 +853,7 @@
 		navArrived = false;
 		navActiveLegIndex = 0;
 		stopNavGps();
+		removeNavMarkers();
 		if (map && mapStyleLoaded) removeNavLayers();
 	}
 
@@ -828,7 +885,14 @@
 				navLastCoord = coord;
 
 				if (map && !navOffCenter) {
-					map.easeTo({ center: coord, bearing, zoom: 17, pitch: 45, duration: 300 });
+					map.easeTo({
+						center: coord,
+						bearing,
+						zoom: NAV_CAMERA_ZOOM,
+						pitch: NAV_CAMERA_PITCH,
+						offset: [0, getNavCameraOffsetY()],
+						duration: 300
+					});
 				}
 
 				// Check if we have advanced to the next leg
@@ -875,7 +939,13 @@
 	function recenterNav() {
 		navOffCenter = false;
 		if (map && navLastCoord) {
-			map.easeTo({ center: navLastCoord, zoom: 17, pitch: 45, duration: 500 });
+			map.easeTo({
+				center: navLastCoord,
+				zoom: NAV_CAMERA_ZOOM,
+				pitch: NAV_CAMERA_PITCH,
+				offset: [0, getNavCameraOffsetY()],
+				duration: 500
+			});
 		}
 	}
 
@@ -948,6 +1018,7 @@
 			lastFittedRouteId = null;
 			fitGeneration++;
 			stopNavGps();
+			removeNavMarkers();
 			if (map) {
 				clearRoutes();
 				clearTraceMarkers();
@@ -1264,7 +1335,7 @@
 
 <!-- ── Re-center button (live navigation) ────────────────────────────────── -->
 {#if navActive && navOffCenter && !controlsHidden}
-	<div class="absolute bottom-[max(22rem,56vh)] right-4 z-20">
+	<div class="absolute right-4 bottom-[calc(50vh+1rem)] z-20">
 		<button
 			type="button"
 			class="recenter-btn"
@@ -1318,5 +1389,31 @@
 
 	.recenter-btn:active {
 		transform: translateY(0);
+	}
+
+	:global(.nav-pin) {
+		width: 1.05rem;
+		height: 1.05rem;
+		border-radius: 9999px;
+		border: 2px solid #fff;
+		box-shadow: 0 3px 10px rgba(0, 0, 0, 0.25);
+		display: grid;
+		place-items: center;
+	}
+
+	:global(.nav-pin__dot) {
+		width: 0.45rem;
+		height: 0.45rem;
+		border-radius: 9999px;
+		background: #fff;
+		opacity: 0.95;
+	}
+
+	:global(.nav-pin--start) {
+		background: #2563eb;
+	}
+
+	:global(.nav-pin--end) {
+		background: #ef4444;
 	}
 </style>

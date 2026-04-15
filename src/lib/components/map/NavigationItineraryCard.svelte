@@ -92,7 +92,7 @@
 
 <div
 	class={clsx(
-		'flex flex-col gap-3 p-4 rounded-[1.25rem] border border-border/70 bg-card/97 shadow-2xl backdrop-blur-xl max-h-[min(80vh,32rem)] overflow-y-auto overscroll-contain',
+		'flex flex-col gap-3 p-4 rounded-[1.25rem] border border-border/70 bg-card/97 shadow-2xl backdrop-blur-xl max-h-[min(50vh,30rem)] overflow-y-auto overscroll-contain',
 		navigating && 'ring-2 ring-brand/20'
 	)}
 	role="region"
