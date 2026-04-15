@@ -80,7 +80,9 @@ export const mapRouteQuerySchema = z.object({
 export const modeSegmentSchema = z.object({
 	mode: routeVehicleTypeSchema,
 	from: z.tuple([z.number(), z.number()]),
-	to: z.tuple([z.number(), z.number()])
+	to: z.tuple([z.number(), z.number()]),
+	start_index: z.number().int().nonnegative().optional(),
+	end_index: z.number().int().nonnegative().optional()
 });
 
 export const mapRouteCreateSchema = routeMetadataSchema.extend({
@@ -328,8 +330,4 @@ export type RouteVehicleType = z.infer<typeof routeVehicleTypeSchema>;
 export type RouteAccessibilityTag = z.infer<typeof routeAccessibilityTagSchema>;
 export type RouteMetadataInput = z.infer<typeof routeMetadataSchema>;
 export type MapRouteCreateInput = z.infer<typeof mapRouteCreateSchema>;
-export type ModeSegment = {
-	mode: RouteVehicleType;
-	from: [number, number];
-	to: [number, number];
-};
+export type ModeSegment = z.infer<typeof modeSegmentSchema>;

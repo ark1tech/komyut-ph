@@ -5,6 +5,7 @@ import { listRouteTags } from '$lib/server/routeTags';
 interface RouteGeometryResult {
 	route_id: number;
 	geometry: string | GeoJSON.LineString;
+	mode_segments: unknown;
 }
 
 function isLineStringGeometry(value: unknown): value is GeoJSON.LineString {
@@ -31,7 +32,7 @@ async function loadRouteGeometryById(
 
 	const { data, error: geometryError } = await supabase
 		.from('route')
-		.select('route_id, geometry')
+		.select('route_id, geometry, mode_segments')
 		.eq('route_id', routeId)
 		.maybeSingle();
 
@@ -44,7 +45,8 @@ async function loadRouteGeometryById(
 	if (typeof data.geometry === 'string' || isLineStringGeometry(data.geometry)) {
 		return {
 			route_id: data.route_id,
-			geometry: data.geometry
+			geometry: data.geometry,
+			mode_segments: data.mode_segments ?? null
 		};
 	}
 	return null;
@@ -100,10 +102,7 @@ export const load: PageServerLoad = async ({ url, locals: { supabase, safeGetSes
 
 	if (!session) {
 		const routeId = selection.selectedRoute?.geo_route_id ?? null;
-		const fallbackRouteGeometry = await loadRouteGeometryById(
-			supabase,
-			routeId
-		);
+		const fallbackRouteGeometry = await loadRouteGeometryById(supabase, routeId);
 		const selectedRouteTags = routeId ? await listRouteTags(supabase, routeId) : [];
 		return {
 			routeSelectionInvalid: false,

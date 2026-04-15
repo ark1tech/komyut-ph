@@ -51,7 +51,9 @@ export function buildModeSegments(
 		segments.push({
 			mode: sorted[i].mode,
 			from,
-			to
+			to,
+			start_index: startIdx,
+			end_index: endIdx
 		});
 	}
 

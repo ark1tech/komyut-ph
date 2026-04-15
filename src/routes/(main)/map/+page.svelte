@@ -8,7 +8,17 @@
 	import * as Button from '$lib/components/ui/button';
 	import { cn } from '$lib/utils';
 	import { type RouteAccessibilityTag } from '$lib/validation/schemas';
-	import { Accessibility, Bell, Clock, Coins, Info, MapPin, Navigation2, Settings2, X } from '@lucide/svelte';
+	import {
+		Accessibility,
+		Bell,
+		Clock,
+		Coins,
+		Info,
+		MapPin,
+		Navigation2,
+		Settings2,
+		X
+	} from '@lucide/svelte';
 
 	let { data } = $props();
 
@@ -39,6 +49,7 @@
 	interface RouteGeometry {
 		route_id: number | string;
 		geometry: string | GeoJSON.LineString;
+		mode_segments?: unknown;
 	}
 
 	let selectedRoute = $state<RouteGeometry | null>(null);
@@ -235,7 +246,6 @@
 						for it.
 					</div>
 				{/if}
-
 			</article>
 		</div>
 	{/if}
@@ -246,10 +256,12 @@
 		<div class="pointer-events-none absolute top-4 left-4 z-20">
 			<button
 				type="button"
-				class="pointer-events-auto nav-fab"
+				class="nav-fab pointer-events-auto"
 				class:nav-fab--active={showNavSearch}
 				id="nav-toggle-btn"
-				onclick={() => { showNavSearch = !showNavSearch; }}
+				onclick={() => {
+					showNavSearch = !showNavSearch;
+				}}
 				aria-label={showNavSearch ? 'Switch to route search' : 'Plan a route'}
 				aria-pressed={showNavSearch}
 			>
@@ -282,7 +294,11 @@
 			0 1px 3px rgba(0, 0, 0, 0.08);
 		backdrop-filter: blur(8px);
 		-webkit-backdrop-filter: blur(8px);
-		transition: background 150ms, color 150ms, box-shadow 150ms, transform 120ms;
+		transition:
+			background 150ms,
+			color 150ms,
+			box-shadow 150ms,
+			transform 120ms;
 		letter-spacing: 0.01em;
 	}
 

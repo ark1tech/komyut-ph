@@ -1,15 +1,24 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import maplibregl, { type GeoJSONSource } from 'maplibre-gl';
+	import maplibregl from 'maplibre-gl';
 	import 'maplibre-gl/dist/maplibre-gl.css';
 	import * as Button from '$lib/components/ui/button';
 	import RouteTraceSaveDrawer from '$lib/components/map/RouteTraceSaveDrawer.svelte';
 	import NavigationSearchBar from '$lib/components/map/NavigationSearchBar.svelte';
 	import NavigationItineraryCard from '$lib/components/map/NavigationItineraryCard.svelte';
 	import NavigationArrivedPrompt from '$lib/components/map/NavigationArrivedPrompt.svelte';
-	import type { RouteMetadataInput, RouteVehicleType } from '$lib/validation/schemas';
+	import type { ModeSegment, RouteMetadataInput, RouteVehicleType } from '$lib/validation/schemas';
 	import { buildModeSegments, type ModeMarker } from '$lib/utils/buildModeSegments';
-	import { PenLine, Radio, Footprints, Undo2, CheckCircle2, X, RefreshCw, Navigation2, Crosshair } from '@lucide/svelte';
+	import {
+		PenLine,
+		Radio,
+		Footprints,
+		Undo2,
+		CheckCircle2,
+		X,
+		RefreshCw,
+		Crosshair
+	} from '@lucide/svelte';
 	import type { NavigationResult } from '$lib/components/map/NavigationSearchBar.svelte';
 
 	// ── Types ────────────────────────────────────────────────────────────────────
@@ -17,7 +26,12 @@
 	interface Route {
 		route_id: number | string;
 		geometry: string | GeoJSON.LineString;
+		mode_segments?: unknown;
 	}
+
+	type RouteDisplayModeSegment = ModeSegment & {
+		mode: RouteVehicleType;
+	};
 
 	interface Props {
 		center?: [number, number];
@@ -35,7 +49,7 @@
 
 	/**
 	 * Before tracing starts the user picks a recording mode:
-	 *   'manual' — tap points; each segment is snapped to roads via OSRM.
+	 *   'manual' — tap points; consecutive taps form straight segments.
 	 *   'gps'    — device location tracked live; final trace matched via OSRM.
 	 */
 	type RecordingMode = 'manual' | 'gps';
@@ -164,14 +178,116 @@
 		const toRad = (d: number) => (d * Math.PI) / 180;
 		const dLat = toRad(b[1] - a[1]);
 		const dLng = toRad(b[0] - a[0]);
-		const sa = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(a[1])) * Math.cos(toRad(b[1])) * Math.sin(dLng / 2) ** 2;
+		const sa =
+			Math.sin(dLat / 2) ** 2 +
+			Math.cos(toRad(a[1])) * Math.cos(toRad(b[1])) * Math.sin(dLng / 2) ** 2;
 		return R * 2 * Math.asin(Math.sqrt(sa));
+	}
+
+	function isLngLatPair(value: unknown): value is [number, number] {
+		return (
+			Array.isArray(value) &&
+			value.length >= 2 &&
+			typeof value[0] === 'number' &&
+			typeof value[1] === 'number'
+		);
+	}
+
+	function isRouteDisplayModeSegment(value: unknown): value is RouteDisplayModeSegment {
+		if (typeof value !== 'object' || value === null) return false;
+		const candidate = value as {
+			mode?: unknown;
+			from?: unknown;
+			to?: unknown;
+			start_index?: unknown;
+			end_index?: unknown;
+		};
+
+		if (typeof candidate.mode !== 'string') return false;
+		if (!isLngLatPair(candidate.from) || !isLngLatPair(candidate.to)) return false;
+
+		const startIsValid =
+			candidate.start_index === undefined ||
+			(Number.isInteger(candidate.start_index) && (candidate.start_index as number) >= 0);
+		const endIsValid =
+			candidate.end_index === undefined ||
+			(Number.isInteger(candidate.end_index) && (candidate.end_index as number) >= 0);
+
+		return startIsValid && endIsValid;
+	}
+
+	function normalizeRouteDisplayModeSegments(value: unknown): RouteDisplayModeSegment[] {
+		if (!Array.isArray(value)) return [];
+		return value.filter(isRouteDisplayModeSegment);
+	}
+
+	function findNearestCoordinateIndex(
+		coordinates: [number, number][],
+		target: [number, number],
+		minIndex = 0
+	): number {
+		let nearestIndex = minIndex;
+		let minDistance = Infinity;
+
+		for (let i = Math.max(0, minIndex); i < coordinates.length; i++) {
+			const d = haversineM(coordinates[i], target);
+			if (d < minDistance) {
+				minDistance = d;
+				nearestIndex = i;
+			}
+		}
+
+		return nearestIndex;
+	}
+
+	function toSegmentCoordinates(
+		coordinates: [number, number][],
+		segment: RouteDisplayModeSegment
+	): [number, number][] | null {
+		if (coordinates.length < 2) return null;
+
+		const hasIndexBounds =
+			typeof segment.start_index === 'number' && typeof segment.end_index === 'number';
+
+		let startIndex =
+			hasIndexBounds && segment.start_index! >= 0 && segment.start_index! < coordinates.length
+				? segment.start_index!
+				: findNearestCoordinateIndex(coordinates, segment.from);
+
+		let endIndex =
+			hasIndexBounds && segment.end_index! >= 0 && segment.end_index! < coordinates.length
+				? segment.end_index!
+				: findNearestCoordinateIndex(coordinates, segment.to, startIndex + 1);
+
+		if (endIndex <= startIndex) {
+			startIndex = findNearestCoordinateIndex(coordinates, segment.from);
+			endIndex = findNearestCoordinateIndex(coordinates, segment.to, startIndex + 1);
+		}
+
+		if (endIndex <= startIndex || startIndex < 0 || endIndex >= coordinates.length) return null;
+
+		return coordinates.slice(startIndex, endIndex + 1);
 	}
 
 	// ── Selected-route display ────────────────────────────────────────────────────
 
 	function removeRouteLayers() {
 		if (!map) return;
+
+		const layers = map.getStyle()?.layers ?? [];
+		for (const layer of layers) {
+			if (layer.id.startsWith('selected-route-seg-')) {
+				map.removeLayer(layer.id);
+			}
+		}
+
+		const sources = Object.keys(map.getStyle()?.sources ?? {});
+		for (const sourceId of sources) {
+			if (sourceId.startsWith('selected-route-seg-src-')) {
+				map.removeSource(sourceId);
+			}
+		}
+
 		if (map.getLayer('route-line')) map.removeLayer('route-line');
 		if (map.getSource('selected-route')) map.removeSource('selected-route');
 	}
@@ -184,9 +300,72 @@
 	function displayRoute(route: Route) {
 		if (!map) return;
 		const geometry = parseGeometry(route.geometry);
-		if (!geometry) { clearRoutes(); return; }
+		if (!geometry) {
+			clearRoutes();
+			return;
+		}
 
 		removeRouteLayers();
+
+		const coordinates = geometry.coordinates as [number, number][];
+		const segments = normalizeRouteDisplayModeSegments(route.mode_segments);
+		let renderedSegmentCount = 0;
+
+		for (let i = 0; i < segments.length; i++) {
+			const segmentCoordinates = toSegmentCoordinates(coordinates, segments[i]);
+			if (!segmentCoordinates || segmentCoordinates.length < 2) continue;
+
+			const sourceId = `selected-route-seg-src-${i}`;
+			const layerId = `selected-route-seg-${i}`;
+			const mode = segments[i].mode;
+			const isWalk = mode === 'Walk';
+			const colour = MODE_COLOURS[mode] ?? TRANSIT_COLOUR;
+
+			const geojson: GeoJSON.FeatureCollection = {
+				type: 'FeatureCollection',
+				features: [
+					{
+						type: 'Feature',
+						properties: {
+							route_id: route.route_id,
+							mode
+						},
+						geometry: {
+							type: 'LineString',
+							coordinates: segmentCoordinates
+						}
+					}
+				]
+			};
+
+			map.addSource(sourceId, {
+				type: 'geojson',
+				data: geojson
+			});
+
+			map.addLayer({
+				id: layerId,
+				type: 'line',
+				source: sourceId,
+				layout: {
+					'line-join': 'round',
+					'line-cap': 'round'
+				},
+				paint: {
+					'line-color': colour,
+					'line-width': 4,
+					'line-opacity': 0.9,
+					...(isWalk ? { 'line-dasharray': [2, 2] } : {})
+				}
+			});
+
+			renderedSegmentCount++;
+		}
+
+		if (renderedSegmentCount > 0) {
+			activeRouteId = String(route.route_id);
+			return;
+		}
 
 		const geojson: GeoJSON.FeatureCollection = {
 			type: 'FeatureCollection',
@@ -209,7 +388,10 @@
 
 	function getUserLocationForBounds(): Promise<[number, number] | null> {
 		return new Promise((resolve) => {
-			if (!navigator.geolocation) { resolve(null); return; }
+			if (!navigator.geolocation) {
+				resolve(null);
+				return;
+			}
 			navigator.geolocation.getCurrentPosition(
 				(pos) => resolve([pos.coords.longitude, pos.coords.latitude]),
 				() => resolve(null),
@@ -225,7 +407,10 @@
 		fitBoundsForRouteAndUser(geometry, [position.coords.longitude, position.coords.latitude]);
 	}
 
-	function fitBoundsForRouteAndUser(geometry: GeoJSON.LineString, userLngLat: [number, number] | null) {
+	function fitBoundsForRouteAndUser(
+		geometry: GeoJSON.LineString,
+		userLngLat: [number, number] | null
+	) {
 		if (!map) return;
 		const bounds = new maplibregl.LngLatBounds();
 		for (const c of geometry.coordinates) bounds.extend(c as [number, number]);
@@ -281,7 +466,10 @@
 		if (!map) return;
 
 		// Build a list of { coords, mode, isWalk }[] for each segment boundary.
-		interface Seg { coords: [number, number][]; mode: RouteVehicleType }
+		interface Seg {
+			coords: [number, number][];
+			mode: RouteVehicleType;
+		}
 
 		const segments: Seg[] = [];
 
@@ -327,7 +515,13 @@
 
 			const geojson: GeoJSON.FeatureCollection = {
 				type: 'FeatureCollection',
-				features: [{ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: seg.coords } }]
+				features: [
+					{
+						type: 'Feature',
+						properties: {},
+						geometry: { type: 'LineString', coordinates: seg.coords }
+					}
+				]
 			};
 
 			map.addSource(srcId, { type: 'geojson', data: geojson });
@@ -371,32 +565,6 @@
 	// ── OSRM helpers ──────────────────────────────────────────────────────────────
 
 	/**
-	 * Snap the straight-line segment between `from` and `to` to roads via OSRM.
-	 * Returns the snapped coordinate list, or a fallback straight-line pair.
-	 */
-	async function snapSegment(
-		from: [number, number],
-		to: [number, number],
-		profile: 'driving' | 'foot'
-	): Promise<[number, number][]> {
-		const coords = `${from[0]},${from[1]};${to[0]},${to[1]}`;
-		try {
-			const res = await fetch(`/api/osrm/route?profile=${profile}&coords=${encodeURIComponent(coords)}`);
-			if (!res.ok) throw new Error('osrm error');
-			const data = await res.json() as {
-				code?: string;
-				routes?: Array<{ geometry: { coordinates: [number, number][] } }>;
-			};
-			if (data.code !== 'Ok' || !data.routes?.[0]) throw new Error('no route');
-			return data.routes[0].geometry.coordinates;
-		} catch {
-			// Fallback: straight-line.
-			console.warn('[osrm/route] fallback to straight line');
-			return [from, to];
-		}
-	}
-
-	/**
 	 * Map-match a raw GPS trace via OSRM match endpoint.
 	 * Returns the snapped coords or the raw input if matching fails.
 	 */
@@ -407,7 +575,7 @@
 		try {
 			const res = await fetch(`/api/osrm/match?coords=${encodeURIComponent(coordsStr)}`);
 			if (!res.ok) throw new Error('match error');
-			const data = await res.json() as {
+			const data = (await res.json()) as {
 				code?: string;
 				matchings?: Array<{ geometry: { coordinates: [number, number][] } }>;
 			};
@@ -428,25 +596,17 @@
 
 		const newCoord: [number, number] = [lngLat.lng, lngLat.lat];
 		const isFirst = tracedPoints.length === 0;
+		const previousPointIndex = tracedPoints.length - 1;
 
 		if (pendingModeChange) {
-			// Drop mode marker at the nearest already-traced point index.
-			if (tracedPoints.length > 0) {
-				// Snap to the closest existing point index.
-				let nearest = 0;
-				let minDist = Infinity;
-				for (let i = 0; i < tracedPoints.length; i++) {
-					const d = haversineM(tracedPoints[i], newCoord);
-					if (d < minDist) { minDist = d; nearest = i; }
-				}
-				// Only add if a marker doesn't already exist at this index.
-				if (!modeMarkers.some((m) => m.pointIndex === nearest)) {
-					modeMarkers = [...modeMarkers, { pointIndex: nearest, mode: pendingMode }];
-				}
+			// Apply the new mode starting before the new tap segment.
+			if (previousPointIndex >= 0) {
+				modeMarkers = [
+					...modeMarkers.filter((m) => m.pointIndex !== previousPointIndex),
+					{ pointIndex: previousPointIndex, mode: pendingMode }
+				];
 			}
 			pendingModeChange = false;
-			updateTraceLine();
-			return;
 		}
 
 		if (isFirst) {
@@ -456,19 +616,8 @@
 			return;
 		}
 
-		// Snap new segment to roads.
-		const prev = tracedPoints[tracedPoints.length - 1];
-		const currentMode: RouteVehicleType = (() => {
-			const sorted = [...modeMarkers].sort((a, b) => a.pointIndex - b.pointIndex);
-			const applicable = sorted.filter((m) => m.pointIndex < tracedPoints.length);
-			return applicable[applicable.length - 1]?.mode ?? 'Walk';
-		})();
-		const profile = currentMode === 'Walk' ? 'foot' : 'driving';
-		const snapped = await snapSegment(prev, newCoord, profile);
-
-		// Merge snapped coords (skip first point to avoid duplicate).
-		const toAdd = snapped.slice(1) as [number, number][];
-		tracedPoints = [...tracedPoints, ...toAdd];
+		// Pure manual tracing: directly connect the new point to the previous point.
+		tracedPoints = [...tracedPoints, newCoord];
 		addPointMarker(newCoord, false);
 		updateTraceLine();
 	}
@@ -482,8 +631,10 @@
 		const lastMarker = traceMarkers.pop();
 		if (lastMarker) lastMarker.remove();
 
-		// Remove any mode marker attached to the removed point index.
-		modeMarkers = modeMarkers.filter((m) => m.pointIndex !== removedIdx);
+		// Remove any mode marker tied to the removed point or its preceding boundary.
+		modeMarkers = modeMarkers.filter(
+			(m) => m.pointIndex !== removedIdx && m.pointIndex !== removedIdx - 1
+		);
 
 		updateTraceLine();
 	}
@@ -534,7 +685,17 @@
 
 	// ── Mode marker UI ────────────────────────────────────────────────────────────
 
-	const PICKABLE_MODES = ['Walk', 'Jeepney', 'Bus', 'MRT-3', 'LRT-1', 'LRT-2', 'UV Express', 'Tricycle', 'Shuttle'] as const;
+	const PICKABLE_MODES = [
+		'Walk',
+		'Jeepney',
+		'Bus',
+		'MRT-3',
+		'LRT-1',
+		'LRT-2',
+		'UV Express',
+		'Tricycle',
+		'Shuttle'
+	] as const;
 
 	function openModePicker() {
 		modePickerOpen = true;
@@ -552,7 +713,7 @@
 				updateTraceLine();
 			}
 		} else {
-			// Mode A: arm pendingModeChange so the next map tap drops the pin.
+			// Mode A: arm pendingModeChange; next tap adds point and applies mode before that segment.
 			pendingModeChange = true;
 			if (map) map.getCanvas().style.cursor = 'cell';
 		}
@@ -634,7 +795,10 @@
 			});
 
 			if (!response.ok) {
-				const body = (await response.json().catch(() => null)) as { message?: string; error?: string } | null;
+				const body = (await response.json().catch(() => null)) as {
+					message?: string;
+					error?: string;
+				} | null;
 				throw new Error(body?.message ?? body?.error ?? 'Failed to save route');
 			}
 
@@ -665,7 +829,10 @@
 
 	function getUserLocation(): Promise<[number, number]> {
 		return new Promise((resolve) => {
-			if (!navigator.geolocation) { resolve(center ?? FALLBACK_CENTER); return; }
+			if (!navigator.geolocation) {
+				resolve(center ?? FALLBACK_CENTER);
+				return;
+			}
 			navigator.geolocation.getCurrentPosition(
 				(pos) => resolve([pos.coords.longitude, pos.coords.latitude]),
 				() => resolve(center ?? FALLBACK_CENTER),
@@ -716,14 +883,16 @@
 				const srcId = `nav-leg-${i}`;
 				const geojson: GeoJSON.FeatureCollection = {
 					type: 'FeatureCollection',
-					features: [{
-						type: 'Feature',
-						properties: {},
-						geometry: {
-							type: 'LineString',
-							coordinates: [leg.from, leg.to]
+					features: [
+						{
+							type: 'Feature',
+							properties: {},
+							geometry: {
+								type: 'LineString',
+								coordinates: [leg.from, leg.to]
+							}
 						}
-					}]
+					]
 				};
 				m.addSource(srcId, { type: 'geojson', data: geojson });
 				m.addLayer({
@@ -743,11 +912,13 @@
 				const srcId = `nav-leg-${i}`;
 				const geojson: GeoJSON.FeatureCollection = {
 					type: 'FeatureCollection',
-					features: [{
-						type: 'Feature',
-						properties: {},
-						geometry: leg.geometry
-					}]
+					features: [
+						{
+							type: 'Feature',
+							properties: {},
+							geometry: leg.geometry
+						}
+					]
 				};
 				// Casing
 				m.addSource(srcId, { type: 'geojson', data: geojson });
@@ -769,7 +940,9 @@
 		});
 	}
 
-	function getNavEndpoints(result: NavigationResult): { start: [number, number]; end: [number, number] } | null {
+	function getNavEndpoints(
+		result: NavigationResult
+	): { start: [number, number]; end: [number, number] } | null {
 		const firstLeg = result.itinerary[0];
 		const lastLeg = result.itinerary[result.itinerary.length - 1];
 		if (!firstLeg || !lastLeg) return null;
@@ -798,7 +971,10 @@
 		const endpoints = getNavEndpoints(result);
 		if (!endpoints) return;
 		removeNavMarkers();
-		navStartMarker = new maplibregl.Marker({ element: createNavPinElement('start'), anchor: 'bottom' })
+		navStartMarker = new maplibregl.Marker({
+			element: createNavPinElement('start'),
+			anchor: 'bottom'
+		})
 			.setLngLat(endpoints.start)
 			.addTo(map);
 		navEndMarker = new maplibregl.Marker({ element: createNavPinElement('end'), anchor: 'bottom' })
@@ -880,8 +1056,8 @@
 					pos.coords.heading != null && !isNaN(pos.coords.heading)
 						? pos.coords.heading
 						: navLastCoord
-						? computeBearing(navLastCoord, coord)
-						: 0;
+							? computeBearing(navLastCoord, coord)
+							: 0;
 				navLastCoord = coord;
 
 				if (map && !navOffCenter) {
@@ -898,8 +1074,7 @@
 				// Check if we have advanced to the next leg
 				if (navResult && navActiveLegIndex < navResult.itinerary.length - 1) {
 					const currentLeg = navResult.itinerary[navActiveLegIndex];
-					const targetCoord =
-						currentLeg.type === 'walk' ? currentLeg.to : currentLeg.alight;
+					const targetCoord = currentLeg.type === 'walk' ? currentLeg.to : currentLeg.alight;
 					if (haversineM(coord, targetCoord) < 80) {
 						navActiveLegIndex = navActiveLegIndex + 1;
 						if (map && mapStyleLoaded) drawNavLegs(navResult, navActiveLegIndex);
@@ -1033,7 +1208,11 @@
 
 	$effect(() => {
 		if (!map || !mapStyleLoaded) return;
-		if (!selectedRoute) { clearRoutes(); lastFittedRouteId = null; return; }
+		if (!selectedRoute) {
+			clearRoutes();
+			lastFittedRouteId = null;
+			return;
+		}
 		if (!map.isStyleLoaded()) return;
 		displayRoute(selectedRoute);
 		void fitRouteWhenNew(selectedRoute);
@@ -1090,7 +1269,7 @@
 {#if tracingMode && !controlsHidden}
 	<!-- Step 1: mode picker (shown before any tracing starts) -->
 	{#if recordingMode === null}
-		<div class="absolute inset-0 z-30 flex items-end justify-center pb-10 pointer-events-none">
+		<div class="pointer-events-none absolute inset-0 z-30 flex items-end justify-center pb-10">
 			<div
 				class="pointer-events-auto mx-4 w-full max-w-sm rounded-2xl border border-border/60 bg-card/95 p-5 shadow-2xl backdrop-blur"
 			>
@@ -1111,12 +1290,16 @@
 						class="flex items-center gap-3 rounded-xl border border-border bg-background px-4 py-3 text-left transition-colors hover:border-brand/50 hover:bg-brand/5"
 						onclick={() => chooseMode('manual')}
 					>
-						<div class="grid size-9 shrink-0 place-items-center rounded-full bg-blue-500/10 text-blue-500">
+						<div
+							class="grid size-9 shrink-0 place-items-center rounded-full bg-blue-500/10 text-blue-500"
+						>
 							<PenLine class="size-4" />
 						</div>
 						<div>
 							<p class="text-sm font-medium text-foreground">Manual trace</p>
-							<p class="text-xs text-muted-foreground">Tap points on the map; segments snap to roads</p>
+							<p class="text-xs text-muted-foreground">
+								Tap points on the map to draw straight segments
+							</p>
 						</div>
 					</button>
 					<button
@@ -1124,7 +1307,9 @@
 						class="flex items-center gap-3 rounded-xl border border-border bg-background px-4 py-3 text-left transition-colors hover:border-brand/50 hover:bg-brand/5"
 						onclick={() => chooseMode('gps')}
 					>
-						<div class="grid size-9 shrink-0 place-items-center rounded-full bg-green-500/10 text-green-600">
+						<div
+							class="grid size-9 shrink-0 place-items-center rounded-full bg-green-500/10 text-green-600"
+						>
 							<Radio class="size-4" />
 						</div>
 						<div>
@@ -1182,7 +1367,7 @@
 				<Button.Root
 					variant="outline"
 					size="sm"
-					class="gap-1.5 shadow-md"
+					class="gap-1.5 border-border/80 bg-card/95 shadow-md"
 					disabled={tracedPoints.length === 0}
 					onclick={undoLastPoint}
 				>
@@ -1193,7 +1378,7 @@
 				<Button.Root
 					variant="outline"
 					size="sm"
-					class="gap-1.5 shadow-md"
+					class="gap-1.5 border-border/80 bg-card/95 shadow-md"
 					disabled={tracedPoints.length === 0}
 					onclick={openModePicker}
 				>
@@ -1228,7 +1413,7 @@
 					<Button.Root
 						variant="default"
 						size="sm"
-						class="gap-1.5 bg-destructive text-destructive-foreground shadow-md hover:bg-destructive/90"
+						class="text-destructive-foreground gap-1.5 bg-destructive shadow-md hover:bg-destructive/90"
 						onclick={() => void stopGpsRecording()}
 					>
 						Stop recording
@@ -1254,9 +1439,9 @@
 			{/if}
 			<!-- Cancel (always visible) -->
 			<Button.Root
-				variant="ghost"
+				variant="outline"
 				size="sm"
-				class="gap-1.5 shadow-sm"
+				class="gap-1.5 border-border/80 bg-card/95 shadow-md"
 				onclick={() => void handleCancelTrace()}
 			>
 				<X class="size-3.5" />
@@ -1268,23 +1453,29 @@
 
 <!-- ── Mode picker bottom sheet ───────────────────────────────────────────── -->
 {#if modePickerOpen}
-	<div class="fixed inset-0 z-50 flex items-end justify-center">
+	<div
+		class="fixed inset-0 z-80 flex items-end justify-center px-4 pb-[calc(env(safe-area-inset-bottom)+5.5rem)]"
+	>
 		<button
 			type="button"
 			class="absolute inset-0 bg-black/40"
-			onclick={() => { modePickerOpen = false; }}
+			onclick={() => {
+				modePickerOpen = false;
+			}}
 			aria-label="Close mode picker"
 		></button>
 		<div
-			class="relative z-10 mx-4 mb-6 w-full max-w-sm rounded-2xl border border-border/60 bg-card p-5 shadow-2xl"
+			class="relative z-10 w-full max-w-sm rounded-2xl border border-border/60 bg-card p-5 shadow-2xl"
 		>
 			<h2 class="mb-3 text-sm font-semibold text-foreground">Change transport mode</h2>
 			<div class="grid grid-cols-3 gap-2">
 				{#each PICKABLE_MODES as mode (mode)}
 					<button
 						type="button"
-						class="flex flex-col items-center gap-1 rounded-xl border px-2 py-2.5 text-center text-xs transition-colors hover:bg-brand/10 hover:border-brand/40 hover:text-brand"
-						style="border-color: {MODE_COLOURS[mode] ?? TRANSIT_COLOUR}22; color: {MODE_COLOURS[mode] ?? TRANSIT_COLOUR}"
+						class="flex flex-col items-center gap-1 rounded-xl border px-2 py-2.5 text-center text-xs transition-colors hover:border-brand/40 hover:bg-brand/10 hover:text-brand"
+						style="border-color: {MODE_COLOURS[mode] ?? TRANSIT_COLOUR}22; color: {MODE_COLOURS[
+							mode
+						] ?? TRANSIT_COLOUR}"
 						onclick={() => selectMode(mode)}
 					>
 						<span
@@ -1310,13 +1501,15 @@
 {#if showNavSearch && !tracingMode && !navResult && !controlsHidden}
 	<NavigationSearchBar
 		onnav={handleNavResult}
-		onclose={() => { /* parent manages showNavSearch */ }}
+		onclose={() => {
+			/* parent manages showNavSearch */
+		}}
 	/>
 {/if}
 
 <!-- ── Navigation Itinerary Card ─────────────────────────────────────────── -->
 {#if navResult && !tracingMode && !controlsHidden}
-	<div class="absolute bottom-5 left-0 right-0 z-10 px-4 md:px-6 pointer-events-none">
+	<div class="pointer-events-none absolute right-0 bottom-5 left-0 z-10 px-4 md:px-6">
 		<div class="pointer-events-auto">
 			<NavigationItineraryCard
 				itinerary={navResult.itinerary}
@@ -1377,7 +1570,9 @@
 		backdrop-filter: blur(8px);
 		-webkit-backdrop-filter: blur(8px);
 		cursor: pointer;
-		transition: transform 120ms, box-shadow 120ms;
+		transition:
+			transform 120ms,
+			box-shadow 120ms;
 	}
 
 	.recenter-btn:hover {
