@@ -8,7 +8,7 @@
 	import NavigationItineraryCard from '$lib/components/map/NavigationItineraryCard.svelte';
 	import NavigationArrivedPrompt from '$lib/components/map/NavigationArrivedPrompt.svelte';
 	import type { ModeSegment, RouteMetadataInput, RouteVehicleType } from '$lib/validation/schemas';
-	import { buildModeSegments, type ModeMarker } from '$lib/utils/buildModeSegments';
+	import { buildModeSegments, vehicleTypesFromTrace, type ModeMarker } from '$lib/utils/buildModeSegments';
 	import {
 		PenLine,
 		Radio,
@@ -127,6 +127,11 @@
 	let savingRoute = $state(false);
 	let traceMetadataOpen = $state(false);
 	let traceSaveError = $state<string | null>(null);
+
+	const traceVehicleTypesForSave = $derived.by((): RouteVehicleType[] => {
+		const types = vehicleTypesFromTrace(tracedPoints, modeMarkers);
+		return types.length > 0 ? types : ['Walk'];
+	});
 
 	// GPS (Mode B) specific state.
 	let gpsWatchId = $state<number | null>(null);
@@ -1503,6 +1508,7 @@
 	bind:open={traceMetadataOpen}
 	saving={savingRoute}
 	errorMessage={traceSaveError}
+	traceVehicleTypes={traceVehicleTypesForSave}
 	onsave={handleTraceMetadataSave}
 />
 

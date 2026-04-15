@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Flag, X, Save } from '@lucide/svelte';
 	import RouteTraceSaveDrawer from '$lib/components/map/RouteTraceSaveDrawer.svelte';
-	import type { RouteMetadataInput } from '$lib/validation/schemas';
+	import type { RouteMetadataInput, RouteVehicleType } from '$lib/validation/schemas';
 
 	interface RideLeg {
 		type: 'ride';
@@ -35,6 +35,20 @@
 
 	const rideLegs = $derived(itinerary.filter((l): l is RideLeg => l.type === 'ride'));
 	const showSavePrompt = $derived(rideLegs.length >= 2);
+
+	const itineraryVehicleTypes = $derived.by((): RouteVehicleType[] => {
+		const ordered: RouteVehicleType[] = [];
+		const seen = new Set<RouteVehicleType>();
+		for (const leg of itinerary) {
+			const mode: RouteVehicleType =
+				leg.type === 'walk' ? 'Walk' : (leg.mode as RouteVehicleType);
+			if (!seen.has(mode)) {
+				seen.add(mode);
+				ordered.push(mode);
+			}
+		}
+		return ordered.length > 0 ? ordered : ['Walk'];
+	});
 
 	let saving = $state(false);
 	let saveError = $state<string | null>(null);
@@ -77,8 +91,11 @@
 				})
 			});
 			if (!res.ok) {
-				const body = await res.json().catch(() => null) as { message?: string } | null;
-				throw new Error(body?.message ?? 'Failed to save route');
+				const body = (await res.json().catch(() => null)) as {
+					message?: string;
+					error?: string;
+				} | null;
+				throw new Error(body?.message ?? body?.error ?? 'Failed to save route');
 			}
 			drawerOpen = false;
 			onsaved?.();
@@ -157,6 +174,7 @@
 	bind:open={drawerOpen}
 	{saving}
 	errorMessage={saveError}
+	traceVehicleTypes={itineraryVehicleTypes}
 	onsave={handleSave}
 />
 

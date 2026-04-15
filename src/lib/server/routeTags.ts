@@ -31,6 +31,13 @@ export async function listRouteTags(
 		.eq('route_id', routeId);
 
 	if (error) {
+		const code = (error as { code?: string }).code;
+		if (code === 'PGRST205') {
+			console.warn(
+				"route_tag is missing or not exposed to the API. Apply supabase/migrations/20260416120000_add_route_tag_junction.sql (or equivalent) on your Supabase project."
+			);
+			return [];
+		}
 		console.error('Failed to load route tags', error);
 		return [];
 	}
@@ -74,6 +81,59 @@ function asTagInsertClient(supabase: SupabaseClient<Database>): TagInsertClient 
 	return supabase as unknown as TagInsertClient;
 }
 
+/**
+ * Inserts any canonical accessibility tags that are not yet in `tag`.
+ * Returns false if lookup or insert fails (e.g. RLS denying `tag` insert).
+ */
+async function ensureCanonicalAccessibilityTagRows(
+	supabase: SupabaseClient<Database>,
+	tags: RouteAccessibilityTag[]
+): Promise<boolean> {
+	if (tags.length === 0) return true;
+
+	const client = asTagLookupClient(supabase);
+	const { data, error } = await client.from('tag').select('text').in('text', tags);
+
+	if (error) {
+		console.error('Failed to look up route tags before ensure', error);
+		return false;
+	}
+
+	const found = new Set<RouteAccessibilityTag>();
+	if (Array.isArray(data)) {
+		for (const row of data) {
+			const item = row as { text?: unknown };
+			const parsed = routeAccessibilityTagSchema.safeParse(item.text);
+			if (parsed.success) found.add(parsed.data);
+		}
+	}
+
+	const missing = tags.filter((t) => !found.has(t));
+	if (missing.length === 0) return true;
+
+	const { error: insertError } = await supabase
+		.from('tag')
+		.insert(missing.map((text) => ({ text, icon_url: null })));
+
+	if (insertError) {
+		const code = (insertError as { code?: string }).code;
+		if (code === '42501') {
+			console.error(
+				'RLS blocked insert into public.tag. Apply supabase/migrations/20260416131000_tag_rls_insert_canonical.sql (tag_insert_canonical policy + GRANT INSERT).',
+				insertError
+			);
+		} else {
+			console.error(
+				'Failed to create canonical route tags (missing DB rows or RLS blocked insert)',
+				insertError
+			);
+		}
+		return false;
+	}
+
+	return true;
+}
+
 export async function resolveRouteTagIds(
 	supabase: SupabaseClient<Database>,
 	tags: RouteAccessibilityTag[]
@@ -114,6 +174,9 @@ export async function attachRouteTags(
 ): Promise<'ok' | 'unsupported' | 'failed'> {
 	const uniqueTags = [...new Set(tags)];
 	if (uniqueTags.length === 0) return 'ok';
+
+	const ensured = await ensureCanonicalAccessibilityTagRows(supabase, uniqueTags);
+	if (!ensured) return 'unsupported';
 
 	const tagIds = await resolveRouteTagIds(supabase, uniqueTags);
 	if (!tagIds) return 'unsupported';

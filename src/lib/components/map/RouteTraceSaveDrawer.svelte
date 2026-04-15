@@ -14,6 +14,8 @@
 		saving?: boolean;
 		errorMessage?: string | null;
 		class?: string;
+		/** When set, vehicle types come from the trace/itinerary (no duplicate picker). */
+		traceVehicleTypes?: RouteVehicleType[];
 		onsave?: ((payload: RouteMetadataInput) => void | Promise<void>) | undefined;
 	}
 
@@ -34,8 +36,11 @@
 		saving = false,
 		errorMessage = null,
 		class: className,
+		traceVehicleTypes: traceVehicleTypesProp,
 		onsave
 	}: Props = $props();
+
+	const useTraceVehicleTypes = $derived(traceVehicleTypesProp !== undefined);
 
 	let routeName = $state('');
 	let startLoc = $state('');
@@ -95,6 +100,16 @@
 		return tag;
 	}
 
+	function resolvedVehicleTypes(): RouteVehicleType[] | null {
+		if (useTraceVehicleTypes) {
+			const fromTrace = traceVehicleTypesProp ?? [];
+			if (fromTrace.length > 0) return [...fromTrace];
+			return ['Walk'];
+		}
+		if (vehicleTypes.length === 0) return null;
+		return [...vehicleTypes];
+	}
+
 	function validateForm(): RouteMetadataInput | null {
 		const errors: FieldErrors = {};
 
@@ -107,7 +122,10 @@
 		if (!normalizedRouteName) errors.route_name = 'Route name is required';
 		if (!normalizedStartLoc) errors.start_loc = 'Start location is required';
 		if (!normalizedEndLoc) errors.end_loc = 'End location is required';
-		if (vehicleTypes.length === 0) errors.vehicle_types = 'Choose at least one vehicle type';
+
+		const vt = resolvedVehicleTypes();
+		if (!vt) errors.vehicle_types = 'Choose at least one vehicle type';
+
 		if (pwdFriendly === null) errors.pwd_friendly = 'Choose whether this route is PWD-friendly';
 		if (!Number.isInteger(etaValue) || etaValue <= 0) {
 			errors.est_time_of_arrival = 'Enter a positive whole number';
@@ -118,7 +136,7 @@
 
 		fieldErrors = errors;
 
-		if (Object.keys(errors).length > 0 || pwdFriendly === null) {
+		if (Object.keys(errors).length > 0 || pwdFriendly === null || !vt) {
 			localErrorMessage = 'Fill in all required route details before saving.';
 			return null;
 		}
@@ -127,7 +145,7 @@
 			route_name: normalizedRouteName,
 			start_loc: normalizedStartLoc,
 			end_loc: normalizedEndLoc,
-			vehicle_types: [...vehicleTypes],
+			vehicle_types: vt,
 			route_tags: [...routeTags],
 			pwd_friendly: pwdFriendly,
 			est_time_of_arrival: etaValue,
@@ -243,39 +261,41 @@
 						</label>
 					</div>
 
-					<div class="space-y-3">
-						<div class="flex items-end justify-between gap-3">
-							<div>
-								<p class="text-sm font-medium text-foreground">Vehicle types</p>
-								<p class="text-xs text-muted-foreground">
-									Select every vehicle that serves this route.
-								</p>
+					{#if !useTraceVehicleTypes}
+						<div class="space-y-3">
+							<div class="flex items-end justify-between gap-3">
+								<div>
+									<p class="text-sm font-medium text-foreground">Vehicle types</p>
+									<p class="text-xs text-muted-foreground">
+										Select every vehicle that serves this route.
+									</p>
+								</div>
+								{#if fieldErrors.vehicle_types}
+									<p class="text-xs text-destructive" role="alert">{fieldErrors.vehicle_types}</p>
+								{/if}
 							</div>
-							{#if fieldErrors.vehicle_types}
-								<p class="text-xs text-destructive" role="alert">{fieldErrors.vehicle_types}</p>
-							{/if}
+							<div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+								{#each routeVehicleTypeOptions.filter((v) => v !== 'Walk') as vehicleType (vehicleType)}
+									<label
+										class={cn(
+											'flex cursor-pointer items-center gap-2 rounded-xl border px-3 py-2.5 text-sm transition-colors',
+											vehicleTypes.includes(vehicleType)
+												? 'border-brand/30 bg-brand/10 text-brand'
+												: 'border-border bg-background text-foreground'
+										)}
+									>
+										<input
+											type="checkbox"
+											checked={vehicleTypes.includes(vehicleType)}
+											onchange={() => toggleVehicleType(vehicleType)}
+											class="size-4 rounded border-border text-brand focus:ring-brand/20"
+										/>
+										<span class="min-w-0">{vehicleType}</span>
+									</label>
+								{/each}
+							</div>
 						</div>
-						<div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-							{#each routeVehicleTypeOptions.filter((v) => v !== 'Walk') as vehicleType (vehicleType)}
-								<label
-									class={cn(
-										'flex cursor-pointer items-center gap-2 rounded-xl border px-3 py-2.5 text-sm transition-colors',
-										vehicleTypes.includes(vehicleType)
-											? 'border-brand/30 bg-brand/10 text-brand'
-											: 'border-border bg-background text-foreground'
-									)}
-								>
-									<input
-										type="checkbox"
-										checked={vehicleTypes.includes(vehicleType)}
-										onchange={() => toggleVehicleType(vehicleType)}
-										class="size-4 rounded border-border text-brand focus:ring-brand/20"
-									/>
-									<span class="min-w-0">{vehicleType}</span>
-								</label>
-							{/each}
-						</div>
-					</div>
+					{/if}
 
 					<div class="space-y-3">
 						<div class="flex items-end justify-between gap-3">

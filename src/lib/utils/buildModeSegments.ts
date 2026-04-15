@@ -59,3 +59,23 @@ export function buildModeSegments(
 
 	return segments;
 }
+
+/**
+ * Ordered unique vehicle modes from a trace, matching `buildModeSegments` rules
+ * (implicit `Walk` at index 0 when missing).
+ */
+export function vehicleTypesFromTrace(
+	points: [number, number][],
+	markers: ModeMarker[]
+): RouteVehicleType[] {
+	const segments = buildModeSegments(points, markers);
+	const seen = new Set<RouteVehicleType>();
+	const ordered: RouteVehicleType[] = [];
+	for (const s of segments) {
+		if (!seen.has(s.mode)) {
+			seen.add(s.mode);
+			ordered.push(s.mode);
+		}
+	}
+	return ordered;
+}

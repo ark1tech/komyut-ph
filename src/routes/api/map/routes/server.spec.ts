@@ -188,6 +188,7 @@ function mockPostEvent(body: unknown, supabaseOverrides: Record<string, unknown>
 			{ tag_id: 2, text: 'under-50-pesos' }
 		];
 	const mockRouteTagInsertError = supabaseOverrides.routeTagInsertError ?? null;
+	const mockTagInsertError = supabaseOverrides.tagInsertError ?? null;
 
 	const routeInsert = vi.fn().mockReturnValue({
 		select: vi.fn().mockReturnValue({
@@ -198,17 +199,20 @@ function mockPostEvent(body: unknown, supabaseOverrides: Record<string, unknown>
 		})
 	});
 
-	const tagSelectIn = vi.fn().mockResolvedValue({
-		data: mockTagRows,
-		error: mockTagLookupError
-	});
+	const tagSelectIn =
+		(supabaseOverrides.tagSelectIn as ReturnType<typeof vi.fn> | undefined) ??
+		vi.fn().mockResolvedValue({
+			data: mockTagRows,
+			error: mockTagLookupError
+		});
 	const tagSelect = vi.fn().mockReturnValue({ in: tagSelectIn });
+	const tagInsert = vi.fn().mockResolvedValue({ error: mockTagInsertError });
 	const routeTagInsert = vi.fn().mockResolvedValue({ error: mockRouteTagInsertError });
 
 	const supabase = {
 		from: vi.fn((table: string) => {
 			if (table === 'route') return { insert: routeInsert };
-			if (table === 'tag') return { select: tagSelect };
+			if (table === 'tag') return { select: tagSelect, insert: tagInsert };
 			if (table === 'route_tag') return { insert: routeTagInsert };
 			throw new Error(`Unexpected table: ${table}`);
 		})
@@ -353,12 +357,19 @@ describe('POST /api/map/routes', () => {
 			expect(body.error).toBe('failed to create route');
 		});
 
-		it('should return 400 when provided route tag cannot be resolved', async () => {
+		it('should return 400 when route tags cannot be resolved after ensure', async () => {
+			const tagSelectIn = vi
+				.fn()
+				.mockResolvedValueOnce({ data: [], error: null })
+				.mockResolvedValueOnce({ data: [], error: null });
+
 			const event = mockPostEvent(
 				buildValidRouteCreateBody({ route_tags: ['pwd-friendly'] }),
 				{
 					data: { route_id: 88 },
-					tagRows: []
+					tagRows: [],
+					tagSelectIn,
+					tagInsertError: null
 				}
 			);
 			const response = await POST(event);
