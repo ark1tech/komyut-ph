@@ -2,8 +2,10 @@
 	import * as Button from '$lib/components/ui/button';
 	import { cn } from '$lib/utils';
 	import {
+		routeAccessibilityTagOptions,
 		routeVehicleTypeOptions,
 		type RouteMetadataInput,
+		type RouteAccessibilityTag,
 		type RouteVehicleType
 	} from '$lib/validation/schemas';
 
@@ -20,6 +22,7 @@
 		| 'start_loc'
 		| 'end_loc'
 		| 'vehicle_types'
+		| 'route_tags'
 		| 'pwd_friendly'
 		| 'est_time_of_arrival'
 		| 'fare';
@@ -38,6 +41,7 @@
 	let startLoc = $state('');
 	let endLoc = $state('');
 	let vehicleTypes = $state<RouteVehicleType[]>([]);
+	let routeTags = $state<RouteAccessibilityTag[]>([]);
 	let pwdFriendly = $state<boolean | null>(null);
 	let estTimeOfArrival = $state('');
 	let fare = $state('');
@@ -50,6 +54,7 @@
 		startLoc = '';
 		endLoc = '';
 		vehicleTypes = [];
+		routeTags = [];
 		pwdFriendly = null;
 		estTimeOfArrival = '';
 		fare = '';
@@ -71,6 +76,23 @@
 		}
 
 		vehicleTypes = [...vehicleTypes, vehicleType];
+	}
+
+	function toggleRouteTag(routeTag: RouteAccessibilityTag) {
+		if (routeTags.includes(routeTag)) {
+			routeTags = routeTags.filter((value) => value !== routeTag);
+			return;
+		}
+
+		routeTags = [...routeTags, routeTag];
+	}
+
+	function formatTagLabel(tag: RouteAccessibilityTag) {
+		if (tag === 'pwd-friendly') return 'PWD-friendly';
+		if (tag === 'id-required') return 'ID-required';
+		if (tag === 'under-50-pesos') return 'Under 50 pesos';
+		if (tag === 'under-100-pesos') return 'Under 100 pesos';
+		return tag;
 	}
 
 	function validateForm(): RouteMetadataInput | null {
@@ -106,6 +128,7 @@
 			start_loc: normalizedStartLoc,
 			end_loc: normalizedEndLoc,
 			vehicle_types: [...vehicleTypes],
+			route_tags: [...routeTags],
 			pwd_friendly: pwdFriendly,
 			est_time_of_arrival: etaValue,
 			fare: fareValue
@@ -249,6 +272,40 @@
 										class="size-4 rounded border-border text-brand focus:ring-brand/20"
 									/>
 									<span class="min-w-0">{vehicleType}</span>
+								</label>
+							{/each}
+						</div>
+					</div>
+
+					<div class="space-y-3">
+						<div class="flex items-end justify-between gap-3">
+							<div>
+								<p class="text-sm font-medium text-foreground">Route tags</p>
+								<p class="text-xs text-muted-foreground">
+									Add applicable tags before saving this route.
+								</p>
+							</div>
+							{#if fieldErrors.route_tags}
+								<p class="text-xs text-destructive" role="alert">{fieldErrors.route_tags}</p>
+							{/if}
+						</div>
+						<div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+							{#each routeAccessibilityTagOptions as routeTag (routeTag)}
+								<label
+									class={cn(
+										'flex cursor-pointer items-center gap-2 rounded-xl border px-3 py-2.5 text-sm transition-colors',
+										routeTags.includes(routeTag)
+											? 'border-brand/30 bg-brand/10 text-brand'
+											: 'border-border bg-background text-foreground'
+									)}
+								>
+									<input
+										type="checkbox"
+										checked={routeTags.includes(routeTag)}
+										onchange={() => toggleRouteTag(routeTag)}
+										class="size-4 rounded border-border text-brand focus:ring-brand/20"
+									/>
+									<span class="min-w-0">{formatTagLabel(routeTag)}</span>
 								</label>
 							{/each}
 						</div>

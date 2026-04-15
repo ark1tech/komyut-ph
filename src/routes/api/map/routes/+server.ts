@@ -2,6 +2,7 @@ import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { mapRouteQuerySchema, mapRouteCreateSchema } from '$lib/validation/schemas';
 import { getOrSetCached } from '$lib/server/cache';
+import { attachRouteTags } from '$lib/server/routeTags';
 
 const ROUTE_TTL_MS = 10 * 60_000;
 
@@ -65,6 +66,7 @@ export const POST: RequestHandler = async (event) => {
 		start_loc,
 		end_loc,
 		vehicle_types,
+		route_tags,
 		pwd_friendly,
 		est_time_of_arrival,
 		fare,
@@ -92,6 +94,14 @@ export const POST: RequestHandler = async (event) => {
 			.single();
 
 		if (dbError) throw dbError;
+
+		const tagSaveStatus = await attachRouteTags(supabase, data.route_id, route_tags);
+		if (tagSaveStatus === 'unsupported') {
+			return json({ error: 'failed to create route tags' }, { status: 400 });
+		}
+		if (tagSaveStatus === 'failed') {
+			return json({ error: 'failed to create route tags' }, { status: 500 });
+		}
 
 		return json({ success: true, route_id: data.route_id }, { status: 201 });
 	} catch (err) {

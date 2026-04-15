@@ -1,5 +1,6 @@
 import type { PageServerLoad } from './$types';
 import { loadSavedRouteSelectionFromQuery } from '$lib/server/savedRouteSelectionQuery';
+import { listRouteTags } from '$lib/server/routeTags';
 
 interface RouteGeometryResult {
 	route_id: number;
@@ -61,6 +62,7 @@ export const load: PageServerLoad = async ({ url, locals: { supabase, safeGetSes
 		return {
 			routeSelectionInvalid: false,
 			selectedRoute: null,
+			selectedRouteTags: [],
 			selectedSubscription: null,
 			selectedRouteGeometry: null,
 			selectedRouteSource: null,
@@ -73,6 +75,7 @@ export const load: PageServerLoad = async ({ url, locals: { supabase, safeGetSes
 		return {
 			routeSelectionInvalid: false,
 			selectedRoute: null,
+			selectedRouteTags: [],
 			selectedSubscription: null,
 			selectedRouteGeometry: null,
 			selectedRouteSource: null,
@@ -87,6 +90,7 @@ export const load: PageServerLoad = async ({ url, locals: { supabase, safeGetSes
 		return {
 			routeSelectionInvalid: true,
 			selectedRoute: null,
+			selectedRouteTags: [],
 			selectedSubscription: null,
 			selectedRouteGeometry: null,
 			selectedRouteSource: null,
@@ -95,13 +99,16 @@ export const load: PageServerLoad = async ({ url, locals: { supabase, safeGetSes
 	}
 
 	if (!session) {
+		const routeId = selection.selectedRoute?.geo_route_id ?? null;
 		const fallbackRouteGeometry = await loadRouteGeometryById(
 			supabase,
-			selection.selectedRoute?.geo_route_id ?? null
+			routeId
 		);
+		const selectedRouteTags = routeId ? await listRouteTags(supabase, routeId) : [];
 		return {
 			routeSelectionInvalid: false,
 			selectedRoute: selection.selectedRoute,
+			selectedRouteTags,
 			selectedSubscription: null,
 			selectedRouteGeometry: fallbackRouteGeometry,
 			selectedRouteSource: selection.selectedRouteSource,
@@ -113,6 +120,7 @@ export const load: PageServerLoad = async ({ url, locals: { supabase, safeGetSes
 		return {
 			routeSelectionInvalid: false,
 			selectedRoute: null,
+			selectedRouteTags: [],
 			selectedSubscription: null,
 			selectedRouteGeometry: null,
 			selectedRouteSource: null,
@@ -124,10 +132,14 @@ export const load: PageServerLoad = async ({ url, locals: { supabase, safeGetSes
 		supabase,
 		selection.selectedRoute.geo_route_id
 	);
+	const selectedRouteTags = selection.selectedRoute.geo_route_id
+		? await listRouteTags(supabase, selection.selectedRoute.geo_route_id)
+		: [];
 
 	return {
 		routeSelectionInvalid: false,
 		selectedRoute: selection.selectedRoute,
+		selectedRouteTags,
 		selectedSubscription: selection.selectedSubscription,
 		selectedRouteGeometry,
 		selectedRouteSource: selection.selectedRouteSource,

@@ -7,6 +7,7 @@
 	import RouteSubscribeButton from '$lib/components/routes/RouteSubscribeButton.svelte';
 	import * as Button from '$lib/components/ui/button';
 	import { cn } from '$lib/utils';
+	import { type RouteAccessibilityTag } from '$lib/validation/schemas';
 	import { Accessibility, Bell, Clock, Coins, Info, MapPin, Settings2, X } from '@lucide/svelte';
 
 	let { data } = $props();
@@ -42,11 +43,20 @@
 
 	let selectedRoute = $state<RouteGeometry | null>(null);
 	let hasSelectedRoutePopup = $derived(Boolean(data.selectedRoute));
+	let routeTags = $derived((data.selectedRouteTags ?? []) as RouteAccessibilityTag[]);
 
 	$effect(() => {
 		const geometry = data.selectedRouteGeometry as RouteGeometry | null;
 		selectedRoute = data.selectedRoute && geometry ? geometry : null;
 	});
+
+	function formatTagLabel(tag: RouteAccessibilityTag) {
+		if (tag === 'pwd-friendly') return 'PWD-friendly';
+		if (tag === 'id-required') return 'ID-required';
+		if (tag === 'under-50-pesos') return 'Under 50 pesos';
+		if (tag === 'under-100-pesos') return 'Under 100 pesos';
+		return tag;
+	}
 
 	async function closeSelectedRoutePopup() {
 		const nextUrl = new URL(page.url);
@@ -160,6 +170,14 @@
 							Subscribed
 						</span>
 					{/if}
+
+					{#each routeTags as tag (tag)}
+						<span
+							class="inline-flex items-center gap-1.5 rounded-full bg-brand/10 px-3 py-1.5 text-xs font-medium text-brand"
+						>
+							{formatTagLabel(tag)}
+						</span>
+					{/each}
 				</div>
 
 				<div class="mt-3 flex flex-wrap gap-2" aria-label="Route time and fare">
@@ -213,6 +231,7 @@
 						for it.
 					</div>
 				{/if}
+
 			</article>
 		</div>
 	{/if}

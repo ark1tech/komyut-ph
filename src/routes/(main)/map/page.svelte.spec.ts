@@ -26,11 +26,12 @@ function buildMapPageData() {
 	return {
 		routeSelectionInvalid: false,
 		selectedRoute: null,
+		selectedRouteTags: [],
 		selectedSubscription: null,
 		selectedRouteGeometry: null,
 		selectedRouteSource: null,
 		traceMode: false
-	} as import('./$types').PageData;
+	} as unknown as import('./$types').PageData;
 }
 
 /* ════════════════════════════════════════════════════════════════

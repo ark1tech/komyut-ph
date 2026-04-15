@@ -45,11 +45,21 @@ export const routeVehicleTypeOptions = [
 
 export const routeVehicleTypeSchema = z.enum(routeVehicleTypeOptions);
 
+export const routeAccessibilityTagOptions = [
+	'pwd-friendly',
+	'id-required',
+	'under-50-pesos',
+	'under-100-pesos'
+] as const;
+
+export const routeAccessibilityTagSchema = z.enum(routeAccessibilityTagOptions);
+
 export const routeMetadataSchema = z.object({
 	route_name: z.string().trim().min(1, 'Route name is required').max(255),
 	start_loc: z.string().trim().min(1, 'Start location is required').max(255),
 	end_loc: z.string().trim().min(1, 'End location is required').max(255),
 	vehicle_types: z.array(routeVehicleTypeSchema).min(1, 'Choose at least one vehicle type'),
+	route_tags: z.array(routeAccessibilityTagSchema).default([]),
 	pwd_friendly: z.boolean(),
 	est_time_of_arrival: z.coerce.number().int().positive('ETA must be a positive whole number'),
 	fare: z.coerce.number().nonnegative('Fare must be zero or greater')
@@ -307,5 +317,6 @@ export type RouteSubscriptionCreateInput = z.infer<typeof routeSubscriptionCreat
 export type RouteNotificationDTO = z.infer<typeof routeNotificationSchema>;
 export type RouteChangeEventDTO = z.infer<typeof routeChangeEventSchema>;
 export type RouteVehicleType = z.infer<typeof routeVehicleTypeSchema>;
+export type RouteAccessibilityTag = z.infer<typeof routeAccessibilityTagSchema>;
 export type RouteMetadataInput = z.infer<typeof routeMetadataSchema>;
 export type MapRouteCreateInput = z.infer<typeof mapRouteCreateSchema>;

@@ -169,23 +169,48 @@ describe('GET /api/map/routes', () => {
 	});
 });
 
+type MockPostEvent = Parameters<typeof POST>[0] & {
+	_tagSelectIn: ReturnType<typeof vi.fn>;
+	_routeTagInsert: ReturnType<typeof vi.fn>;
+};
+
 /**
  * Creates a mock RequestEvent for the POST handler
  */
 function mockPostEvent(body: unknown, supabaseOverrides: Record<string, unknown> = {}) {
 	const mockData = supabaseOverrides.data ?? { route_id: 1 };
 	const mockError = supabaseOverrides.error ?? null;
+	const mockTagLookupError = supabaseOverrides.tagLookupError ?? null;
+	const mockTagRows =
+		supabaseOverrides.tagRows ??
+		[
+			{ tag_id: 1, text: 'pwd-friendly' },
+			{ tag_id: 2, text: 'under-50-pesos' }
+		];
+	const mockRouteTagInsertError = supabaseOverrides.routeTagInsertError ?? null;
+
+	const routeInsert = vi.fn().mockReturnValue({
+		select: vi.fn().mockReturnValue({
+			single: vi.fn().mockResolvedValue({
+				data: mockData,
+				error: mockError
+			})
+		})
+	});
+
+	const tagSelectIn = vi.fn().mockResolvedValue({
+		data: mockTagRows,
+		error: mockTagLookupError
+	});
+	const tagSelect = vi.fn().mockReturnValue({ in: tagSelectIn });
+	const routeTagInsert = vi.fn().mockResolvedValue({ error: mockRouteTagInsertError });
 
 	const supabase = {
-		from: vi.fn().mockReturnValue({
-			insert: vi.fn().mockReturnValue({
-				select: vi.fn().mockReturnValue({
-					single: vi.fn().mockResolvedValue({
-						data: mockData,
-						error: mockError
-					})
-				})
-			})
+		from: vi.fn((table: string) => {
+			if (table === 'route') return { insert: routeInsert };
+			if (table === 'tag') return { select: tagSelect };
+			if (table === 'route_tag') return { insert: routeTagInsert };
+			throw new Error(`Unexpected table: ${table}`);
 		})
 	};
 
@@ -193,8 +218,10 @@ function mockPostEvent(body: unknown, supabaseOverrides: Record<string, unknown>
 		request: {
 			json: async () => body
 		},
-		locals: { supabase }
-	} as unknown as Parameters<typeof POST>[0];
+		locals: { supabase },
+		_tagSelectIn: tagSelectIn,
+		_routeTagInsert: routeTagInsert
+	} as unknown as MockPostEvent;
 }
 
 function buildValidRouteCreateBody(overrides: Record<string, unknown> = {}) {
@@ -294,6 +321,24 @@ describe('POST /api/map/routes', () => {
 				}
 			});
 		});
+
+		it('should attach tags when route_tags are provided during route creation', async () => {
+			const event = mockPostEvent(
+				buildValidRouteCreateBody({ route_tags: ['pwd-friendly', 'under-50-pesos'] }),
+				{ data: { route_id: 77 } }
+			);
+
+			await POST(event);
+
+			expect(event._tagSelectIn).toHaveBeenCalledWith('text', [
+				'pwd-friendly',
+				'under-50-pesos'
+			]);
+			expect(event._routeTagInsert).toHaveBeenCalledWith([
+				{ route_id: 77, tag_id: 1 },
+				{ route_id: 77, tag_id: 2 }
+			]);
+		});
 	});
 
 	describe('error handling', () => {
@@ -306,6 +351,21 @@ describe('POST /api/map/routes', () => {
 			const body = await response.json();
 
 			expect(body.error).toBe('failed to create route');
+		});
+
+		it('should return 400 when provided route tag cannot be resolved', async () => {
+			const event = mockPostEvent(
+				buildValidRouteCreateBody({ route_tags: ['pwd-friendly'] }),
+				{
+					data: { route_id: 88 },
+					tagRows: []
+				}
+			);
+			const response = await POST(event);
+			const body = await response.json();
+
+			expect(response.status).toBe(400);
+			expect(body.error).toBe('failed to create route tags');
 		});
 	});
 });
