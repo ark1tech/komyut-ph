@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { ArrowLeft, Bell } from '@lucide/svelte';
+	import * as Button from '$lib/components/ui/button';
+	import CirclePlusIcon from '@lucide/svelte/icons/plus-circle';
 	import UnifiedSearchBar from '$lib/components/shared/UnifiedSearchBar.svelte';
 	import iconBlue from '$lib/images/komyut_icon_blue.svg';
 	import textBlue from '$lib/images/komyut_text_blue.svg';
@@ -67,7 +69,15 @@
 				</span>
 			{/if}
 		</a>
-	</div>
 
+	</div>
+	
 	{@render children()}
+	<Button.Root
+		variant="default"
+		size="sm"
+		class="width-20 height-20 fixed bottom-18 right-6 z-20 shadow-md"
+	>
+		<CirclePlusIcon class=""></CirclePlusIcon>
+	</Button.Root>
 </div>
