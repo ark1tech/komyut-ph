@@ -15,6 +15,7 @@
 		distance_m: number;
 		from: [number, number];
 		to: [number, number];
+		geometry?: GeoJSON.LineString;
 	}
 
 	interface RideLeg {
@@ -32,6 +33,9 @@
 		itinerary: ItineraryLeg[] | null;
 		summary?: { transfers: number; walk_distance_m: number };
 		message?: string;
+		/** Resolved [lng, lat] — same points used for routing; use for map pins. */
+		origin?: [number, number];
+		destination?: [number, number];
 	};
 	type SearchSuggestionResponse = {
 		routes: Array<{
@@ -56,6 +60,9 @@
 		};
 		fromName: string;
 		toName: string;
+		/** Resolved O/D [lng, lat] from the API — pins must match these, not last ride alight. */
+		originCoord: [number, number];
+		destinationCoord: [number, number];
 	}
 
 	interface Props {
@@ -348,11 +355,25 @@
 				return;
 			}
 
+			const originCoord = data.origin;
+			const destinationCoord = data.destination;
+			if (
+				!originCoord ||
+				!destinationCoord ||
+				originCoord.length !== 2 ||
+				destinationCoord.length !== 2
+			) {
+				errorMessage = 'Something went wrong. Please try again.';
+				return;
+			}
+
 			onnav?.({
 				itinerary: data.itinerary,
 				summary: data.summary ?? { transfers: 0, walk_distance_m: 0 },
 				fromName: fromQuery.trim(),
-				toName: toQuery.trim()
+				toName: toQuery.trim(),
+				originCoord,
+				destinationCoord
 			});
 		} catch {
 			errorMessage = 'Network error. Check your connection and try again.';

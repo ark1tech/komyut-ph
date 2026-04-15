@@ -18,6 +18,7 @@
 		distance_m: number;
 		from: [number, number];
 		to: [number, number];
+		geometry?: GeoJSON.LineString;
 	}
 
 	type ItineraryLeg = WalkLeg | RideLeg;

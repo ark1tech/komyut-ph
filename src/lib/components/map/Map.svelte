@@ -881,18 +881,20 @@
 
 			if (leg.type === 'walk') {
 				const srcId = `nav-leg-${i}`;
+				const walkCoords =
+					leg.geometry?.coordinates && leg.geometry.coordinates.length >= 2
+						? (leg.geometry.coordinates as [number, number][])
+						: [leg.from, leg.to];
 				const geojson: GeoJSON.FeatureCollection = {
 					type: 'FeatureCollection',
-					features: [
-						{
-							type: 'Feature',
-							properties: {},
-							geometry: {
-								type: 'LineString',
-								coordinates: [leg.from, leg.to]
-							}
+					features: [{
+						type: 'Feature',
+						properties: {},
+						geometry: {
+							type: 'LineString',
+							coordinates: walkCoords
 						}
-					]
+					}]
 				};
 				m.addSource(srcId, { type: 'geojson', data: geojson });
 				m.addLayer({
@@ -940,9 +942,11 @@
 		});
 	}
 
-	function getNavEndpoints(
-		result: NavigationResult
-	): { start: [number, number]; end: [number, number] } | null {
+	function getNavEndpoints(result: NavigationResult): { start: [number, number]; end: [number, number] } | null {
+		// Prefer API-resolved coordinates so the destination pin matches search/geocode, not the last ride alight on the corridor.
+		if (result.originCoord && result.destinationCoord) {
+			return { start: result.originCoord, end: result.destinationCoord };
+		}
 		const firstLeg = result.itinerary[0];
 		const lastLeg = result.itinerary[result.itinerary.length - 1];
 		if (!firstLeg || !lastLeg) return null;
@@ -1009,8 +1013,13 @@
 			const bounds = new maplibregl.LngLatBounds();
 			for (const leg of result.itinerary) {
 				if (leg.type === 'walk') {
-					bounds.extend(leg.from);
-					bounds.extend(leg.to);
+					const wc = leg.geometry?.coordinates;
+					if (wc && wc.length > 0) {
+						for (const c of wc) bounds.extend(c as [number, number]);
+					} else {
+						bounds.extend(leg.from);
+						bounds.extend(leg.to);
+					}
 				} else {
 					for (const c of leg.geometry.coordinates) bounds.extend(c as [number, number]);
 				}
