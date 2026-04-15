@@ -225,6 +225,7 @@ export type Database = {
 					start_loc: string;
 					start_loc_osmid: number | null;
 					vehicle_types: string[];
+					mode_segments: Json | null;
 				};
 				Insert: {
 					created_at?: string;
@@ -239,6 +240,7 @@ export type Database = {
 					start_loc?: string;
 					start_loc_osmid?: number | null;
 					vehicle_types?: string[];
+					mode_segments?: Json | null;
 				};
 				Update: {
 					created_at?: string;
@@ -253,6 +255,7 @@ export type Database = {
 					start_loc?: string;
 					start_loc_osmid?: number | null;
 					vehicle_types?: string[];
+					mode_segments?: Json | null;
 				};
 				Relationships: [];
 			};
@@ -424,7 +427,63 @@ export type Database = {
 			};
 		};
 		Views: Record<string, never>;
-		Functions: Record<string, never>;
+		Functions: {
+			resolve_location_to_point: {
+				Args: { search_term: string };
+				Returns: Json | null;
+			};
+			get_routes_near_point: {
+				Args: {
+					origin_geojson: Json;
+					dest_geojson: Json;
+					radius_m?: number;
+				};
+				Returns: Array<{
+					route_id: number;
+					route_name: string;
+					vehicle_types: string[];
+					mode_segments: Json | null;
+					geometry_json: Json;
+					board_point: Json;
+					is_direct: boolean;
+				}>;
+			};
+			get_routes_near_geom: {
+				Args: {
+					current_geojson: Json;
+					board_geojson: Json;
+					dest_geojson: Json;
+					visited_ids: number[];
+					radius_m?: number;
+				};
+				Returns: Array<{
+					route_id: number;
+					route_name: string;
+					vehicle_types: string[];
+					mode_segments: Json | null;
+					geometry_json: Json;
+					board_point: Json;
+					alight_point: Json;
+					is_direction_valid: boolean;
+					is_destination_hit: boolean;
+				}>;
+			};
+			clip_route_geometry: {
+				Args: {
+					route_geojson: Json;
+					board_geojson: Json;
+					alight_geojson: Json;
+				};
+				Returns: Json | null;
+			};
+			get_walk_distance_m: {
+				Args: {
+					from_geojson: Json;
+					to_geojson: Json;
+				};
+				Returns: number;
+			};
+		};
 		Enums: {
 			notification_kind: 'upvote' | 'downvote' | 'comment' | 'route_alert';
 			route_subscription_status: 'active' | 'muted' | 'unsubscribed';

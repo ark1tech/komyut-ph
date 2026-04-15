@@ -40,7 +40,8 @@ export const routeVehicleTypeOptions = [
 	'LRT-2',
 	'UV Express',
 	'Tricycle',
-	'Shuttle'
+	'Shuttle',
+	'Walk'
 ] as const;
 
 export const routeVehicleTypeSchema = z.enum(routeVehicleTypeOptions);
@@ -76,6 +77,12 @@ export const mapRouteQuerySchema = z.object({
 		.transform((v: string) => Number(v))
 });
 
+export const modeSegmentSchema = z.object({
+	mode: routeVehicleTypeSchema,
+	from: z.tuple([z.number(), z.number()]),
+	to: z.tuple([z.number(), z.number()])
+});
+
 export const mapRouteCreateSchema = routeMetadataSchema.extend({
 	start_loc_osmid: z.number().int(),
 	end_loc_osmid: z.number().int(),
@@ -84,7 +91,8 @@ export const mapRouteCreateSchema = routeMetadataSchema.extend({
 		coordinates: z
 			.array(z.tuple([z.number(), z.number()]))
 			.min(2, 'Route must have at least 2 points')
-	})
+	}),
+	mode_segments: z.array(modeSegmentSchema).optional()
 });
 
 export const userProfileUpdateSchema = z.object({
@@ -320,3 +328,8 @@ export type RouteVehicleType = z.infer<typeof routeVehicleTypeSchema>;
 export type RouteAccessibilityTag = z.infer<typeof routeAccessibilityTagSchema>;
 export type RouteMetadataInput = z.infer<typeof routeMetadataSchema>;
 export type MapRouteCreateInput = z.infer<typeof mapRouteCreateSchema>;
+export type ModeSegment = {
+	mode: RouteVehicleType;
+	from: [number, number];
+	to: [number, number];
+};
