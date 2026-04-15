@@ -3,6 +3,8 @@
 	import maplibregl, { type GeoJSONSource } from 'maplibre-gl';
 	import 'maplibre-gl/dist/maplibre-gl.css';
 	import * as Button from '$lib/components/ui/button';
+	import RouteTraceSaveDrawer from '$lib/components/map/RouteTraceSaveDrawer.svelte';
+	import type { RouteMetadataInput } from '$lib/validation/schemas';
 	import { PenLine } from '@lucide/svelte';
 
 	interface Route {
@@ -49,6 +51,8 @@
 	let tracedPoints = $state<[number, number][]>([]);
 	let traceMarkers: maplibregl.Marker[] = [];
 	let savingRoute = $state(false);
+	let traceMetadataOpen = $state(false);
+	let traceSaveError = $state<string | null>(null);
 
 	// Hardcoded start/end location OSM IDs for traced route saving
 	const TRACE_START_LOC = 371357222;
@@ -153,10 +157,7 @@
 		if (!map || !selectedRoute) return;
 		const geometry = parseGeometry(selectedRoute.geometry);
 		if (!geometry) return;
-		const userLngLat: [number, number] = [
-			position.coords.longitude,
-			position.coords.latitude
-		];
+		const userLngLat: [number, number] = [position.coords.longitude, position.coords.latitude];
 		fitBoundsForRouteAndUser(geometry, userLngLat);
 	}
 
@@ -208,6 +209,8 @@
 		tracedPoints = [];
 		clearTraceMarkers();
 		removeTraceLayers();
+		traceMetadataOpen = false;
+		traceSaveError = null;
 		if (map) {
 			map.getCanvas().style.cursor = 'crosshair';
 		}
@@ -218,9 +221,17 @@
 		tracedPoints = [];
 		clearTraceMarkers();
 		removeTraceLayers();
+		traceMetadataOpen = false;
+		traceSaveError = null;
 		if (map) {
 			map.getCanvas().style.cursor = '';
 		}
+	}
+
+	function openTraceMetadataPrompt() {
+		if (tracedPoints.length < 2 || savingRoute) return;
+		traceSaveError = null;
+		traceMetadataOpen = true;
 	}
 
 	function clearTraceMarkers() {
@@ -313,15 +324,17 @@
 		updateTraceLine();
 	}
 
-	async function saveTracedRoute() {
+	async function saveTracedRoute(metadata: RouteMetadataInput) {
 		if (tracedPoints.length < 2) return;
 
 		savingRoute = true;
+		traceSaveError = null;
 		try {
 			const response = await fetch('/api/map/routes', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
+					...metadata,
 					start_loc_osmid: TRACE_START_LOC,
 					end_loc_osmid: TRACE_END_LOC,
 					geometry: {
@@ -332,17 +345,27 @@
 			});
 
 			if (!response.ok) {
-				console.error('Failed to save route:', response.status);
-				return;
+				const body = (await response.json().catch(() => null)) as {
+					message?: string;
+					error?: string;
+				} | null;
+				throw new Error(body?.message ?? body?.error ?? 'Failed to save route');
 			}
 
+			traceMetadataOpen = false;
 			cancelTracing();
 			await onTraceSessionEnd?.();
 		} catch (err) {
+			traceSaveError = err instanceof Error ? err.message : 'Error saving route';
 			console.error('Error saving route:', err);
+			throw err;
 		} finally {
 			savingRoute = false;
 		}
+	}
+
+	async function handleTraceMetadataSave(metadata: RouteMetadataInput) {
+		await saveTracedRoute(metadata);
 	}
 
 	function onMapClickForTracing(e: maplibregl.MapMouseEvent) {
@@ -479,7 +502,7 @@
 
 {#if tracingMode && !controlsHidden}
 	<div
-		class="pointer-events-none absolute top-4 left-4 z-20 max-w-[min(100%-2rem,20rem)] px-4 sm:left-auto sm:right-4"
+		class="pointer-events-none absolute top-4 left-4 z-20 max-w-[min(100%-2rem,20rem)] px-4 sm:right-4 sm:left-auto"
 	>
 		<div
 			class="pointer-events-auto flex items-start gap-2 rounded-2xl border border-border/60 bg-card/95 p-3 text-sm shadow-lg backdrop-blur"
@@ -502,7 +525,7 @@
 	</div>
 
 	<div
-		class="absolute bottom-6 left-4 right-4 z-20 flex flex-wrap items-center justify-center gap-2 sm:left-auto sm:right-auto sm:justify-start"
+		class="absolute right-4 bottom-6 left-4 z-20 flex flex-wrap items-center justify-center gap-2 sm:right-auto sm:left-auto sm:justify-start"
 	>
 		<Button.Root
 			variant="outline"
@@ -518,14 +541,26 @@
 			size="sm"
 			class="bg-success text-success-foreground shadow-md hover:bg-success/90"
 			disabled={tracedPoints.length < 2 || savingRoute}
-			onclick={() => void saveTracedRoute()}
+			onclick={openTraceMetadataPrompt}
 		>
-			{savingRoute ? 'Saving…' : 'Save route'}
+			Save route
 		</Button.Root>
-		<Button.Root variant="ghost" size="sm" class="shadow-sm" onclick={() => void handleCancelTrace()}>
+		<Button.Root
+			variant="ghost"
+			size="sm"
+			class="shadow-sm"
+			onclick={() => void handleCancelTrace()}
+		>
 			Cancel
 		</Button.Root>
 	</div>
 {/if}
+
+<RouteTraceSaveDrawer
+	bind:open={traceMetadataOpen}
+	saving={savingRoute}
+	errorMessage={traceSaveError}
+	onsave={handleTraceMetadataSave}
+/>
 
 <div bind:this={container} class="absolute inset-0 h-full w-full"></div>

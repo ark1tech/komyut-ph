@@ -197,6 +197,28 @@ function mockPostEvent(body: unknown, supabaseOverrides: Record<string, unknown>
 	} as unknown as Parameters<typeof POST>[0];
 }
 
+function buildValidRouteCreateBody(overrides: Record<string, unknown> = {}) {
+	return {
+		route_name: 'Cubao to Alabang',
+		start_loc: 'Cubao',
+		end_loc: 'Alabang',
+		vehicle_types: ['Bus', 'Jeepney'],
+		pwd_friendly: true,
+		est_time_of_arrival: 45,
+		fare: 35,
+		start_loc_osmid: 100,
+		end_loc_osmid: 200,
+		geometry: {
+			type: 'LineString',
+			coordinates: [
+				[0, 0],
+				[1, 1]
+			]
+		},
+		...overrides
+	};
+}
+
 describe('POST /api/map/routes', () => {
 	describe('input validation', () => {
 		it('should return 400 when body is missing required fields', async () => {
@@ -205,8 +227,15 @@ describe('POST /api/map/routes', () => {
 			await expect(POST(event)).rejects.toThrow();
 		});
 
+		it('should return 400 when vehicle types include an unsupported value', async () => {
+			const event = mockPostEvent(buildValidRouteCreateBody({ vehicle_types: ['MRT'] }));
+
+			await expect(POST(event)).rejects.toThrow();
+		});
+
 		it('should return 400 when geometry has fewer than 2 points', async () => {
 			const event = mockPostEvent({
+				...buildValidRouteCreateBody(),
 				start_loc_osmid: 1,
 				end_loc_osmid: 2,
 				geometry: { type: 'LineString', coordinates: [[0, 0]] }
@@ -217,6 +246,7 @@ describe('POST /api/map/routes', () => {
 
 		it('should return 400 when geometry type is not LineString', async () => {
 			const event = mockPostEvent({
+				...buildValidRouteCreateBody(),
 				start_loc_osmid: 1,
 				end_loc_osmid: 2,
 				geometry: { type: 'Point', coordinates: [0, 0] }
@@ -228,20 +258,7 @@ describe('POST /api/map/routes', () => {
 
 	describe('successful creation', () => {
 		it('should create a route and return 201', async () => {
-			const event = mockPostEvent(
-				{
-					start_loc_osmid: 100,
-					end_loc_osmid: 200,
-					geometry: {
-						type: 'LineString',
-						coordinates: [
-							[0, 0],
-							[1, 1]
-						]
-					}
-				},
-				{ data: { route_id: 42 } }
-			);
+			const event = mockPostEvent(buildValidRouteCreateBody(), { data: { route_id: 42 } });
 			const response = await POST(event);
 			const body = await response.json();
 
@@ -251,20 +268,7 @@ describe('POST /api/map/routes', () => {
 		});
 
 		it('should call supabase insert with correct data', async () => {
-			const event = mockPostEvent(
-				{
-					start_loc_osmid: 100,
-					end_loc_osmid: 200,
-					geometry: {
-						type: 'LineString',
-						coordinates: [
-							[0, 0],
-							[1, 1]
-						]
-					}
-				},
-				{ data: { route_id: 1 } }
-			);
+			const event = mockPostEvent(buildValidRouteCreateBody(), { data: { route_id: 1 } });
 			await POST(event);
 
 			const fromCall = event.locals.supabase.from as ReturnType<typeof vi.fn>;
@@ -272,6 +276,13 @@ describe('POST /api/map/routes', () => {
 
 			const insertCall = fromCall.mock.results[0].value.insert;
 			expect(insertCall).toHaveBeenCalledWith({
+				route_name: 'Cubao to Alabang',
+				start_loc: 'Cubao',
+				end_loc: 'Alabang',
+				vehicle_types: ['Bus', 'Jeepney'],
+				pwd_friendly: true,
+				est_time_of_arrival: 45,
+				fare: 35,
 				start_loc_osmid: 100,
 				end_loc_osmid: 200,
 				geometry: {
@@ -287,20 +298,10 @@ describe('POST /api/map/routes', () => {
 
 	describe('error handling', () => {
 		it('should return 500 when supabase insert fails', async () => {
-			const event = mockPostEvent(
-				{
-					start_loc_osmid: 100,
-					end_loc_osmid: 200,
-					geometry: {
-						type: 'LineString',
-						coordinates: [
-							[0, 0],
-							[1, 1]
-						]
-					}
-				},
-				{ error: { message: 'Insert failed' }, data: null }
-			);
+			const event = mockPostEvent(buildValidRouteCreateBody(), {
+				error: { message: 'Insert failed' },
+				data: null
+			});
 			const response = await POST(event);
 			const body = await response.json();
 

@@ -32,6 +32,29 @@ export const mapLocationQuerySchema = z.object({
 	q: z.string().trim().min(1, 'Search query is required').max(120, 'Search query is too long')
 });
 
+export const routeVehicleTypeOptions = [
+	'Bus',
+	'Jeepney',
+	'MRT-3',
+	'LRT-1',
+	'LRT-2',
+	'UV Express',
+	'Tricycle',
+	'Shuttle'
+] as const;
+
+export const routeVehicleTypeSchema = z.enum(routeVehicleTypeOptions);
+
+export const routeMetadataSchema = z.object({
+	route_name: z.string().trim().min(1, 'Route name is required').max(255),
+	start_loc: z.string().trim().min(1, 'Start location is required').max(255),
+	end_loc: z.string().trim().min(1, 'End location is required').max(255),
+	vehicle_types: z.array(routeVehicleTypeSchema).min(1, 'Choose at least one vehicle type'),
+	pwd_friendly: z.boolean(),
+	est_time_of_arrival: z.coerce.number().int().positive('ETA must be a positive whole number'),
+	fare: z.coerce.number().nonnegative('Fare must be zero or greater')
+});
+
 export const mapRouteQuerySchema = z.object({
 	start: z
 		.string()
@@ -43,7 +66,7 @@ export const mapRouteQuerySchema = z.object({
 		.transform((v: string) => Number(v))
 });
 
-export const mapRouteCreateSchema = z.object({
+export const mapRouteCreateSchema = routeMetadataSchema.extend({
 	start_loc_osmid: z.number().int(),
 	end_loc_osmid: z.number().int(),
 	geometry: z.object({
@@ -61,15 +84,7 @@ export const userProfileUpdateSchema = z.object({
 	avatar_url: z.string().url().max(2048).nullable().optional()
 });
 
-export const savedRouteCreateSchema = z.object({
-	route_name: z.string().min(1).max(255),
-	start_loc: z.string().min(1).max(255),
-	end_loc: z.string().min(1).max(255),
-	vehicle_types: z.array(z.string().min(1)).min(1),
-	pwd_friendly: z.boolean().default(false),
-	est_time_of_arrival: z.number().int().positive(),
-	fare: z.number().nonnegative()
-});
+export const savedRouteCreateSchema = routeMetadataSchema;
 
 export const routeIdParamSchema = z.object({
 	routeId: z.coerce.number().int().positive()
@@ -291,3 +306,6 @@ export type RouteSubscriptionPreferenceInput = z.infer<typeof routeSubscriptionP
 export type RouteSubscriptionCreateInput = z.infer<typeof routeSubscriptionCreateSchema>;
 export type RouteNotificationDTO = z.infer<typeof routeNotificationSchema>;
 export type RouteChangeEventDTO = z.infer<typeof routeChangeEventSchema>;
+export type RouteVehicleType = z.infer<typeof routeVehicleTypeSchema>;
+export type RouteMetadataInput = z.infer<typeof routeMetadataSchema>;
+export type MapRouteCreateInput = z.infer<typeof mapRouteCreateSchema>;

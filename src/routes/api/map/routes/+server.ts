@@ -60,12 +60,30 @@ export const POST: RequestHandler = async (event) => {
 		return error(400, 'Invalid route data');
 	}
 
-	const { start_loc_osmid, end_loc_osmid, geometry } = parsed.data;
+	const {
+		route_name,
+		start_loc,
+		end_loc,
+		vehicle_types,
+		pwd_friendly,
+		est_time_of_arrival,
+		fare,
+		start_loc_osmid,
+		end_loc_osmid,
+		geometry
+	} = parsed.data;
 
 	try {
 		const { data, error: dbError } = await supabase
 			.from('route')
 			.insert({
+				route_name,
+				start_loc,
+				end_loc,
+				vehicle_types,
+				pwd_friendly,
+				est_time_of_arrival,
+				fare,
 				start_loc_osmid,
 				end_loc_osmid,
 				geometry
