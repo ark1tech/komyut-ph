@@ -53,3 +53,38 @@ export const load: PageServerLoad = async ({ locals: { supabase } }) => {
 		commentCounts
 	};
 };
+
+// +layout.server.ts
+export const actions = {
+  createPost: async ({ request, locals }) => {
+    const { session, user } = await locals.safeGetSession();
+
+    if (!session || !user) {
+      return { error: 'Not logged in' };
+    }
+
+    const formData = await request.formData();
+
+	const title = formData.get('title') as string;
+    const body = formData.get('body') as string;
+
+
+
+    const { error: insertError } = await locals.supabase
+		.from('post')
+		.insert([
+			{
+				author_id: user.id,
+				title,
+				body
+			}
+		]);
+	
+	if (insertError) {
+		console.error(insertError);
+		return { error: 'Insert failed' };
+	}
+
+    return { success: true };
+  }
+};
