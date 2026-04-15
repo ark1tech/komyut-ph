@@ -8,7 +8,7 @@
 	import * as Button from '$lib/components/ui/button';
 	import { cn } from '$lib/utils';
 	import { type RouteAccessibilityTag } from '$lib/validation/schemas';
-	import { Accessibility, Bell, Clock, Coins, Info, MapPin, Settings2, X } from '@lucide/svelte';
+	import { Accessibility, Bell, Clock, Coins, Info, MapPin, Navigation2, Settings2, X } from '@lucide/svelte';
 
 	let { data } = $props();
 
@@ -74,6 +74,9 @@
 		// eslint-disable-next-line svelte/no-navigation-without-resolve
 		await goto(target, { keepFocus: true, noScroll: true, replaceState: true });
 	}
+
+	/** Toggle between route-search bar and navigate-search bar. */
+	let showNavSearch = $state(false);
 </script>
 
 <svelte:head>
@@ -87,6 +90,7 @@
 		controlsHidden={hasSelectedRoutePopup}
 		tracingActive={data.traceMode}
 		onTraceSessionEnd={clearTraceQuery}
+		{showNavSearch}
 	/>
 
 	{#if data.routeSelectionInvalid}
@@ -235,7 +239,67 @@
 			</article>
 		</div>
 	{/if}
+
+	<!-- ── Navigation FAB ─────────────────────────────────────────────────────── -->
 	{#if !hasSelectedRoutePopup && !data.traceMode}
-		<MapSearchBar />
+		<!-- "Navigate" toggle button — appears top-left when route search is visible -->
+		<div class="pointer-events-none absolute top-4 left-4 z-20">
+			<button
+				type="button"
+				class="pointer-events-auto nav-fab"
+				class:nav-fab--active={showNavSearch}
+				id="nav-toggle-btn"
+				onclick={() => { showNavSearch = !showNavSearch; }}
+				aria-label={showNavSearch ? 'Switch to route search' : 'Plan a route'}
+				aria-pressed={showNavSearch}
+			>
+				<Navigation2 class="size-4" />
+				<span>{showNavSearch ? 'Search routes' : 'Navigate'}</span>
+			</button>
+		</div>
+
+		{#if !showNavSearch}
+			<MapSearchBar />
+		{/if}
 	{/if}
 </div>
+
+<style>
+	.nav-fab {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+		padding: 0.5rem 0.875rem;
+		border-radius: 99px;
+		background: var(--card);
+		border: 1px solid var(--border);
+		color: var(--foreground);
+		font-size: 0.8rem;
+		font-weight: 600;
+		cursor: pointer;
+		box-shadow:
+			0 4px 16px rgba(0, 0, 0, 0.15),
+			0 1px 3px rgba(0, 0, 0, 0.08);
+		backdrop-filter: blur(8px);
+		-webkit-backdrop-filter: blur(8px);
+		transition: background 150ms, color 150ms, box-shadow 150ms, transform 120ms;
+		letter-spacing: 0.01em;
+	}
+
+	.nav-fab:hover {
+		transform: translateY(-1px);
+		box-shadow:
+			0 6px 20px rgba(0, 0, 0, 0.18),
+			0 1px 4px rgba(0, 0, 0, 0.1);
+	}
+
+	.nav-fab:active {
+		transform: translateY(0);
+	}
+
+	.nav-fab--active {
+		background: var(--brand);
+		color: var(--brand-foreground);
+		border-color: var(--brand);
+	}
+</style>

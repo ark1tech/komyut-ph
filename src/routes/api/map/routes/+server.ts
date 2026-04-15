@@ -72,7 +72,8 @@ export const POST: RequestHandler = async (event) => {
 		fare,
 		start_loc_osmid,
 		end_loc_osmid,
-		geometry
+		geometry,
+		mode_segments
 	} = parsed.data;
 
 	try {
@@ -88,7 +89,8 @@ export const POST: RequestHandler = async (event) => {
 				fare,
 				start_loc_osmid,
 				end_loc_osmid,
-				geometry
+				geometry,
+				...(mode_segments !== undefined ? { mode_segments } : {})
 			})
 			.select('route_id')
 			.single();

@@ -256,7 +256,7 @@
 							{/if}
 						</div>
 						<div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-							{#each routeVehicleTypeOptions as vehicleType (vehicleType)}
+							{#each routeVehicleTypeOptions.filter((v) => v !== 'Walk') as vehicleType (vehicleType)}
 								<label
 									class={cn(
 										'flex cursor-pointer items-center gap-2 rounded-xl border px-3 py-2.5 text-sm transition-colors',
