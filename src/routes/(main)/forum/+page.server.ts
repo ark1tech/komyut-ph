@@ -54,7 +54,6 @@ export const load: PageServerLoad = async ({ locals: { supabase } }) => {
 	};
 };
 
-// +layout.server.ts
 export const actions = {
   createPost: async ({ request, locals }) => {
     const { session, user } = await locals.safeGetSession();
