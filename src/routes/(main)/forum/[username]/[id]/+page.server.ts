@@ -96,3 +96,36 @@ export const load: PageServerLoad = async ({ params, locals: { supabase } }) => 
 	};
 };
 
+export const actions = {
+	createComment: async ({ request, locals }) => {
+		const { session, user } = await locals.safeGetSession();
+		
+		if (!session || !user) {
+			return { error: 'Not logged in' };
+		}
+
+		const formData = await request.formData();
+
+		const body = formData.get('body') as string;
+		const parent_id = formData.get('parent_id') as string;
+
+
+
+		const { error: insertError } = await locals.supabase
+			.from('comment')
+			.insert([
+				{
+					author_id: user.id,
+					body,
+					parent_id
+				}
+			]);
+		
+		if (insertError) {
+			console.error(insertError);
+			return { error: 'Insert failed' };
+		}
+
+		return { success: true };
+	},
+};
