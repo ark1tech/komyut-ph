@@ -49,6 +49,23 @@ const WALK_STRAIGHTLINE_THRESHOLD_M = 50;
 /** Minimum length (m) for a slice of `mode_segments` along the leg interval. */
 const MIN_MODE_SLICE_M = 2;
 
+/** Plans must cover the leg interval within this (m) at both ends; avoids partial mode coverage. */
+const MODE_COVER_END_EPS_M = 45;
+
+/** If consecutive mode plans gap by more than this along the path, expansion is invalid. */
+const MODE_PLAN_GAP_MAX_M = 25;
+
+/**
+ * If PostGIS clipped length and summed expanded slices disagree beyond this (relative + floor),
+ * keep the clipped ride (authoritative corridor) instead of re-sliced full-line geometry.
+ */
+function modeExpandLenMismatchM(clippedLen: number, expandedLen: number): boolean {
+	if (clippedLen < 25 || expandedLen < 25) return false;
+	const diff = Math.abs(expandedLen - clippedLen);
+	const tol = Math.max(150, 0.28 * Math.max(clippedLen, expandedLen));
+	return diff > tol;
+}
+
 function isGeoJsonPoint(val: unknown): val is GeoJsonPoint {
 	return (
 		typeof val === 'object' &&
@@ -248,7 +265,8 @@ function parseGeometryLineString(json: Json | null): GeoJsonLineString | null {
 function expandRideLegByModeSegments(
 	node: BfsNode,
 	boardCoord: [number, number],
-	alightCoord: [number, number]
+	alightCoord: [number, number],
+	clippedCoords: [number, number][]
 ): { legs: ItineraryLeg[]; corridorWalkM: number } | null {
 	const full = parseGeometryLineString(node.geometry_json);
 	if (!full) return null;
@@ -261,6 +279,9 @@ function expandRideLegByModeSegments(
 	const legLo = Math.min(dBoard, dAlight);
 	const legHi = Math.max(dBoard, dAlight);
 	if (legHi - legLo < MIN_MODE_SLICE_M) return null;
+
+	const clippedLenM =
+		clippedCoords.length >= 2 ? totalPolylineLengthM(clippedCoords) : 0;
 
 	type SegRow = { mode?: string; from?: [number, number]; to?: [number, number] };
 	type Plan = { lo: number; hi: number; mode: string };
@@ -277,6 +298,26 @@ function expandRideLegByModeSegments(
 
 	if (plans.length === 0) return null;
 	plans.sort((a, b) => a.lo - b.lo);
+
+	if (plans[0].lo > legLo + MODE_COVER_END_EPS_M || plans[plans.length - 1].hi < legHi - MODE_COVER_END_EPS_M) {
+		return null;
+	}
+	for (let j = 0; j < plans.length - 1; j++) {
+		const gap = plans[j + 1]!.lo - plans[j]!.hi;
+		if (gap > MODE_PLAN_GAP_MAX_M) return null;
+	}
+
+	let expandedLenM = 0;
+	for (const p of plans) {
+		const sliced = slicePolylineByDistanceInterval(fullCoords, p.lo, p.hi);
+		if (!sliced || sliced.length < 2) continue;
+		expandedLenM += totalPolylineLengthM(sliced);
+	}
+
+	const clipLooksDegenerate = clippedCoords.length < 3 || clippedLenM < 35;
+	if (!clipLooksDegenerate && modeExpandLenMismatchM(clippedLenM, expandedLenM)) {
+		return null;
+	}
 
 	const legs: ItineraryLeg[] = [];
 	let corridorWalkM = 0;
@@ -871,7 +912,7 @@ async function buildResponse(
 		}
 
 		const routeCoords = lineString.coordinates as [number, number][];
-		const expanded = expandRideLegByModeSegments(node, boardCoord, alightCoord);
+		const expanded = expandRideLegByModeSegments(node, boardCoord, alightCoord, routeCoords);
 		if (expanded) {
 			corridorWalkM += expanded.corridorWalkM;
 			for (const leg of expanded.legs) {
