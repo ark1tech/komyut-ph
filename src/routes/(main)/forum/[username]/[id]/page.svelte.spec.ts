@@ -98,7 +98,7 @@ describe('Forum Post Detail Page', () => {
 		it('should render the comment input area', async () => {
 			render(Page, { props: { data: buildPostDetailData() } });
 
-			const input = page.getByRole('textbox', { name: 'Forum Comment Input' });
+			const input = page.getByRole('form', { name: 'Forum Comment Input' });
 			await expect.element(input).toBeInTheDocument();
 		});
 
