@@ -88,6 +88,23 @@
 
 	/** Toggle between route-search bar and navigate-search bar. */
 	let showNavSearch = $state(false);
+
+	const ROUTE_TRACE_MODE_COLORS: Record<string, string> = {
+		Walk: '#6b7280',
+		Jeepney: '#f59e0b',
+		Bus: '#3b82f6',
+		'MRT-3': '#8b5cf6',
+		'LRT-1': '#10b981',
+		'LRT-2': '#ef4444',
+		'UV Express': '#06b6d4',
+		Tricycle: '#f97316',
+		Shuttle: '#84cc16'
+	};
+
+	function vehicleTypeBadgeStyle(vehicleType: string): string {
+		const color = ROUTE_TRACE_MODE_COLORS[vehicleType] ?? '#3b82f6';
+		return `color: ${color}; border-color: ${color}66; background-color: ${color}1A;`;
+	}
 </script>
 
 <svelte:head>
@@ -162,7 +179,8 @@
 				<div class="mt-3 flex flex-wrap gap-2" aria-label="Route attributes">
 					{#each data.selectedRoute.vehicle_types as vehicleType (vehicleType)}
 						<span
-							class="rounded-full bg-border/40 px-3 py-1.5 text-xs font-medium text-muted-foreground"
+							class="rounded-full border px-3 py-1.5 text-xs font-medium"
+							style={vehicleTypeBadgeStyle(vehicleType)}
 						>
 							{vehicleType}
 						</span>
